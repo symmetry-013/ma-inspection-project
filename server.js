@@ -1,4 +1,4 @@
-// ต้องติดตั้งแพ็กเกจเหล่านี้ก่อน: npm install express mongoose cors axios dotenv multer googleapis stream
+// ต้องติดตั้งแพ็กเกจเหล่านี้ก่อน: npm install express mongoose cors axios dotenv multer googleapis
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -8,6 +8,7 @@ const multer = require('multer');
 const { google } = require('googleapis');
 const stream = require('stream'); // เพิ่มสำหรับส่งไฟล์เข้า Google Drive จาก Memory
 const path = require('path');
+const crypto = require('crypto'); // ใช้สร้าง state ป้องกัน CSRF ตอนขอสิทธิ์ OAuth2
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -64,35 +65,149 @@ const upload = multer({
 });
 
 // ==========================================
-// 3. การตั้งค่า Google Drive API
+// 3. การตั้งค่า Google Drive API (OAuth2 ผ่านบัญชี Gmail ส่วนตัว)
 // ==========================================
-const authOptions = { scopes: ['https://www.googleapis.com/auth/drive'] };
+const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive'];
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI
+  || `http://localhost:${process.env.PORT || 3000}/auth/google/callback`;
+const ADMIN_KEY = process.env.ADMIN_KEY; // รหัสลับสำหรับเข้าหน้าเชื่อมต่อ Google (ตั้งเองใน .env)
 
-// ตรวจสอบว่ารันบน Render (มี JSON String ใน Environment) หรือ รันบนคอม Local (มีไฟล์ credentials.json)
-if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-  try {
-     authOptions.credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-  } catch (e) {
-     console.error("❌ Invalid GOOGLE_SERVICE_ACCOUNT_JSON format in .env");
-  }
-} else {
-  authOptions.keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || './credentials.json';
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+  console.error('❌ ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET ใน .env');
 }
 
-const auth = new google.auth.GoogleAuth(authOptions);
-const drive = google.drive({ version: 'v3', auth });
-const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1YYa-Cu1vu-Ei9a0qpJMFOTJxmQPN2srv';
+const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
+const drive = google.drive({ version: 'v3', auth: oauth2Client });
+const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '';
 
-// ฟังก์ชันอัปโหลดจาก Memory สู่ Google Drive
+// เก็บ Refresh Token ไว้ใน MongoDB (Render ไม่เก็บไฟล์ถาวร จึงไม่เซฟลงไฟล์)
+const OAuthToken = mongoose.model('OAuthToken', new mongoose.Schema({
+  key: { type: String, unique: true, default: 'google_drive' },
+  refresh_token: String,
+  updatedAt: { type: Date, default: Date.now }
+}));
+
+let driveAuthorized = false;
+
+function applyRefreshToken(refreshToken) {
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+  driveAuthorized = true;
+}
+
+async function saveRefreshToken(refreshToken) {
+  await OAuthToken.findOneAndUpdate(
+    { key: 'google_drive' },
+    { refresh_token: refreshToken, updatedAt: new Date() },
+    { upsert: true }
+  );
+}
+
+// ถ้า Google ออก refresh_token ใหม่ให้ ก็บันทึกทับอัตโนมัติ
+oauth2Client.on('tokens', (tokens) => {
+  if (tokens.refresh_token) {
+    saveRefreshToken(tokens.refresh_token).catch(e => console.error('❌ Save token error:', e.message));
+  }
+});
+
+// ลำดับการโหลดสิทธิ์: 1) GOOGLE_REFRESH_TOKEN ใน env  2) ที่เคยบันทึกไว้ใน MongoDB
+if (process.env.GOOGLE_REFRESH_TOKEN) {
+  applyRefreshToken(process.env.GOOGLE_REFRESH_TOKEN);
+  console.log('✅ Google Drive: ใช้ Refresh Token จาก Environment');
+} else {
+  mongoose.connection.once('open', async () => {
+    try {
+      const saved = await OAuthToken.findOne({ key: 'google_drive' });
+      if (saved && saved.refresh_token) {
+        applyRefreshToken(saved.refresh_token);
+        console.log('✅ Google Drive: โหลด Refresh Token จาก MongoDB แล้ว');
+      } else {
+        console.warn('⚠️ Google Drive ยังไม่ได้เชื่อมต่อ → เปิด /auth/google?key=<ADMIN_KEY> เพื่อล็อกอินด้วย Gmail');
+      }
+    } catch (e) {
+      console.error('❌ โหลด Google token ไม่สำเร็จ:', e.message);
+    }
+  });
+}
+
+// --- เส้นทางสำหรับเชื่อมต่อบัญชี Gmail (ทำครั้งเดียว) ---
+const pendingStates = new Map(); // state -> เวลาหมดอายุ
+
+function requireAdmin(req, res, next) {
+  if (!ADMIN_KEY) return res.status(503).send('กรุณาตั้งค่า ADMIN_KEY ใน Environment ก่อน');
+  if (req.query.key !== ADMIN_KEY) return res.status(403).send('Forbidden');
+  next();
+}
+
+// ขั้นที่ 1: เปิดลิงก์นี้ในเบราว์เซอร์ → เด้งไปหน้า Login ของ Google
+app.get('/auth/google', requireAdmin, (req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  pendingStates.set(state, Date.now() + 10 * 60 * 1000);
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline', // ต้องมี เพื่อให้ได้ refresh_token
+    prompt: 'consent',      // บังคับให้ออก refresh_token ใหม่ทุกครั้ง
+    scope: DRIVE_SCOPES,
+    state
+  });
+  res.redirect(url);
+});
+
+// ขั้นที่ 2: Google ส่งกลับมาที่นี่พร้อม code
+app.get('/auth/google/callback', async (req, res) => {
+  const { code, state, error } = req.query;
+  if (error) return res.status(400).send(`ยกเลิกหรือเกิดข้อผิดพลาด: ${error}`);
+
+  const expires = pendingStates.get(state);
+  pendingStates.delete(state);
+  if (!expires || expires < Date.now()) {
+    return res.status(400).send('state ไม่ถูกต้องหรือหมดอายุ กรุณาเริ่มใหม่ที่ /auth/google');
+  }
+
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    if (!tokens.refresh_token) {
+      return res.status(400).send('ไม่ได้รับ refresh_token — ไปที่ https://myaccount.google.com/permissions ลบสิทธิ์ของแอปนี้ แล้วเริ่มใหม่ที่ /auth/google');
+    }
+    applyRefreshToken(tokens.refresh_token);
+    await saveRefreshToken(tokens.refresh_token);
+
+    const about = await drive.about.get({ fields: 'user(emailAddress)' });
+    res.send(`✅ เชื่อมต่อ Google Drive สำเร็จด้วยบัญชี ${about.data.user.emailAddress} — ปิดหน้านี้ได้เลย`);
+  } catch (e) {
+    console.error('❌ OAuth callback error:', e.message);
+    res.status(500).send('เชื่อมต่อไม่สำเร็จ: ' + e.message);
+  }
+});
+
+// ตรวจสอบสถานะการเชื่อมต่อ + พื้นที่ Drive ที่ใช้ไป
+app.get('/auth/google/status', requireAdmin, async (req, res) => {
+  if (!driveAuthorized) return res.json({ connected: false });
+  try {
+    const about = await drive.about.get({ fields: 'user(emailAddress), storageQuota' });
+    res.json({ connected: true, account: about.data.user.emailAddress, storageQuota: about.data.storageQuota });
+  } catch (e) {
+    res.status(500).json({ connected: false, message: e.message });
+  }
+});
+
+// ฟังก์ชันอัปโหลดจาก Memory สู่ Google Drive (ใช้พื้นที่ของบัญชี Gmail ที่เชื่อมต่อ)
 async function uploadToDrive(file) {
+  if (!driveAuthorized) {
+    console.error('❌ Google Drive ยังไม่ได้เชื่อมต่อ (เปิด /auth/google?key=... ก่อน)');
+    return null;
+  }
   try {
     const bufferStream = new stream.PassThrough();
     bufferStream.end(file.buffer);
 
     const safeName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
 
+    const requestBody = { name: safeName };
+    if (GOOGLE_DRIVE_FOLDER_ID) requestBody.parents = [GOOGLE_DRIVE_FOLDER_ID];
+
     const response = await drive.files.create({
-      requestBody: { name: safeName, parents: [GOOGLE_DRIVE_FOLDER_ID] },
+      requestBody,
       media: { mimeType: file.mimetype, body: bufferStream },
       fields: 'id, name, webViewLink',
       supportsAllDrives: true,
@@ -111,7 +226,12 @@ async function uploadToDrive(file) {
       thumbnailUrl: `https://drive.google.com/thumbnail?id=${response.data.id}&sz=w1000`,
     };
   } catch (error) {
-    console.error('❌ Google Drive API Error:', error.message);
+    if (/invalid_grant/i.test(error.message)) {
+      driveAuthorized = false;
+      console.error('❌ Refresh Token หมดอายุ/ถูกเพิกถอน → เปิด /auth/google?key=... เพื่อเชื่อมต่อใหม่');
+    } else {
+      console.error('❌ Google Drive API Error:', error.message);
+    }
     return null;
   }
 }
@@ -120,7 +240,6 @@ async function uploadToDrive(file) {
 // 4. ข้อมูลสถานี
 // ==========================================
 const stationsData = {
-  // (วางข้อมูลลุ่มน้ำทั้งหมดของคุณไว้ตรงนี้ เหมือนเดิมได้เลยครับ)
   "เจ้าพระยา": {
     "TC.55": "TC.55", "TC.22": "TC.22", "TC.3": "TC.3", "T.ปตร.ลพบุรี": "T.ปตร.ลพบุรี", "TL.2B": "TL.2B", "T.ปตร.บรมธาตุ": "T.ปตร.บรมธาตุ", "T.ปตร.ผักไห่": "T.ปตร.ผักไห่", "T.ปตร.พลเทพ": "T.ปตร.พลเทพ", "TC.54": "TC.54", "TC.53": "TC.53", "TC.29": "TC.29", "TC.4": "TC.4", "TC.2": "TC.2", "TC.7A": "TC.7A", "TC.60": "TC.60", "TC.12": "TC.12", "T.ปตร.มะขามเฒ่า": "T.ปตร.มะขามเฒ่า", "T.ปตร.มหาราช": "T.ปตร.มหาราช", "T.ปตร.เริงราง": "T.ปตร.เริงราง", "T.ปตร.มโนรมย์": "T.ปตร.มโนรมย์", "T.ปตร.ช่องแค": "T.ปตร.ช่องแค", "T.ปตร.โคกกะเทียม": "T.ปตร.โคกกะเทียม"
   },
@@ -182,7 +301,7 @@ const stationsData = {
     "TW.ss": "ฝายยางประสบสุก", "TW.25": "แม่น้ำวัง  W.25", "TW.16A": "แม่น้ำวัง  W.16A", "TW.17A": "น้ำแม่สอย  W.17A", "TW.26": "ห้วยแม่ต๋า  W.26", "TW.kl": "เขื่อนกิ่วลม", "TW.ls": "ฝายหลวงสบอาง", "TW.1C": "แม่น้ำวัง  W.1C", "TW.km": "เขื่อนกิ่วคอหมา", "TW.22": "น้ำแม่จาง  W.22", "TW.20": "น้ำแม่ตุ๋ย  W.20", "TW.18A": "น้ำแม่ต๋ำ  W.18A", "TW.5A": "แม่น้ำวัง  W.5A", "TW.6A": "แม่น้ำวัง  W.6A", "TW.23": "แม่น้ำวัง  W.23 (W.3A)", "TW.27": "TW.27", "TW.28": "TW.28", "TW.29": "TW.29", "TW.30": "TW.30", "TW.31": "TW.31", "TW.32": "TW.32", "TW.33": "TW.33", "TW.34": "TW.34", "TW.35": "TW.35", "TW.21": "วัดต้นธงชัย อ.เมือง จ.ลำปาง", "TW.3A": "บ้านดอนชัย อ.เถิน จ.ลำปาง", "TW.4A": "วังหมัน อ.สามเงา จ.ตาก", "TW.10A": "เขื่อนกิ่วลม อ.แจ้ห่ม จ.ลำปาง"
   },
   "สะแกกรัง": {
-    "TSK.8": "ฝายฆ้องชัย ป่าอ้อ อ.ลานสัก จ.อุทัยธานี", "TCt.5A": "สถานีโทรมาตร อ.ขารนุวรลักษ์บุรี จ.กำแพงเพชร", "TCt.2A": "สถานีโทรมาตร  อ.เมือง จ.อุทัยธานี", "TSK.16": "วัดเวฬุวนาราม ท่าซุง เมือง อุทัยธานี", "TSK.11": "สถานีโทรมาตร บ้านวังม้า วังม้า อ.ลาดยาว จ.นครสวรรค์", "TSK.2": "สถานีโทรมาตร บ้านศาลเจ้าไก่ต่อ ศาลเจ้าไก่ต่อ อ.ลาดยาว  จ.นครสวรรค์", "TSK.1": "สถานีโทรมาตร วัดใหม่แม่เรวา แม่เล่ย์ อ.แม่วงก์ จ.นครสวรรค์", "TSK.12": "เขื่อนวังร่มเกล้า เนินศาลา อ.โกรกพระ จ.นครสวรรค์", "TSK.15": "วัดโคกหม้อ โคกหม้อ ทัพหัน อุทัยธานี", "TSK.13": "อบต.ศาลเจ้าไก่ต่อ ลาดยาว นครสวรรค์", "TSK.10": "สถานีโทรมาตร วัดผาลาดธาราราม ตลุกดู่  อ.ทัพทัน จ.อุทัยธานี", "TSK.3": "สถานีโทรมาตร วัดแม่กะสีวราราม แม่เปิน อ.แม่เปิน จ.นครสวรรค์", "TSK.4": "สถานีโทรมาตร บ้านใหม่คลองเจริญ ชุมตาบง อ.ชุมตาบง จ.นครสวรรค์", "TSK.5": "สถานีโทรมาตร บ้านหนองบำหรุ มาบแก อ.ลาดยาว จ.นครสวรรค์", "TSK.14": "อบต.สว่างแจ้งสบายใจ สว่างอารามณ์ อุทัยธานี", "TSK.7": "สถานีโทรมาตร บ้านท่ามะนาว ระบำ  อ.ลานสัก จ.อุทัยธานี", "TSK.6": "เขื่อนทับเสลา ระบำ  อ.ลานสัก  จ.อุทัยธานี", "TSK.9": "ฝายทับเสลา เขากวางทอง อ.หนองฉาง จ.อุทัยธานี"
+    "TSK.8": "ฝายฆ้องชัย ป่าอ้อ อ.ลานสัก จ.อุทัยธานี", "TCt.5A": "สถานีโทรมาตร อ.ขารนุวรลักษ์บุรี จ.กำแพงเพชร", "TCt.2A": "สถานีโทรมาตร  อ.เมือง จ.อุทัยธานี", "TSK.16": "วัดเวฬุวนาราม ท่าซุง เมือง อุทัยธานี", "TSK.11": "สถานีโทรมาตร บ้านวังม้า วังม้า อ.ลาดยาว จ.นครสวรรค์", "TSK.2": "สถานีโทรมาตร บ้านศาลเจ้าไก่ต่อ ศาลเจ้าไก่ต่อ อ.ลาดยาว  จ.นครสวรรค์", "TSK.1": "สถานีโทรมาตร วัดใหม่แม่เรวา แม่เล่ย์ อ.แม่วงก์ จ.นครสวรรค์", "TSK.12": "เขื่อนวังร่มเกล้า เนินศาลา อ.โกรกพระ จ.นครสวรรค์", "TSK.15": "วัดโคกหม้อ โคกหม้อ ทัพหัน อุทัยธานี", "TSK.13": "อบต.ศาลเจ้าไก่ต่อ ลาดยาว นครสวรรค์", "TSK.10": "สถานีโทรมาตร วัดผาลาดธาราราม ตลุกดู่  อ.ทัพทัน จ.อุทัยธานี", "TSK.3": "สถานีโทรมาตร วัดแม่กะสีวราราม แม่เปิน อ.แม่เปิน จ.นครสวรรค์", "TSK.4": "สถานีโทรมาตร บ้านใหม่คลองเจริญ ชุมตาบง อ.ชุมตาบง จ.นครสวรรค์", "TSK.5": "สถานีโทรมาตร บ้านหนองบำหรุ มาบแก อ.ลาดยาว จ.นครสวรรค์", "TSK.14": "อบต.สว่างแจ้งสบายใจ สว่างอารามณ์ อุทัยธานี", "TSK.7": "สถานีโทรมาตร บ้านท่ามะนาว雷บำ  อ.ลานสัก จ.อุทัยธานี", "TSK.6": "เขื่อนทับเสลา ระบำ  อ.ลานสัก  จ.อุทัยธานี", "TSK.9": "ฝายทับเสลา เขากวางทอง อ.หนองฉาง จ.อุทัยธานี"
   },
   "สาละวิน": {
     "TSW01": "อ่างเก็บน้ำห้วยแม่สอด", "TSW02": "เทศบาลนครแม่สอด", "TSW03": "ห้วยแม่สอด", "TSW04": "บ้านโกกไก่", "TSW05": "บ้านแม่กึ๊ดสามท่า", "TSW06": "บ้านวังผา", "TSW14": "ห้วยน้ำของ", "TSW07": "บ้านปางตอง", "TSW08": "บ้านห้วยไก่ป่า", "TSW09": "บ้านทุ่งรวงทอง", "TSW10": "บ้านพะมอลอ", "TSW11": "บ้านแม่ตะควน", "TSW12": "แม่น้ำปาย", "TSW13": "บ้านสบสา", "TSW15": "ปางหมู"
