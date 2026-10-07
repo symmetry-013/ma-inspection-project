@@ -305,7 +305,7 @@
             // ยิงดึงข้อมูลดิบจาก Database มาพักไว้ใน Memory (Client-side)
             try {
                 // ** หมายเหตุ: เปลี่ยน URL นี้ให้ตรงกับ Backend ของคุณเมื่อขึ้น Production **
-                const API_URL = 'http://localhost:3000/api/inspections';
+                const API_URL = '/api/inspections';
                 const response = await fetch(API_URL);
                 const result = await response.json();
                 
