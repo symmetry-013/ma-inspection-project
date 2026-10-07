@@ -4,411 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบติดตามสถานะสถานี (Map) - MA Inspection</title>
-    
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <!-- นำเข้า Constants -->
+    <script src="constants.js"></script>
     <style>
-        html, body {
-            font-family: 'Prompt', sans-serif;
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #f8fafc;
-        }
-        #map {
-            position: absolute;
-            top: 0; bottom: 0; left: 0; right: 0;
-            z-index: 1;
-            background-color: #e5e5e5;
-        }
-        .leaflet-popup-content-wrapper {
-            border-radius: 12px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-            padding: 0;
-            overflow: hidden;
-        }
+        html, body { font-family: 'Prompt', sans-serif; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f8fafc; }
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background-color: #e5e5e5; }
+        .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); padding: 0; overflow: hidden; }
         .leaflet-popup-content { margin: 0; line-height: 1.5; width: 240px !important; }
-        .simple-tooltip {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border-radius: 8px;
-            color: #1e293b; font-family: 'Prompt', sans-serif;
-            font-size: 11px; font-weight: 600; padding: 4px 8px;
-            backdrop-filter: blur(4px);
-        }
-        .leaflet-tooltip-bottom:before { border-bottom-color: rgba(255, 255, 255, 0.95); }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-        .filter-btn { transition: all 0.2s ease; cursor: pointer; user-select: none; }
-        .filter-btn.active { border-color: #3b82f6; background-color: #eff6ff; }
+        .simple-tooltip { background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 600; padding: 4px 8px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }
+        .filter-btn { transition: all 0.2s ease; cursor: pointer; user-select: none; } .filter-btn.active { border-color: #3b82f6; background-color: #eff6ff; }
     </style>
 </head>
 <body class="relative">
-
     <div id="map"></div>
-
     <div id="loadingUI" class="absolute inset-0 z-[2000] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-300">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4 shadow-lg"></div>
-        <p class="text-gray-800 font-bold text-sm tracking-wide">กำลังเตรียมแผนที่และข้อมูล...</p>
-        <p class="text-gray-500 text-xs mt-1">กรุณารอสักครู่</p>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4 shadow-lg"></div><p class="text-gray-800 font-bold text-sm tracking-wide">กำลังเตรียมข้อมูล...</p>
     </div>
 
     <div class="absolute top-0 left-0 w-full p-3 z-[1000] pointer-events-none flex justify-between items-start flex-col md:flex-row gap-3">
         <div class="bg-white/95 p-3.5 rounded-2xl shadow-lg border border-gray-100 pointer-events-auto w-full md:w-auto md:max-w-md backdrop-blur-sm transition-all duration-300">
-            <div id="dashboardHeader" class="flex justify-between items-center mb-3 border-b border-gray-100 pb-3 transition-all duration-300">
+            <div id="dashboardHeader" class="flex justify-between items-center mb-3 border-b border-gray-100 pb-3">
                 <div class="flex items-center gap-2 mr-4">
-                    <a href="index.html" class="text-slate-400 hover:text-blue-600 p-2 rounded-xl hover:bg-blue-50 transition border border-transparent hover:border-blue-100" title="กลับเมนูหลัก">
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    <h1 class="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
-                        <i class="fas fa-map-marked-alt text-blue-500"></i> แผนที่สถานี
-                    </h1>
+                    <a href="index.html" class="text-slate-400 hover:text-blue-600 p-2"><i class="fas fa-arrow-left"></i></a>
+                    <h1 class="text-sm font-bold text-slate-800">แผนที่สถานี</h1>
                 </div>
                 <div class="flex items-center gap-2">
-                    <select id="basinFilter" onchange="renderMap()" class="text-xs border border-gray-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50 px-2.5 py-1.5 outline-none cursor-pointer font-medium text-slate-700">
-                        <option value="ALL">ทุกลุ่มน้ำ</option>
-                    </select>
-                    <button onclick="toggleDashboard()" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none border border-transparent hover:border-blue-100" title="ซ่อน/แสดง แดชบอร์ด">
-                        <svg id="toggleIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                        </svg>
-                    </button>
+                    <select id="basinFilter" onchange="renderMap()" class="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5"><option value="ALL">ทุกลุ่มน้ำ</option></select>
+                    <button onclick="toggleDashboard()" class="p-1.5 text-slate-400"><svg id="toggleIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg></button>
                 </div>
             </div>
-
             <div id="dashboardContent" class="overflow-hidden transition-all duration-300 opacity-100 max-h-[500px]">
                 <div class="flex flex-wrap gap-2 text-[10px] md:text-xs">
-                    <div onclick="setStatusFilter('ALL')" id="btnFilterALL" class="filter-btn active px-3 py-1.5 rounded-full border border-blue-500 bg-blue-50 text-blue-700 font-semibold flex items-center gap-1.5 shadow-sm hover:bg-blue-100">
-                        ทั้งหมด <span id="countALL" class="bg-blue-200 text-blue-900 px-1.5 py-0.5 rounded-md text-[10px]">0</span>
-                    </div>
-                    <div onclick="setStatusFilter('P')" id="btnFilterP" class="filter-btn px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 font-semibold flex items-center gap-1.5 shadow-sm hover:bg-slate-50">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 border border-emerald-600"></span>สมบูรณ์ (P) <span id="countP" class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-md text-[10px]">0</span>
-                    </div>
-                    <div onclick="setStatusFilter('O')" id="btnFilterO" class="filter-btn px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 font-semibold flex items-center gap-1.5 shadow-sm hover:bg-slate-50">
-                        <span class="w-2 h-2 rounded-full bg-rose-500 border border-rose-600"></span>มีชำรุด (O) <span id="countO" class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-md text-[10px]">0</span>
-                    </div>
+                    <div onclick="setStatusFilter('ALL')" id="btnFilterALL" class="filter-btn active px-3 py-1.5 rounded-full border border-blue-500 bg-blue-50 text-blue-700 font-semibold flex items-center gap-1.5">ทั้งหมด <span id="countALL" class="bg-blue-200 px-1.5 py-0.5 rounded-md">0</span></div>
+                    <div onclick="setStatusFilter('P')" id="btnFilterP" class="filter-btn px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 border border-emerald-600"></span>สมบูรณ์ (P) <span id="countP" class="bg-slate-100 px-1.5 py-0.5 rounded-md">0</span></div>
+                    <div onclick="setStatusFilter('O')" id="btnFilterO" class="filter-btn px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 border border-rose-600"></span>มีชำรุด (O) <span id="countO" class="bg-slate-100 px-1.5 py-0.5 rounded-md">0</span></div>
                 </div>
             </div>
         </div>
-
-        <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto bg-white/95 hover:bg-slate-50 text-slate-700 px-3.5 py-2.5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-2 transition-all active:scale-95 md:ml-auto backdrop-blur-sm">
-            <svg id="refreshIcon" class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            <span class="font-semibold text-xs">โหลดใหม่</span>
-        </button>
-    </div>
-
-    <div id="errorToast" class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl font-medium opacity-0 transition-opacity duration-300 pointer-events-none text-xs flex items-center gap-3">
-        <i class="fas fa-info-circle text-yellow-400 text-base"></i>
-        <span id="errorToastMsg">ข้อความแจ้งเตือน</span>
+        <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto bg-white/95 text-slate-700 px-3.5 py-2.5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-2"><svg id="refreshIcon" class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><span class="font-semibold text-xs">โหลดใหม่</span></button>
     </div>
 
     <script>
-        let map;
-        let markersLayer;
-        let allStationData = []; 
-        let currentStatusSelection = 'ALL';
-        let isDashboardOpen = true;
-
-        const equipmentMap = {
-            clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ", 
-            online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน", 
-            sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC", 
-            sta_m1: "Modem 1", sta_m2: "Modem 2", sta_p1: "Power 1", sta_p2: "Power 2", 
-            sta_cctv1: "CCTV1", sta_cctv2: "CCTV2", sta_r: "Rain Gauge", sta_s: "Surge", 
-            sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)", 
-            sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
-        };
-
-        const mockData = [
-            { code: 'MOCK-01', name: 'สถานีทดสอบ 1 (สมบูรณ์)', location: 'กรุงเทพมหานคร', basin: 'เจ้าพระยา', statusUsage: 'P', statusClean: 'P', defects: '', remark: 'นี่คือข้อมูลจำลอง', comment: '-', lat: 13.7563, lng: 100.5018, photos: [] },
-            { code: 'MOCK-02', name: 'สถานีทดสอบ 2 (ชำรุด)', location: 'พระนครศรีอยุธยา', basin: 'เจ้าพระยา', statusUsage: 'O', statusClean: 'O', defects: 'แบตเตอรี่ (1), หลอดไฟ', remark: 'นี่คือข้อมูลจำลอง', comment: 'เร่งดำเนินการซ่อมแซม', lat: 14.3516, lng: 100.5694, photos: [] }
-        ];
+        let map; let markersLayer; let allStationData = []; let currentStatusSelection = 'ALL'; let isDashboardOpen = true;
+        const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลจำลองให้แสดงผล', location: '-', basin: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
 
         function toggleDashboard() {
             isDashboardOpen = !isDashboardOpen;
-            const content = document.getElementById('dashboardContent');
-            const icon = document.getElementById('toggleIcon');
-            const header = document.getElementById('dashboardHeader');
-            
-            if (isDashboardOpen) {
-                content.classList.remove('max-h-0', 'opacity-0');
-                content.classList.add('max-h-[500px]', 'opacity-100');
-                header.classList.add('mb-3', 'border-b', 'pb-3');
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>';
-            } else {
-                content.classList.remove('max-h-[500px]', 'opacity-100');
-                content.classList.add('max-h-0', 'opacity-0');
-                header.classList.remove('mb-3', 'border-b', 'pb-3');
-                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>';
-            }
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('errorToast');
-            document.getElementById('errorToastMsg').innerText = message;
-            toast.classList.remove('opacity-0');
-            setTimeout(() => toast.classList.add('opacity-0'), 4000);
+            const content = document.getElementById('dashboardContent'); const icon = document.getElementById('toggleIcon');
+            if (isDashboardOpen) { content.classList.replace('max-h-0', 'max-h-[500px]'); content.classList.replace('opacity-0', 'opacity-100'); icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>'; } 
+            else { content.classList.replace('max-h-[500px]', 'max-h-0'); content.classList.replace('opacity-100', 'opacity-0'); icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>'; }
         }
 
         async function loadData() {
             if (!map) return;
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.add('spin');
-
+            document.getElementById('refreshIcon').classList.add('spin');
             try {
-                const API_URL = '/api/inspections';
-                const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('เซิร์ฟเวอร์ไม่ตอบสนอง');
-                
+                const response = await fetch('/api/inspections');
                 const result = await response.json();
-
                 if (result.success) {
                     const transformedData = [];
                     result.data.forEach(row => {
                         if (!row.lat || !row.lon) return;
-
-                        let isBroken = false;
-                        let defectsList = [];
-                        
+                        let isBroken = false; let defectsList = [];
                         Object.keys(equipmentMap).forEach(key => {
                             const val = row[key];
-                            if (typeof val === 'string' && val.trim().toUpperCase() === "O") {
-                                isBroken = true;
-                                defectsList.push(equipmentMap[key]);
-                            } else if (['b2', 'sta2', 'pole2'].includes(key)) {
-                                let numVal = Number(val);
-                                if (!isNaN(numVal) && numVal > 0) {
-                                    isBroken = true;
-                                    defectsList.push(`${equipmentMap[key]} (${numVal})`);
-                                }
-                            }
+                            if (typeof val === 'string' && val.trim().toUpperCase() === "O") { isBroken = true; defectsList.push(equipmentMap[key]); } 
+                            else if (['b2', 'sta2', 'pole2'].includes(key)) { let n = Number(val); if (!isNaN(n) && n > 0) { isBroken = true; defectsList.push(`${equipmentMap[key]} (${n})`); } }
                         });
-
                         transformedData.push({
-                            code: row.id_name || '-',
-                            name: row.name_id || 'ไม่ระบุชื่อ',
-                            location: row.geoAddress || row.install_status || '-',
-                            basin: row.code || '-',
-                            statusUsage: isBroken ? 'O' : 'P',
-                            statusClean: row.clean ? row.clean.trim().toUpperCase() : '-',
-                            defects: defectsList.join(', '),
-                            remark: row.note || '-',
-                            comment: row.note2 || '-',
-                            lat: row.lat,
-                            lng: row.lon,
-                            photos: row.photos || [] 
+                            code: row.id_name || '-', name: row.name_id || 'ไม่ระบุชื่อ', location: row.geoAddress || row.install_status || '-', basin: row.code || '-',
+                            statusUsage: isBroken ? 'O' : 'P', statusClean: row.clean ? row.clean.trim().toUpperCase() : '-',
+                            defects: defectsList.join(', '), remark: row.note || '-', comment: row.note2 || '-', lat: row.lat, lng: row.lon, photos: row.photos || []
                         });
                     });
-
-                    if(transformedData.length > 0) {
-                        allStationData = transformedData;
-                    } else {
-                        showToast('ฐานข้อมูลว่างเปล่า (แสดงข้อมูลจำลอง)');
-                        allStationData = mockData;
-                    }
-
-                } else {
-                    throw new Error(result.message || 'ไม่สามารถดึงข้อมูลได้');
+                    allStationData = transformedData.length > 0 ? transformedData : mockData;
                 }
-            } catch (error) {
-                console.warn("Fetch Data Error:", error);
-                showToast('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (แสดงข้อมูลจำลอง)');
-                allStationData = mockData;
-            } finally {
-                icon.classList.remove('spin');
+            } catch (err) { allStationData = mockData; } 
+            finally {
+                document.getElementById('refreshIcon').classList.remove('spin');
                 const loader = document.getElementById('loadingUI');
-                if(loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.style.display = 'none', 300);
-                }
-                
-                updateBasinDropdown();
-                renderMap();
+                if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
+                updateBasinDropdown(); renderMap();
             }
         }
 
         function updateBasinDropdown() {
-            const select = document.getElementById('basinFilter');
-            const currentVal = select.value;
+            const select = document.getElementById('basinFilter'); const currentVal = select.value;
             const basins = [...new Set(allStationData.map(d => d.basin).filter(b => b && b !== '-'))].sort();
-            
             let optionsHtml = '<option value="ALL">ทุกลุ่มน้ำ</option>';
-            basins.forEach(b => {
-                optionsHtml += `<option value="${b}">${b}</option>`;
-            });
-            select.innerHTML = optionsHtml;
-            
-            if ([...select.options].some(o => o.value === currentVal)) {
-                select.value = currentVal;
-            }
+            basins.forEach(b => optionsHtml += `<option value="${b}">${b}</option>`);
+            select.innerHTML = optionsHtml; if ([...select.options].some(o => o.value === currentVal)) select.value = currentVal;
         }
 
         function setStatusFilter(status) {
             currentStatusSelection = status;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
-                btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
-            });
-            
+            document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700'); btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600'); });
             const activeBtn = document.getElementById('btnFilter' + status);
-            if (activeBtn) {
-                activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
-                activeBtn.classList.add('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700');
-            }
+            if (activeBtn) { activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600'); activeBtn.classList.add('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700'); }
             renderMap();
         }
 
         function renderMap() {
-            if (!markersLayer) return;
-            markersLayer.clearLayers();
-            
+            if (!markersLayer) return; markersLayer.clearLayers();
             const selectedBasin = document.getElementById('basinFilter').value;
-            let basinFilteredData = allStationData;
-            if (selectedBasin !== 'ALL') {
-                basinFilteredData = allStationData.filter(d => d.basin === selectedBasin);
-            }
+            let finalData = selectedBasin !== 'ALL' ? allStationData.filter(d => d.basin === selectedBasin) : allStationData;
+            document.getElementById('countALL').innerText = finalData.length;
+            document.getElementById('countP').innerText = finalData.filter(d => d.statusUsage === 'P').length;
+            document.getElementById('countO').innerText = finalData.filter(d => d.statusUsage === 'O').length;
 
-            const countP = basinFilteredData.filter(d => d.statusUsage === 'P').length;
-            const countO = basinFilteredData.filter(d => d.statusUsage === 'O').length;
-
-            if (document.getElementById('countALL')) document.getElementById('countALL').innerText = basinFilteredData.length;
-            if (document.getElementById('countP')) document.getElementById('countP').innerText = countP;
-            if (document.getElementById('countO')) document.getElementById('countO').innerText = countO;
-
-            let finalData = basinFilteredData;
-            if (currentStatusSelection === 'P') {
-                finalData = basinFilteredData.filter(d => d.statusUsage === 'P');
-            } else if (currentStatusSelection === 'O') {
-                finalData = basinFilteredData.filter(d => d.statusUsage === 'O');
-            }
+            if (currentStatusSelection !== 'ALL') finalData = finalData.filter(d => d.statusUsage === currentStatusSelection);
 
             const groupedData = {};
-            finalData.forEach(function(point) {
-                const key = point.lat.toFixed(5) + ',' + point.lng.toFixed(5);
-                if (!groupedData[key]) groupedData[key] = [];
-                groupedData[key].push(point);
-            });
-
+            finalData.forEach(p => { const key = p.lat.toFixed(5)+','+p.lng.toFixed(5); if(!groupedData[key]) groupedData[key]=[]; groupedData[key].push(p); });
             const bounds = [];
 
-            Object.values(groupedData).forEach(function(group) {
-                const hasO = group.some(p => p.statusUsage === 'O');
-                const hasP = group.some(p => p.statusUsage === 'P');
-                
-                let fillColor, strokeColor;
-                if (hasO) { fillColor = '#f43f5e'; strokeColor = '#e11d48'; } 
-                else if (hasP) { fillColor = '#10b981'; strokeColor = '#059669'; } 
-                else { fillColor = '#ffffff'; strokeColor = '#94a3b8'; }
+            Object.values(groupedData).forEach(group => {
+                const hasO = group.some(p => p.statusUsage === 'O'); const hasP = group.some(p => p.statusUsage === 'P');
+                let fc = hasO ? '#f43f5e' : (hasP ? '#10b981' : '#ffffff'); let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
 
-                let stationsHtml = group.map((point, index) => {
-                    const usageText = point.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-bold">สมบูรณ์</span>' 
-                        : point.statusUsage === 'O' ? '<span class="text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded text-[10px] font-bold">มีชำรุด</span>'
-                        : '<span class="text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">-</span>';
-
-                    const cleanText = point.statusClean === 'P' ? '<span class="text-emerald-600 font-bold">ผ่าน</span>' 
-                        : point.statusClean === 'O' ? '<span class="text-rose-600 font-bold">ไม่ผ่าน</span>'
-                        : '<span class="text-slate-500">-</span>';
-
-                    const defectsHtml = point.defects && point.defects.trim() !== '' 
-                        ? `<div class="mt-2 p-2 bg-rose-50 border border-rose-100 rounded text-[10px]"><div class="font-bold text-rose-800 mb-0.5"><i class="fas fa-exclamation-triangle"></i> อุปกรณ์ชำรุด:</div><div class="text-rose-600 leading-snug">${point.defects}</div></div>` : '';
-
-                    const remarkHtml = point.remark && point.remark !== '-'
-                        ? `<div class="text-[10px] leading-snug"><span class="font-semibold text-slate-500">หมายเหตุ:</span> <span class="text-slate-700">${point.remark}</span></div>` : '';
+                let stationsHtml = group.map((p, i) => {
+                    // ✅ XSS Protection
+                    const safeName = escapeHtml(p.name); const safeLoc = escapeHtml(p.location); const safeDefects = escapeHtml(p.defects); const safeRemark = escapeHtml(p.remark); const safeComment = escapeHtml(p.comment);
+                    const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-bold">สมบูรณ์</span>' : '<span class="text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded text-[10px] font-bold">มีชำรุด</span>';
+                    const cleanText = p.statusClean === 'P' ? '<span class="text-emerald-600 font-bold">ผ่าน</span>' : (p.statusClean === 'O' ? '<span class="text-rose-600 font-bold">ไม่ผ่าน</span>' : '-');
+                    const defectsHtml = safeDefects ? `<div class="mt-2 p-2 bg-rose-50 border border-rose-100 rounded text-[10px]"><div class="font-bold text-rose-800 mb-0.5">ชำรุด:</div><div class="text-rose-600">${safeDefects}</div></div>` : '';
+                    const extra = (safeRemark !== '-' ? `<div>หมายเหตุ: ${safeRemark}</div>` : '') + (safeComment !== '-' ? `<div>กรรมการ: ${safeComment}</div>` : '');
                     
-                    const commentHtml = point.comment && point.comment !== '-'
-                        ? `<div class="text-[10px] leading-snug mt-1"><span class="font-semibold text-slate-500">กรรมการ:</span> <span class="text-slate-700">${point.comment}</span></div>` : '';
-
-                    const extraInfoHtml = (remarkHtml || commentHtml) 
-                        ? `<div class="mt-2 pt-2 border-t border-slate-100 bg-slate-50 p-2 rounded text-[10px]">${remarkHtml}${commentHtml}</div>` : '';
-
-                    let photoHtml = '';
-                    if (point.photos && point.photos.length > 0) {
-                        const mainPhoto = point.photos[0];
-                        photoHtml = `
-                            <div class="mt-2 mb-1 relative group cursor-pointer border border-slate-200 rounded-lg overflow-hidden shadow-sm">
-                                <a href="${mainPhoto.webViewLink}" target="_blank" class="block">
-                                    <img src="${mainPhoto.thumbnailUrl}" alt="ภาพสนาม" class="w-full h-24 object-cover transition duration-300 group-hover:scale-105" onerror="this.style.display='none'">
-                                    <div class="absolute bottom-0 left-0 w-full bg-slate-900/60 backdrop-blur-sm text-white text-center py-1 text-[9px]">
-                                        <i class="fas fa-image"></i> คลิกดูภาพ (${point.photos.length} รูป)
-                                    </div>
-                                </a>
-                            </div>
-                        `;
-                    }
-
-                    return `<div class="p-3 ${index > 0 ? 'border-t border-slate-200' : ''}">
-                        <h3 class="text-sm font-bold text-slate-800 pb-1 mb-1.5 border-b border-slate-100 leading-tight">${point.name}</h3>
-                        ${photoHtml}
-                        <div class="space-y-1.5 text-xs mt-2">
-                            <div class="flex justify-between"><span class="text-slate-500">รหัส:</span><span class="font-bold text-blue-600">${point.code}</span></div>
-                            <div class="flex justify-between gap-2"><span class="text-slate-500">ที่ตั้ง:</span><span class="font-medium text-right line-clamp-1 hover:line-clamp-none text-[10px]" title="${point.location}">${point.location}</span></div>
-                            <div class="flex justify-between"><span class="text-slate-500">ลุ่มน้ำ:</span><span class="font-medium">${point.basin}</span></div>
-                            <div class="flex justify-between items-center pt-1.5 mt-1.5 border-t border-slate-100"><span class="text-slate-500">สถานะใช้งาน:</span>${usageText}</div>
-                            <div class="flex justify-between items-center"><span class="text-slate-500">ความสะอาด:</span>${cleanText}</div>
-                            ${defectsHtml}
-                            ${extraInfoHtml}
-                        </div></div>`;
+                    let photoHtml = p.photos.length > 0 ? `<div class="mt-2 mb-1 relative border border-slate-200 rounded-lg overflow-hidden"><a href="${p.photos[0].webViewLink}" target="_blank"><img src="${p.photos[0].thumbnailUrl}" class="w-full h-24 object-cover"><div class="absolute bottom-0 w-full bg-slate-900/60 text-white text-center text-[9px] py-1">ดูภาพ (${p.photos.length})</div></a></div>` : '';
+                    return `<div class="p-3 ${i>0?'border-t border-slate-200':''}"><h3 class="text-sm font-bold text-slate-800 pb-1">${safeName}</h3>${photoHtml}<div class="text-xs mt-2 space-y-1"><div class="flex justify-between"><span class="text-slate-500">รหัส:</span><b>${p.code}</b></div><div class="flex justify-between gap-2"><span class="text-slate-500">ที่ตั้ง:</span><span class="text-right truncate" title="${safeLoc}">${safeLoc}</span></div><div class="flex justify-between"><span class="text-slate-500">สถานะ:</span>${usageText}</div>${defectsHtml}<div class="text-[10px] text-slate-600 mt-1">${extra}</div></div></div>`;
                 }).join('');
 
-                const groupHeaderHtml = group.length > 1 ? `<div class="bg-blue-600 text-white p-2 text-center font-bold text-xs shadow-md sticky top-0 z-10 flex items-center justify-center gap-1.5"><i class="fas fa-layer-group"></i> ซ้อนทับกัน ${group.length} สถานี</div>` : '';
-                const popupContent = `<div class="w-full max-h-[300px] overflow-y-auto custom-scrollbar bg-white">${groupHeaderHtml}${stationsHtml}</div>`;
-
-                const circle = L.circleMarker([group[0].lat, group[0].lng], {
-                    radius: group.length > 1 ? 9 : 7, fillColor: fillColor, color: strokeColor, weight: 2.5, fillOpacity: 0.95
-                });
-                
-                let tooltipText = group.length > 1 ? `${group.length} สถานี (${group.map(g => g.code).slice(0, 2).join(', ')}${group.length > 2 ? '...' : ''})` : group[0].code;
-                if (tooltipText && tooltipText !== '-') {
-                    circle.bindTooltip(tooltipText, { permanent: true, direction: 'bottom', className: 'simple-tooltip', offset: [0, group.length > 1 ? 10 : 8] });
-                }
-
-                circle.bindPopup(popupContent);
-                circle.addTo(markersLayer);
-                bounds.push([group[0].lat, group[0].lng]);
+                const circle = L.circleMarker([group[0].lat, group[0].lng], { radius: group.length>1?9:7, fillColor: fc, color: sc, weight: 2.5, fillOpacity: 0.95 });
+                circle.bindTooltip(group.length>1 ? `${group.length} สถานี` : group[0].code, { permanent: true, direction: 'bottom', className: 'simple-tooltip' });
+                circle.bindPopup(`<div class="w-full max-h-[300px] overflow-y-auto custom-scrollbar bg-white">${stationsHtml}</div>`);
+                circle.addTo(markersLayer); bounds.push([group[0].lat, group[0].lng]);
             });
-
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
-            }
+            if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([13.7563, 100.5018], 6);
-                L.control.zoom({ position: 'bottomright' }).addTo(map);
-                
-                // Using Esri World Street Map tiles (Free, stable, no local file blocks)
-                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-                    attribution: 'Tiles &copy; Esri',
-                    maxZoom: 19
-                }).addTo(map);
-
-                markersLayer = L.layerGroup().addTo(map);
-                
-                setTimeout(() => { 
-                    if(map) map.invalidateSize(); 
-                    loadData(); 
-                }, 500);
-            } catch (err) {
-                console.error("Map Init Error:", err);
-                const loader = document.getElementById('loadingUI');
-                if(loader) {
-                    loader.innerHTML = '<div class="text-red-500 font-bold mb-2"><i class="fas fa-exclamation-triangle text-3xl"></i></div><p class="text-slate-800 font-medium">ไม่สามารถโหลดเครื่องมือแผนที่ได้</p>';
-                }
-            }
+        document.addEventListener('DOMContentLoaded', () => {
+            map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 }).addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+            setTimeout(loadData, 500);
         });
     </script>
 </body>

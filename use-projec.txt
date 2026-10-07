@@ -1,0 +1,17 @@
+MongoDB Atlas
+sommartkingwongsa_db_user
+zvIlaldltP2966MO
+ZD7CCIFklVJxsPcy
+
+cd  Desktop
+cd  MA-Project
+
+git add .
+git commit -m "Update server.js and remove server_2.js"
+git push
+
+mongodb+srv://sommartkingwongsa_db_user:ZD7CCIFklVJxsPcy@cluster0.e3h2n5g.mongodb.net/ma_inspection?retryWrites=true&w=majority
+
+git add .
+git commit -m "Fix critical bugs, add constants.js, and update frontend files"
+git push

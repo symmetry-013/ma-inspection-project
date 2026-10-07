@@ -5,224 +5,89 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ระบบสรุปอุปกรณ์ชำรุด</title>
-  
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- นำเข้า Constants -->
+  <script src="constants.js"></script>
 
   <script>
-    tailwind.config = {
-        theme: {
-            extend: {
-                fontFamily: { sans: ['Prompt', 'sans-serif'] },
-            }
-        }
-    }
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Prompt', 'sans-serif'] } } } }
   </script>
-
   <style>
     body { font-family: 'Prompt', sans-serif; -webkit-overflow-scrolling: touch; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.5); border-radius: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.8); border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 1); }
   </style>
 </head>
 <body class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500/30">
 
-  <!-- Header -->
   <header class="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 shadow-lg">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-
-        <!-- Logo & Title -->
         <div class="flex items-center gap-4">
-          <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition shrink-0">
-            <i class="fas fa-arrow-left text-white"></i>
-          </a>
-          <div class="p-2.5 bg-rose-500/10 rounded-xl border border-rose-500/20 shrink-0">
-            <i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i>
-          </div>
-          <div>
-            <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              ระบบสรุปอุปกรณ์ชำรุด
-            </h1>
-            <p class="text-xs md:text-sm text-slate-400 mt-0.5">วิเคราะห์ข้อมูลการตรวจงาน MA อัตโนมัติ</p>
-          </div>
+          <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition shrink-0"><i class="fas fa-arrow-left text-white"></i></a>
+          <div class="p-2.5 bg-rose-500/10 rounded-xl border border-rose-500/20"><i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i></div>
+          <div><h1 class="text-xl md:text-2xl font-bold text-white">ระบบสรุปอุปกรณ์ชำรุด</h1><p class="text-xs text-slate-400">วิเคราะห์ข้อมูลการตรวจงาน MA อัตโนมัติ</p></div>
         </div>
-
-        <!-- Controls -->
         <div class="flex flex-wrap items-center gap-3">
-
-          <!-- ช่องกรอก/เลือกงวดที่ (แทนช่องเลือก Sheet แบบเดิม) -->
-          <div class="relative group w-full md:w-auto flex-grow md:flex-grow-0">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-calendar-alt text-slate-400"></i>
-            </div>
-            <select id="period-filter" onchange="renderData()" disabled
-              class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 pr-8 py-2.5 appearance-none cursor-pointer hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <option value="All">ทุกงวดการตรวจ (ทั้งหมด)</option>
-              <option value="งวดที่1">งวดที่ 1</option>
-              <option value="งวดที่2">งวดที่ 2</option>
-              <option value="งวดที่3">งวดที่ 3</option>
-              <option value="งวดที่4">งวดที่ 4</option>
+          <div class="relative group w-full md:w-auto"><div class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-calendar-alt text-slate-400"></i></div>
+            <select id="period-filter" onchange="renderData()" disabled class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-10 pr-8 py-2.5 w-full">
+              <option value="All">ทุกงวดการตรวจ (ทั้งหมด)</option><option value="งวดที่1">งวดที่ 1</option><option value="งวดที่2">งวดที่ 2</option><option value="งวดที่3">งวดที่ 3</option><option value="งวดที่4">งวดที่ 4</option>
             </select>
           </div>
-
-          <!-- ตัวกรองลุ่มน้ำ -->
-          <div class="relative group w-full md:w-auto flex-grow md:flex-grow-0">
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <i class="fas fa-water text-slate-400"></i>
-            </div>
-            <select id="basin-filter" onchange="renderData()" disabled
-              class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 pr-8 py-2.5 appearance-none cursor-pointer hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <option value="All">กำลังเตรียมข้อมูล...</option>
-            </select>
+          <div class="relative group w-full md:w-auto"><div class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-water text-slate-400"></i></div>
+            <select id="basin-filter" onchange="renderData()" disabled class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-10 pr-8 py-2.5 w-full"><option value="All">กำลังเตรียมข้อมูล...</option></select>
           </div>
-
-          <!-- ปุ่มรีเฟรช -->
-          <button id="refresh-btn" onclick="fetchDataFromServer()" disabled
-            class="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-all active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto" title="โหลดข้อมูลใหม่">
-            <i id="refresh-icon" class="fas fa-sync-alt text-slate-300 transition-transform"></i>
-            <span class="md:hidden ml-2 text-sm">อัปเดตข้อมูล</span>
-          </button>
+          <button id="refresh-btn" onclick="fetchDataFromServer()" disabled class="p-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 w-full md:w-auto"><i id="refresh-icon" class="fas fa-sync-alt"></i></button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" id="content-area">
+  <main class="max-w-7xl mx-auto px-4 py-8" id="content-area">
     <div class="flex flex-col items-center justify-center py-24 space-y-5">
-      <div class="w-14 h-14 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_15px_rgba(16,185,129,0.3)]"></div>
-      <p class="text-emerald-400 font-medium animate-pulse tracking-wide" id="loading-text">กำลังโหลดข้อมูลระบบ...</p>
-      <p class="text-slate-500 text-sm">กรุณารอสักครู่ ระบบกำลังดึงข้อมูลจาก Server</p>
+      <div class="w-14 h-14 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin"></div>
+      <p class="text-emerald-400 font-medium animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
     </div>
   </main>
 
   <script>
     let globalAppData = [];
 
-    // รายชื่อลุ่มน้ำทั้งหมด
-    const hardcodedBasins = [
-      "โขงเหนือ", "โขงอีสาน", "ชี", "มูล", "ปิง", "วัง", "ยม", "น่าน", "เจ้าพระยา",
-      "ป่าสัก", "สะแกกรัง", "ท่าจีน", "แม่กลอง", "บางปะกง", "ชายทะเลฝั่งตะวันออก",
-      "เพชรบุรี-ประจวบคีรีขันธ์", "ภาคใต้ฝั่งตะวันตก", "ภาคใต้ฝั่งตะวันออกตอนบน",
-      "ภาคใต้ฝั่งตะวันออกตอนล่าง", "ทะเลสาบสงขลา", "สาละวิน", "โตนเลสาป", "KRC"
-    ];
-
-    // จับคู่ Field ใน Database กับชื่ออุปกรณ์ที่จะแสดงผล
-    const equipmentMap = {
-        clean: "ความสะอาดไม่ผ่าน",
-        pai: "สถานะภาพป้ายสถานี",
-        power: "ระบบไฟฟ้าภายนอกภายใน",
-        power1: "หลอดไฟภายนอก/ภายใน",
-        online: "สถานะเว็บไซต์ไม่ออนไลน์",
-        wl: "ค่าน้ำตรวจครั้งแรกไม่ถูกต้อง",
-        wl1: "ค่าน้ำหลังจากปรับแก้ไม่ถูกต้อง",
-        r: "ค่าน้ำฝนไม่ถูกต้อง",
-        sta_cpu: "CPU Status ชำรุด",
-        sta_ai: "AI Status ชำรุด",
-        sta_di: "DI Status ชำรุด",
-        sta_do: "DO Status ชำรุด",
-        sta_io: "IO Status ชำรุด",
-        plc: "RTU PLC ชำรุด",
-        sta_m1: "Modem 1 ชำรุด",
-        sta_m2: "Modem 2 ชำรุด",
-        sta_p1: "Power Supply 1 ชำรุด",
-        sta_p2: "Power Supply 2 ชำรุด",
-        sta_cctv1: "CCTV1 ชำรุด",
-        sta_cctv2: "CCTV2 ชำรุด",
-        sta_r: "Rain Gauge ชำรุด",
-        sta_s: "Surge Protection ชำรุด",
-        sta_wl: "Water Level (bubble) ชำรุด",
-        sta_tro: "ท่อลมชำรุด",
-        sta_gass: "ถังแก๊สชำรุด",
-        sta_wl1: "Water Level (Radar) ชำรุด",
-        sta_wl2: "Water Level (float) ชำรุด",
-        sta_saling: "สายสลิงชำรุด",
-        b2: "จำนวนแบตเตอรี่ (ชำรุด)",
-        sta2: "จำนวนแผ่นวัดน้ำ (ชำรุด)",
-        pole2: "จำนวนเสาวัดน้ำ (ชำรุด)"
-    };
-
     function showError(errorMessage) {
-      const content = document.getElementById('content-area');
-      content.innerHTML = `
-        <div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 flex items-start gap-4 max-w-3xl mx-auto mt-8">
-          <i class="fas fa-exclamation-circle text-rose-500 text-3xl shrink-0 mt-1"></i>
-          <div>
-            <h3 class="text-lg font-semibold text-rose-400 mb-2">เกิดข้อผิดพลาดในการโหลดข้อมูล</h3>
-            <p class="text-slate-300 leading-relaxed">${errorMessage}</p>
-          </div>
-        </div>
-      `;
-      toggleControls(true);
-      document.getElementById('refresh-icon').classList.remove('fa-spin');
+      document.getElementById('content-area').innerHTML = `<div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 flex items-start gap-4 max-w-3xl mx-auto mt-8"><i class="fas fa-exclamation-circle text-rose-500 text-3xl mt-1"></i><div><h3 class="text-lg font-semibold text-rose-400 mb-2">เกิดข้อผิดพลาด</h3><p class="text-slate-300">${errorMessage}</p></div></div>`;
+      toggleControls(true); document.getElementById('refresh-icon').classList.remove('fa-spin');
     }
 
     function toggleControls(enable) {
-      document.getElementById('period-filter').disabled = !enable;
-      document.getElementById('basin-filter').disabled = !enable;
-      document.getElementById('refresh-btn').disabled = !enable;
+      document.getElementById('period-filter').disabled = !enable; document.getElementById('basin-filter').disabled = !enable; document.getElementById('refresh-btn').disabled = !enable;
     }
 
     function setupBasinDropdown() {
       const basinSelect = document.getElementById('basin-filter');
       basinSelect.innerHTML = '<option value="All">ทุกลุ่มน้ำ (ทั้งหมด)</option>';
-      hardcodedBasins.forEach(basin => {
-        basinSelect.innerHTML += `<option value="${basin}">ลุ่มน้ำ ${basin}</option>`;
-      });
-    }
-
-    function showLoading() {
-      toggleControls(false);
-      document.getElementById('refresh-icon').classList.add('fa-spin');
-      document.getElementById('content-area').innerHTML = `
-        <div class="flex flex-col items-center justify-center py-24 space-y-5">
-          <div class="w-14 h-14 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin shadow-[0_0_15px_rgba(16,185,129,0.3)]"></div>
-          <p class="text-emerald-400 font-medium animate-pulse tracking-wide">กำลังประมวลผลข้อมูลกรุณารอสักครู่...</p>
-          <p class="text-slate-500 text-sm">กำลังคัดกรองข้อมูลจากฐานข้อมูล</p>
-        </div>
-      `;
+      hardcodedBasins.forEach(basin => basinSelect.innerHTML += `<option value="${basin}">ลุ่มน้ำ ${basin}</option>`);
     }
 
     async function fetchDataFromServer() {
-      showLoading();
-      
+      toggleControls(false); document.getElementById('refresh-icon').classList.add('fa-spin');
       try {
-        // ชี้ไปที่ Backend Node.js
-        const API_URL = '/api/inspections';
-        const response = await fetch(API_URL);
+        const response = await fetch('/api/inspections');
         const result = await response.json();
-
         if (response.ok && result.success) {
-            globalAppData = result.data;
-            setupBasinDropdown();
-            toggleControls(true);
-            renderData();
-        } else {
-            throw new Error(result.message || 'ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้');
-        }
-      } catch (err) {
-        showError("ข้อผิดพลาดจากเซิร์ฟเวอร์: " + err.message);
-      }
+            globalAppData = result.data; setupBasinDropdown(); toggleControls(true); renderData();
+        } else throw new Error(result.message);
+      } catch (err) { showError(err.message); }
     }
 
     function renderData() {
       if (!globalAppData) return;
-
+      document.getElementById('refresh-icon').classList.remove('fa-spin');
       const selectedBasin = document.getElementById('basin-filter').value;
       const selectedPeriod = document.getElementById('period-filter').value;
 
-      document.getElementById('refresh-icon').classList.remove('fa-spin');
-
-      // 1. กรองตามตัวเลือก
       let filteredRows = globalAppData.filter(row => {
         if (selectedBasin !== 'All' && row.code !== selectedBasin) return false;
         if (selectedPeriod !== 'All' && row.saya !== selectedPeriod) return false;
@@ -230,115 +95,44 @@
       });
 
       const summaryMap = {};
-
-      // 2. วิเคราะห์หาอุปกรณ์ชำรุด
       filteredRows.forEach(row => {
         const stationName = row.name_id || row.id_name || 'ไม่ทราบสถานี';
-
-        // วนลูปเช็คตาม Dictionary ของอุปกรณ์
         Object.keys(equipmentMap).forEach(key => {
             const eqTitle = equipmentMap[key];
-            const val = row[key];
-            let addCount = 0;
-
-            // ตรวจสอบค่าสถานะตัวอักษร "O" = ชำรุด (ไม่ผ่าน)
-            if (typeof val === 'string' && val.trim().toUpperCase() === "O") {
-                addCount = 1;
-            } 
-            // ตรวจสอบค่าตัวเลข (จำนวนที่ชำรุด)
-            else if (['b2', 'sta2', 'pole2'].includes(key)) {
-                let numVal = Number(val);
-                if (!isNaN(numVal) && numVal > 0) {
-                    addCount = numVal;
-                }
-            }
-
-            // ถ้าพบการชำรุด ให้บวกลงในสรุปผล
+            let val = row[key]; let addCount = 0;
+            if (typeof val === 'string' && val.trim().toUpperCase() === "O") addCount = 1;
+            else if (['b2', 'sta2', 'pole2'].includes(key)) { let n = Number(val); if (!isNaN(n) && n > 0) addCount = n; }
             if (addCount > 0) {
-                if (!summaryMap[eqTitle]) {
-                    summaryMap[eqTitle] = { name: eqTitle, count: 0, stationsMap: new Map() };
-                }
+                if (!summaryMap[eqTitle]) summaryMap[eqTitle] = { name: eqTitle, count: 0, stationsMap: new Map() };
                 summaryMap[eqTitle].count += addCount;
-                
-                let currentStCount = summaryMap[eqTitle].stationsMap.get(stationName) || 0;
-                summaryMap[eqTitle].stationsMap.set(stationName, currentStCount + addCount);
+                summaryMap[eqTitle].stationsMap.set(stationName, (summaryMap[eqTitle].stationsMap.get(stationName) || 0) + addCount);
             }
         });
       });
 
-      // 3. เรียงลำดับจากชำรุดเยอะไปน้อย
-      const finalData = Object.values(summaryMap)
-        .map(item => {
-          let stationsArr = [];
-          item.stationsMap.forEach((count, stName) => {
-            stationsArr.push({ name: stName, count: count });
-          });
-          return { ...item, stations: stationsArr };
-        })
-        .sort((a, b) => b.count - a.count);
+      const finalData = Object.values(summaryMap).map(item => {
+          let stArr = []; item.stationsMap.forEach((c, n) => stArr.push({ name: n, count: c }));
+          return { ...item, stations: stArr };
+      }).sort((a, b) => b.count - a.count);
 
       const content = document.getElementById('content-area');
-
       if (finalData.length === 0) {
-        let msg = 'ยอดเยี่ยม! ไม่พบรายงานอุปกรณ์ชำรุดในระบบเลยในขณะนี้';
-        if (selectedBasin !== 'All' || selectedPeriod !== 'All') {
-            msg = `ไม่พบรายงานอุปกรณ์ชำรุดในเงื่อนไขที่คุณเลือกค้นหา`;
-        }
-        content.innerHTML = `
-          <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-12 text-center max-w-2xl mx-auto mt-10">
-            <i class="fas fa-check-circle inline-block text-5xl text-emerald-400 mb-6"></i>
-            <h2 class="text-2xl font-bold text-white mb-3">สถานการณ์ปกติ</h2>
-            <p class="text-slate-400 text-lg">${msg}</p>
-          </div>
-        `;
-        return;
+        content.innerHTML = `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-12 text-center max-w-2xl mx-auto mt-10"><i class="fas fa-check-circle text-5xl text-emerald-400 mb-6"></i><h2 class="text-2xl font-bold text-white mb-3">สถานการณ์ปกติ</h2><p class="text-slate-400">ไม่พบรายงานอุปกรณ์ชำรุด</p></div>`; return;
       }
 
-      // 4. สร้างหน้าจอ Card สรุปผล
       let cardsHtml = '';
       finalData.forEach(item => {
         let stationBadges = '';
         item.stations.forEach(st => {
-          if (st.count > 1) {
-            stationBadges += `<span class="px-2.5 py-1.5 text-xs font-medium bg-slate-900 border border-slate-700 text-slate-300 rounded-md shadow-sm inline-flex items-center gap-1">${st.name} <span class="text-rose-500 font-bold">(${st.count})</span></span>`;
-          } else {
-            stationBadges += `<span class="px-2.5 py-1.5 text-xs font-medium bg-slate-900 border border-slate-700 text-slate-300 rounded-md shadow-sm">${st.name}</span>`;
-          }
+          // ✅ XSS Protection สำหรับชื่อสถานี
+          const safeName = escapeHtml(st.name);
+          if (st.count > 1) stationBadges += `<span class="px-2.5 py-1.5 text-xs font-medium bg-slate-900 border border-slate-700 text-slate-300 rounded-md inline-flex items-center gap-1">${safeName} <span class="text-rose-500 font-bold">(${st.count})</span></span>`;
+          else stationBadges += `<span class="px-2.5 py-1.5 text-xs font-medium bg-slate-900 border border-slate-700 text-slate-300 rounded-md">${safeName}</span>`;
         });
-
-        cardsHtml += `
-          <div class="bg-slate-800/40 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-6 hover:bg-slate-800/80 hover:border-slate-600 transition-all duration-300 group shadow-lg">
-            <div class="flex items-start justify-between mb-4">
-              <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-2 pr-4">${item.name}</h3>
-              <div class="flex flex-col items-end">
-                <span class="text-3xl font-black text-rose-500 leading-none">${item.count}</span>
-                <span class="text-xs text-rose-500/80 font-medium uppercase tracking-wider mt-1">รายการ</span>
-              </div>
-            </div>
-            <div class="pt-4 border-t border-slate-700/50">
-              <p class="text-xs text-slate-400 mb-3 flex items-center gap-1.5"><i class="fas fa-map-marker-alt"></i> รายชื่อสถานีที่มีปัญหา:</p>
-              <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
-                ${stationBadges}
-              </div>
-            </div>
-          </div>
-        `;
+        cardsHtml += `<div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 shadow-lg"><div class="flex items-start justify-between mb-4"><h3 class="text-lg font-bold text-white pr-4">${item.name}</h3><div class="flex flex-col items-end"><span class="text-3xl font-black text-rose-500">${item.count}</span><span class="text-xs text-rose-500/80 mt-1">รายการ</span></div></div><div class="pt-4 border-t border-slate-700/50"><p class="text-xs text-slate-400 mb-3"><i class="fas fa-map-marker-alt"></i> สถานีที่มีปัญหา:</p><div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">${stationBadges}</div></div></div>`;
       });
-
-      content.innerHTML = `
-        <div class="space-y-6">
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="text-xl font-semibold text-white">รายการอุปกรณ์ที่พบปัญหา</h2>
-            <span class="text-sm px-3 py-1 bg-slate-800 rounded-full text-slate-400 border border-slate-700">พบ ${finalData.length} ประเภทอุปกรณ์</span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            ${cardsHtml}
-          </div>
-        </div>
-      `;
+      content.innerHTML = `<div class="space-y-6"><div class="flex items-center justify-between mb-2"><h2 class="text-xl font-semibold text-white">รายการอุปกรณ์ที่พบปัญหา</h2></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${cardsHtml}</div></div>`;
     }
-
-    // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
     window.addEventListener('load', fetchDataFromServer);
   </script>
 </body>

@@ -4,285 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายงานผลการตรวจสอบสถานี - MA Inspection</title>
-    
-    <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9',
-                            600: '#0284c7', 900: '#0c4a6e',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- นำเข้า Constants -->
+    <script src="constants.js"></script>
 
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Prompt', 'sans-serif'] }, colors: { brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' } } } } }
+    </script>
     <style>
         body { background-color: #f8fafc; color: #334155; }
-        
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        .table-container { max-height: 60vh; overflow-y: auto; }
-        thead th { position: sticky; top: 0; z-index: 10; background-color: #ffffff; }
-        
+        ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .table-container { max-height: 60vh; overflow-y: auto; } thead th { position: sticky; top: 0; z-index: 10; background-color: #ffffff; }
         .soft-shadow { box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05); }
-
-        .badge {
-            display: inline-flex; align-items: center; justify-content: center;
-            padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem;
-            font-weight: 600; letter-spacing: 0.025em;
-        }
-        .badge-p { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .badge-o { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .badge-null { background-color: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
-
+        .badge { display: inline-flex; align-items: center; justify-content: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 600; }
+        .badge-p { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; } .badge-o { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; } .badge-null { background-color: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
         .truncate-text { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        .select-minimal {
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 1em;
-            padding-right: 2.5rem;
-        }
-
-        .checkbox-custom:checked {
-            background-color: #0ea5e9;
-            border-color: #0ea5e9;
-        }
+        .select-minimal { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1em; padding-right: 2.5rem; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
-
-    <!-- Navbar -->
     <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center gap-3">
-                    <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition shrink-0">
-                        <i class="fas fa-arrow-left text-slate-600"></i>
-                    </a>
-                    <div class="bg-brand-50 text-brand-600 p-2 rounded-lg hidden sm:block">
-                        <i class="fas fa-clipboard-check text-xl"></i>
-                    </div>
+                    <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition shrink-0"><i class="fas fa-arrow-left text-slate-600"></i></a>
+                    <div class="bg-brand-50 text-brand-600 p-2 rounded-lg hidden sm:block"><i class="fas fa-clipboard-check text-xl"></i></div>
                     <span class="font-bold text-lg sm:text-xl tracking-tight text-slate-800">รายงานผล<span class="text-brand-500">ตรวจสอบสถานี</span></span>
                 </div>
                 <div class="text-xs sm:text-sm text-slate-500 hidden sm:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
-                    <i class="fas fa-info-circle text-brand-500"></i>
-                    <span><strong class="text-slate-700">P</strong> = ผ่าน, <strong class="text-slate-700">O</strong> = ชำรุด</span>
+                    <i class="fas fa-info-circle text-brand-500"></i><span><strong class="text-slate-700">P</strong> = ผ่าน, <strong class="text-slate-700">O</strong> = ชำรุด</span>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- พื้นที่หลัก -->
     <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-        
-        <!-- แผงควบคุมตัวกรอง (Filter Section) -->
         <div class="bg-white rounded-2xl border border-slate-200 soft-shadow p-5 mb-6">
-            <h2 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2 uppercase tracking-wide">
-                <i class="fas fa-sliders-h text-brand-500"></i> ตั้งค่าเงื่อนไขการค้นหาฐานข้อมูล
-            </h2>
-            
+            <h2 class="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2 uppercase tracking-wide"><i class="fas fa-sliders-h text-brand-500"></i> ตั้งค่าเงื่อนไขการค้นหาฐานข้อมูล</h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <!-- 1. เลือกงวดที่ตรวจ (แทน Sheet เดิม) -->
-                <div class="space-y-1.5">
-                    <label class="text-xs font-semibold text-slate-500 uppercase">งวดที่ตรวจ (Sheet)</label>
-                    <input type="text" id="sheetSelect" list="sheetList" placeholder="เลือกงวดที่ตรวจ..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 transition-colors">
-                    <datalist id="sheetList"></datalist>
-                </div>
-
-                <!-- 2. เลือกลุ่มน้ำ -->
-                <div class="space-y-1.5">
-                    <label class="text-xs font-semibold text-slate-500 uppercase">กลุ่มลุ่มน้ำ</label>
-                    <input type="text" id="refNameInput" list="basinList" placeholder="พิมพ์ชื่อลุ่มน้ำที่ต้องการ" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 transition-colors">
-                    <datalist id="basinList"></datalist>
-                </div>
-
-                <!-- 3. เลือกสถานะ -->
-                <div class="space-y-1.5">
-                    <label class="text-xs font-semibold text-slate-500 uppercase">สถานะการใช้งาน</label>
-                    <select id="statusSelect" class="select-minimal w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 transition-colors">
-                        <option value="ALL">แสดงทั้งหมด (พร้อมใช้งาน และ ชำรุด)</option>
-                        <option value="P">✅ เฉพาะพร้อมใช้งาน (P)</option>
-                        <option value="O">❌ เฉพาะชำรุด (O)</option>
-                    </select>
-                </div>
-
-                <!-- 4. ปุ่มค้นหา -->
-                <div>
-                    <button onclick="applyFilters()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all flex justify-center items-center gap-2 shadow-sm">
-                        <i class="fas fa-search"></i> ค้นหาข้อมูล
-                    </button>
-                </div>
+                <div class="space-y-1.5"><label class="text-xs font-semibold text-slate-500 uppercase">งวดที่ตรวจ</label><input type="text" id="sheetSelect" list="sheetList" placeholder="เลือกงวดที่ตรวจ..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5"><datalist id="sheetList"></datalist></div>
+                <div class="space-y-1.5"><label class="text-xs font-semibold text-slate-500 uppercase">กลุ่มลุ่มน้ำ</label><input type="text" id="refNameInput" list="basinList" placeholder="พิมพ์ชื่อลุ่มน้ำที่ต้องการ" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5"><datalist id="basinList"></datalist></div>
+                <div class="space-y-1.5"><label class="text-xs font-semibold text-slate-500 uppercase">สถานะการใช้งาน</label><select id="statusSelect" class="select-minimal w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg p-2.5"><option value="ALL">แสดงทั้งหมด</option><option value="P">✅ เฉพาะพร้อมใช้งาน (P)</option><option value="O">❌ เฉพาะชำรุด (O)</option></select></div>
+                <div><button onclick="applyFilters()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 flex justify-center items-center gap-2"><i class="fas fa-search"></i> ค้นหาข้อมูล</button></div>
             </div>
-
-            <!-- 5. กรองตามชื่อ Keystation (Optional) -->
             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center">
-                <input id="filterNameCheck" type="checkbox" value="" class="checkbox-custom w-4 h-4 bg-slate-50 border-slate-300 rounded focus:ring-brand-500 focus:ring-2">
-                <label for="filterNameCheck" class="ml-2 text-sm font-medium text-slate-700 cursor-pointer">
-                    กรองเฉพาะสถานีที่ระบุพิกัดแล้ว
-                </label>
+                <input id="filterNameCheck" type="checkbox" class="w-4 h-4 bg-slate-50 border-slate-300 rounded text-brand-500">
+                <label for="filterNameCheck" class="ml-2 text-sm font-medium text-slate-700 cursor-pointer">กรองเฉพาะสถานีที่ระบุพิกัดแล้ว</label>
             </div>
         </div>
 
-        <!-- สถานะกำลังโหลด -->
         <div id="loadingIndicator" class="flex flex-col items-center justify-center py-16">
-            <div class="w-10 h-10 border-4 border-slate-200 border-t-brand-500 rounded-full animate-spin mb-4"></div>
-            <p class="text-slate-500 font-medium text-sm">กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</p>
+            <div class="w-10 h-10 border-4 border-slate-200 border-t-brand-500 rounded-full animate-spin mb-4"></div><p class="text-slate-500 font-medium text-sm">กำลังโหลดข้อมูล...</p>
         </div>
+        <div id="errorContainer" class="hidden bg-rose-50 border border-rose-200 text-rose-700 px-4 py-4 rounded-xl mb-6 flex gap-3 items-start soft-shadow"><i class="fas fa-exclamation-circle text-xl mt-0.5"></i><div><h3 class="font-bold">แจ้งเตือน</h3><p class="text-sm mt-1" id="errorMessage"></p></div></div>
 
-        <!-- แจ้งเตือนข้อผิดพลาด -->
-        <div id="errorContainer" class="hidden bg-rose-50 border border-rose-200 text-rose-700 px-4 py-4 rounded-xl mb-6 flex gap-3 items-start soft-shadow">
-            <i class="fas fa-exclamation-circle text-xl mt-0.5"></i>
-            <div>
-                <h3 class="font-bold">แจ้งเตือน</h3>
-                <p class="text-sm mt-1" id="errorMessage"></p>
-            </div>
-        </div>
-
-        <!-- คอนเทนเนอร์แสดงข้อมูล -->
         <div id="dataContainer" class="hidden">
-            
             <div class="mb-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-                <!-- สรุปข้อมูล -->
                 <div class="grid grid-cols-3 gap-2 sm:flex sm:gap-3 w-full lg:w-auto">
-                    <div class="bg-white border border-slate-200 px-3 py-2 rounded-xl flex flex-col sm:flex-row items-center sm:gap-2 justify-center shadow-sm">
-                        <span class="text-[10px] sm:text-xs text-slate-500 font-semibold uppercase">ทั้งหมด</span>
-                        <span id="countTotal" class="text-xl sm:text-base font-bold text-slate-700">0</span>
-                    </div>
-                    <div class="bg-green-50 border border-green-200 px-3 py-2 rounded-xl flex flex-col sm:flex-row items-center sm:gap-2 justify-center shadow-sm">
-                        <span class="text-[10px] sm:text-xs text-green-600 font-semibold uppercase">ใช้ได้</span>
-                        <span id="countReady" class="text-xl sm:text-base font-bold text-green-700">0</span>
-                    </div>
-                    <div class="bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl flex flex-col sm:flex-row items-center sm:gap-2 justify-center shadow-sm">
-                        <span class="text-[10px] sm:text-xs text-rose-600 font-semibold uppercase">ชำรุด</span>
-                        <span id="countNotReady" class="text-xl sm:text-base font-bold text-rose-700">0</span>
-                    </div>
+                    <div class="bg-white border border-slate-200 px-3 py-2 rounded-xl flex flex-col sm:flex-row items-center sm:gap-2 justify-center"><span class="text-[10px] sm:text-xs text-slate-500 font-semibold uppercase">ทั้งหมด</span><span id="countTotal" class="text-xl sm:text-base font-bold text-slate-700">0</span></div>
+                    <div class="bg-green-50 border border-green-200 px-3 py-2 rounded-xl flex flex-col sm:flex-row items-center sm:gap-2 justify-center"><span class="text-[10px] sm:text-xs text-green-600 font-semibold uppercase">ใช้ได้</span><span id="countReady" class="text-xl sm:text-base font-bold text-green-700">0</span></div>
+                    <div class="bg-rose-50 border border-rose-200 px-3 py-2 rounded-xl flex flex-col sm:flex-row items-center sm:gap-2 justify-center"><span class="text-[10px] sm:text-xs text-rose-600 font-semibold uppercase">ชำรุด</span><span id="countNotReady" class="text-xl sm:text-base font-bold text-rose-700">0</span></div>
                 </div>
-                
-                <!-- เครื่องมือจัดการข้อมูล -->
                 <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                    <!-- ช่องค้นหารหัสสถานี -->
-                    <div class="relative w-full sm:w-56">
-                        <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                            <i class="fas fa-search text-slate-400 text-sm"></i>
-                        </div>
-                        <input type="text" id="localSearchInput" onkeyup="applySortAndFilter()" placeholder="ค้นหารหัส/ชื่อสถานี..." class="bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full py-2 pl-9 pr-3 transition-colors shadow-sm">
-                    </div>
-
-                    <!-- กล่องเลือกการจัดเรียงข้อมูล -->
-                    <div class="flex items-center gap-2 w-full sm:w-auto">
-                        <select id="sortSelect" onchange="applySortAndFilter()" class="select-minimal bg-white border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block w-full sm:w-auto py-2 pl-3 pr-8 transition-colors shadow-sm cursor-pointer">
-                            <option value="newest" selected>เรียงใหม่ ➜ เก่า</option>
-                            <option value="oldest">เรียงเก่า ➜ ใหม่</option>
-                        </select>
-                    </div>
+                    <div class="relative w-full sm:w-56"><div class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-search text-slate-400 text-sm"></i></div><input type="text" id="localSearchInput" onkeyup="applySortAndFilter()" placeholder="ค้นหารหัส/ชื่อสถานี..." class="bg-white border border-slate-200 text-slate-700 text-sm rounded-lg block w-full py-2 pl-9 pr-3"></div>
+                    <select id="sortSelect" onchange="applySortAndFilter()" class="select-minimal bg-white border border-slate-200 text-slate-700 text-sm rounded-lg block w-full sm:w-auto py-2 pl-3 pr-8"><option value="newest" selected>เรียงใหม่ ➜ เก่า</option><option value="oldest">เรียงเก่า ➜ ใหม่</option></select>
                 </div>
             </div>
 
-            <!-- มุมมอง Desktop: ตาราง -->
             <div class="hidden lg:block bg-white rounded-xl border border-slate-200 soft-shadow overflow-hidden">
                 <div class="table-container">
                     <table class="min-w-full divide-y divide-slate-200 text-left">
                         <thead>
-                            <tr>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">รหัสสถานี</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">ชื่อสถานี</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">ลุ่มน้ำ</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase text-center bg-slate-50">พร้อมใช้งาน</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase text-center bg-slate-50">ความสะอาด</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">ที่ตั้งอาคาร</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">อุปกรณ์ชำรุด</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">อธิบายเพิ่มเติม</th>
-                                <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider text-slate-500 uppercase bg-slate-50">คอมเม้นจากกรรมการ</th>
-                            </tr>
+                            <tr><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">รหัสสถานี</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">ชื่อสถานี</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">ลุ่มน้ำ</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase text-center bg-slate-50">พร้อมใช้งาน</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase text-center bg-slate-50">ความสะอาด</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">ที่ตั้งอาคาร</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">อุปกรณ์ชำรุด</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">อธิบายเพิ่มเติม</th><th class="px-5 py-3.5 text-xs text-slate-500 uppercase bg-slate-50">คอมเม้นจากกรรมการ</th></tr>
                         </thead>
-                        <tbody id="desktopTableBody" class="divide-y divide-slate-100 bg-white">
-                            <!-- ข้อมูลจะถูกแทรกที่นี่ -->
-                        </tbody>
+                        <tbody id="desktopTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
                     </table>
                 </div>
             </div>
-
-            <!-- มุมมอง Mobile: รูปแบบการ์ด -->
-            <div id="mobileCardContainer" class="lg:hidden flex flex-col gap-4">
-                <!-- ข้อมูลจะถูกแทรกที่นี่ -->
-            </div>
+            <div id="mobileCardContainer" class="lg:hidden flex flex-col gap-4"></div>
         </div>
 
-        <!-- กรณีไม่มีข้อมูล -->
         <div id="emptyState" class="hidden bg-white rounded-2xl border border-slate-200 py-16 text-center soft-shadow mt-4">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 mb-4">
-                <i class="fas fa-search text-2xl text-slate-400"></i>
-            </div>
-            <h3 class="text-lg font-medium text-slate-900">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</h3>
-            <p class="text-slate-500 mt-1 text-sm">กรุณาตรวจสอบชื่อลุ่มน้ำ หรืองวดที่ตรวจใหม่อีกครั้ง</p>
+            <i class="fas fa-search text-2xl text-slate-400 mb-4 block"></i><h3 class="text-lg font-medium text-slate-900">ไม่พบข้อมูล</h3>
         </div>
     </main>
 
     <script>
         let globalRawData = [];
         let globalFetchedData = [];
-
-        // Mapping ชื่อฟิลด์ใน Database กับชื่ออุปกรณ์ที่จะแสดงในรายงาน
-        const equipmentMap = {
-            clean: "ความสะอาดไม่ผ่าน",
-            pai: "สถานะภาพป้ายสถานี",
-            power: "ระบบไฟฟ้าภายนอกภายใน",
-            power1: "หลอดไฟภายนอก/ภายใน",
-            online: "สถานะเว็บไซต์ไม่ออนไลน์",
-            wl: "ค่าน้ำตรวจครั้งแรกไม่ถูกต้อง",
-            wl1: "ค่าน้ำหลังจากปรับแก้ไม่ถูกต้อง",
-            r: "ค่าน้ำฝนไม่ถูกต้อง",
-            sta_cpu: "CPU Status ชำรุด",
-            sta_ai: "AI Status ชำรุด",
-            sta_di: "DI Status ชำรุด",
-            sta_do: "DO Status ชำรุด",
-            sta_io: "IO Status ชำรุด",
-            plc: "RTU PLC ชำรุด",
-            sta_m1: "Modem 1 ชำรุด",
-            sta_m2: "Modem 2 ชำรุด",
-            sta_p1: "Power Supply 1 ชำรุด",
-            sta_p2: "Power Supply 2 ชำรุด",
-            sta_cctv1: "CCTV1 ชำรุด",
-            sta_cctv2: "CCTV2 ชำรุด",
-            sta_r: "Rain Gauge ชำรุด",
-            sta_s: "Surge Protection ชำรุด",
-            sta_wl: "Water Level (bubble) ชำรุด",
-            sta_tro: "ท่อลมชำรุด",
-            sta_gass: "ถังแก๊สชำรุด",
-            sta_wl1: "Water Level (Radar) ชำรุด",
-            sta_wl2: "Water Level (float) ชำรุด",
-            sta_saling: "สายสลิงชำรุด",
-            b2: "จำนวนแบตเตอรี่ (ชำรุด)",
-            sta2: "จำนวนแผ่นวัดน้ำ (ชำรุด)",
-            pole2: "จำนวนเสาวัดน้ำ (ชำรุด)"
-        };
-
-        const hardcodedBasins = [
-            "โขงเหนือ", "โขงอีสาน", "ชี", "มูล", "ปิง", "วัง", "ยม", "น่าน", "เจ้าพระยา",
-            "ป่าสัก", "สะแกกรัง", "ท่าจีน", "แม่กลอง", "บางปะกง", "ชายทะเลฝั่งตะวันออก",
-            "เพชรบุรี-ประจวบคีรีขันธ์", "ภาคใต้ฝั่งตะวันตก", "ภาคใต้ฝั่งตะวันออกตอนบน",
-            "ภาคใต้ฝั่งตะวันออกตอนล่าง", "ทะเลสาบสงขลา", "สาละวิน", "โตนเลสาป", "KRC"
-        ];
 
         window.addEventListener('load', initializeFilters);
 
@@ -291,33 +102,19 @@
             const sheetList = document.getElementById('sheetList');
             const basinList = document.getElementById('basinList');
             
-            // เตรียม Dropdown งวดที่ตรวจ (แทน Sheets)
-            ["งวดที่1", "งวดที่2", "งวดที่3", "งวดที่4"].forEach(sheet => {
-                sheetList.innerHTML += `<option value="${sheet}">`;
-            });
-            sheetSelect.value = "งวดที่1"; // ค่าเริ่มต้น
+            ["งวดที่1", "งวดที่2", "งวดที่3", "งวดที่4"].forEach(s => sheetList.innerHTML += `<option value="${s}">`);
+            sheetSelect.value = "งวดที่1";
+            hardcodedBasins.forEach(b => basinList.innerHTML += `<option value="${b}">`);
 
-            // เตรียม Dropdown ลุ่มน้ำ
-            hardcodedBasins.forEach(basin => {
-                basinList.innerHTML += `<option value="${basin}">`;
-            });
-
-            // ยิงดึงข้อมูลดิบจาก Database มาพักไว้ใน Memory (Client-side)
             try {
-                // ** หมายเหตุ: เปลี่ยน URL นี้ให้ตรงกับ Backend ของคุณเมื่อขึ้น Production **
-                const API_URL = '/api/inspections';
-                const response = await fetch(API_URL);
+                // ✅ เปลี่ยนเป็น endpoint ที่ถูกต้อง
+                const response = await fetch('/api/inspections');
                 const result = await response.json();
-                
                 if (response.ok && result.success) {
                     globalRawData = result.data;
-                    applyFilters(); // กรองข้อมูลตามค่าตั้งต้น
-                } else {
-                    throw new Error(result.message || 'ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้');
-                }
-            } catch (err) {
-                showError("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + err.message);
-            }
+                    applyFilters(); 
+                } else throw new Error(result.message);
+            } catch (err) { showError(err.message); }
         }
 
         function applyFilters() {
@@ -326,71 +123,37 @@
             const isFilterName = document.getElementById('filterNameCheck').checked;
             const statusMode = document.getElementById('statusSelect').value;
 
-            if (!sheetName) {
-                showError("กรุณาเลือกงวดที่ตรวจก่อนค้นหาข้อมูล");
-                return;
-            }
+            if (!sheetName) { showError("กรุณาเลือกงวดที่ตรวจ"); return; }
 
-            document.getElementById('localSearchInput').value = '';
             document.getElementById('loadingIndicator').classList.add('hidden');
             document.getElementById('errorContainer').classList.add('hidden');
 
             let output = [];
-
-            // วนลูปคัดกรองข้อมูลจาก Data ดิบ และแปลงให้ตรงกับรูปแบบรายงาน
             globalRawData.forEach(row => {
-                
-                // 1. กรองตามงวดที่
                 if (row.saya !== sheetName) return;
-
-                // 2. กรองตามลุ่มน้ำ (ถ้ามีการระบุ)
                 if (refName && row.code !== refName) return;
-
-                // 3. กรองตามการระบุพิกัด (แทนที่ระบบ KeyStation เดิม)
                 if (isFilterName && (!row.lat || !row.lon)) return;
 
-                // 4. หาสาเหตุการชำรุดจากอุปกรณ์ทั้งหมด
-                let isBroken = false;
-                let reasons = [];
-                
+                let isBroken = false; let reasons = [];
                 Object.keys(equipmentMap).forEach(key => {
                     const val = row[key];
-                    // กรณีเก็บเป็นสถานะอักษร "O"
-                    if (typeof val === 'string' && val.trim().toUpperCase() === "O") {
-                        isBroken = true;
-                        reasons.push(equipmentMap[key]);
-                    } 
-                    // กรณีเก็บเป็นจำนวนที่ชำรุด (มากกว่า 0)
+                    if (typeof val === 'string' && val.trim().toUpperCase() === "O") { isBroken = true; reasons.push(equipmentMap[key]); } 
                     else if (['b2', 'sta2', 'pole2'].includes(key)) {
                         let numVal = Number(val);
-                        if (!isNaN(numVal) && numVal > 0) {
-                            isBroken = true;
-                            reasons.push(equipmentMap[key] + ` (${numVal})`);
-                        }
+                        if (!isNaN(numVal) && numVal > 0) { isBroken = true; reasons.push(equipmentMap[key] + ` (${numVal})`); }
                     }
                 });
 
-                // คำนวณสถานะความพร้อม
                 let readyStatusCode = isBroken ? 'O' : 'P';
-                let readyStatus = isBroken ? 'ใช้ไม่ได้' : 'ใช้ได้';
-                let cleanStatus = row.clean === 'P' ? 'ผ่าน' : (row.clean === 'O' ? 'ไม่ผ่าน' : '-');
-
-                // 5. กรองตามสถานะการใช้งาน
-                if (statusMode !== 'ALL') {
-                    if (statusMode === 'P' && readyStatusCode !== 'P') return;
-                    if (statusMode === 'O' && readyStatusCode !== 'O') return;
-                }
+                if (statusMode !== 'ALL' && statusMode !== readyStatusCode) return;
 
                 output.push({
-                    stationCode: row.id_name || '-',
-                    stationName: row.name_id || '-',
-                    basin: row.code || '-',
-                    readyStatus: readyStatus,
-                    cleanStatus: cleanStatus,
+                    stationCode: row.id_name || '-', stationName: row.name_id || '-', basin: row.code || '-',
+                    readyStatus: isBroken ? 'ใช้ไม่ได้' : 'ใช้ได้',
+                    cleanStatus: row.clean === 'P' ? 'ผ่าน' : (row.clean === 'O' ? 'ไม่ผ่าน' : '-'),
                     location: row.install_status || '-',
                     brokenEquip: reasons.length > 0 ? reasons.join(', ') : '-',
-                    note: row.note || '-',
-                    comment: row.note2 || '-'
+                    note: row.note || '-', comment: row.note2 || '-'
                 });
             });
 
@@ -398,158 +161,75 @@
         }
 
         function getBadge(value) {
-            const val = value ? value.trim() : '';
-            const checkVal = val.toUpperCase();
-            
-            if (checkVal === 'P' || val === 'ใช้ได้' || val === 'ผ่าน') {
-                const display = checkVal === 'P' ? 'ผ่าน' : val;
-                return `<span class="badge badge-p"><i class="fas fa-check mr-1 text-xs"></i>${display}</span>`;
-            }
-            if (checkVal === 'O' || val === 'ใช้ไม่ได้' || val === 'ไม่ผ่าน' || val === 'ชำรุด') {
-                const display = checkVal === 'O' ? 'ชำรุด' : val;
-                return `<span class="badge badge-o"><i class="fas fa-times mr-1 text-xs"></i>${display}</span>`;
-            }
-            if (val === '-' || val === '') return `<span class="badge badge-null">-</span>`;
-            return `<span class="badge badge-null">${val}</span>`;
+            const checkVal = value ? value.trim().toUpperCase() : '';
+            if (checkVal === 'P' || checkVal === 'ใช้ได้' || checkVal === 'ผ่าน') return `<span class="badge badge-p">${value}</span>`;
+            if (checkVal === 'O' || checkVal === 'ใช้ไม่ได้' || checkVal === 'ไม่ผ่าน' || checkVal === 'ชำรุด') return `<span class="badge badge-o">${value}</span>`;
+            return `<span class="badge badge-null">${value || '-'}</span>`;
         }
 
         function renderData(processedData) {
             globalFetchedData = processedData;
-            
-            let readyCount = 0;
-            let notReadyCount = 0;
-            
-            globalFetchedData.forEach(item => {
-                if (item.readyStatus === 'ใช้ได้') {
-                    readyCount++;
-                } else if (item.readyStatus === 'ใช้ไม่ได้') {
-                    notReadyCount++;
-                }
-            });
+            let ready = 0, notReady = 0;
+            globalFetchedData.forEach(i => { if(i.readyStatus === 'ใช้ได้') ready++; else notReady++; });
 
             document.getElementById('countTotal').innerText = globalFetchedData.length;
-            document.getElementById('countReady').innerText = readyCount;
-            document.getElementById('countNotReady').innerText = notReadyCount;
+            document.getElementById('countReady').innerText = ready;
+            document.getElementById('countNotReady').innerText = notReady;
 
             if (globalFetchedData.length === 0) {
                 document.getElementById('emptyState').classList.remove('hidden');
                 document.getElementById('dataContainer').classList.add('hidden');
-                return;
-            } 
-
-            document.getElementById('dataContainer').classList.remove('hidden');
-            document.getElementById('emptyState').classList.add('hidden');
-            
-            applySortAndFilter(); 
+            } else {
+                document.getElementById('dataContainer').classList.remove('hidden');
+                document.getElementById('emptyState').classList.add('hidden');
+                applySortAndFilter();
+            }
         }
 
         function applySortAndFilter() {
-            if (!globalFetchedData || globalFetchedData.length === 0) return;
-
-            const sortMode = document.getElementById('sortSelect').value;
-            const searchKeyword = document.getElementById('localSearchInput').value.trim().toLowerCase();
-            
             let displayData = [...globalFetchedData];
-
-            if (searchKeyword !== '') {
-                displayData = displayData.filter(row => {
-                    const codeMatch = row.stationCode && row.stationCode.toLowerCase().includes(searchKeyword);
-                    const nameMatch = row.stationName && row.stationName.toLowerCase().includes(searchKeyword);
-                    return codeMatch || nameMatch;
-                });
-            }
-
-            if (sortMode === 'oldest') {
-                displayData.reverse(); 
-            }
-
-            drawUI(displayData, searchKeyword !== '');
+            const search = document.getElementById('localSearchInput').value.trim().toLowerCase();
+            if (search) displayData = displayData.filter(r => (r.stationCode||'').toLowerCase().includes(search) || (r.stationName||'').toLowerCase().includes(search));
+            if (document.getElementById('sortSelect').value === 'oldest') displayData.reverse();
+            drawUI(displayData, search !== '');
         }
 
-        function drawUI(data, isSearching) {
-            const desktopTbody = document.getElementById('desktopTableBody');
-            const mobileContainer = document.getElementById('mobileCardContainer');
-            
-            desktopTbody.innerHTML = '';
-            mobileContainer.innerHTML = '';
+        function drawUI(data, isSearch) {
+            const dtBody = document.getElementById('desktopTableBody'), mbCont = document.getElementById('mobileCardContainer');
+            dtBody.innerHTML = ''; mbCont.innerHTML = '';
 
-            if (data.length === 0 && isSearching) {
-                desktopTbody.innerHTML = `<tr><td colspan="9" class="px-5 py-10 text-center text-slate-500 bg-slate-50"><i class="fas fa-search-minus text-2xl text-slate-300 mb-2 block"></i>ไม่พบสถานีที่ค้นหาในเงื่อนไขนี้</td></tr>`;
-                mobileContainer.innerHTML = `<div class="bg-slate-50 p-8 rounded-xl border border-slate-200 text-center text-slate-500"><i class="fas fa-search-minus text-2xl text-slate-300 mb-2 block"></i>ไม่พบสถานีที่ค้นหาในเงื่อนไขนี้</div>`;
-                return;
+            if (data.length === 0 && isSearch) {
+                dtBody.innerHTML = `<tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">ไม่พบสถานี</td></tr>`;
+                mbCont.innerHTML = `<div class="bg-slate-50 p-8 text-center text-slate-500">ไม่พบสถานี</div>`; return;
             }
 
             data.forEach((row) => {
-                // Desktop UI
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors group";
-                tr.innerHTML = `
-                    <td class="px-5 py-4 whitespace-nowrap text-sm font-medium text-brand-600">${row.stationCode}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm font-semibold text-slate-800">${row.stationName}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-600">${row.basin || '-'}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-center">${getBadge(row.readyStatus)}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-center">${getBadge(row.cleanStatus)}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-600">${row.location}</td>
-                    <td class="px-5 py-4 text-sm text-rose-600 font-medium">
-                        <div class="truncate-text" title="${row.brokenEquip}">${row.brokenEquip}</div>
-                    </td>
-                    <td class="px-5 py-4 text-sm text-slate-500">
-                        <div class="truncate-text" title="${row.note}">${row.note}</div>
-                    </td>
-                    <td class="px-5 py-4 text-sm text-slate-500">
-                        <div class="truncate-text" title="${row.comment}">${row.comment}</div>
-                    </td>
-                `;
-                desktopTbody.appendChild(tr);
-
-                // Mobile UI
-                const card = document.createElement('div');
-                card.className = "bg-white p-5 rounded-xl border border-slate-200 soft-shadow flex flex-col gap-3";
-                let headerBorderColor = row.readyStatus === 'ใช้ไม่ได้' ? 'border-rose-500' : 'border-brand-500';
+                // ✅ ป้องกัน XSS
+                const safeBroken = escapeHtml(row.brokenEquip);
+                const safeNote = escapeHtml(row.note);
+                const safeComment = escapeHtml(row.comment);
+                const safeName = escapeHtml(row.stationName);
                 
-                card.innerHTML = `
-                    <div class="flex justify-between items-start pb-2 border-b border-slate-100">
-                        <div class="border-l-4 ${headerBorderColor} pl-3">
-                            <p class="text-xs font-semibold text-brand-600 mb-0.5">${row.stationCode} <span class="text-slate-400 font-normal ml-1 border-l border-slate-300 pl-1.5">${row.basin || '-'}</span></p>
-                            <h3 class="text-sm font-bold text-slate-800 leading-tight">${row.stationName}</h3>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-2 mt-1">
-                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100 flex flex-col items-center justify-center text-center">
-                            <span class="text-[10px] text-slate-500 mb-1 uppercase font-semibold">พร้อมใช้งาน</span>
-                            ${getBadge(row.readyStatus)}
-                        </div>
-                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100 flex flex-col items-center justify-center text-center">
-                            <span class="text-[10px] text-slate-500 mb-1 uppercase font-semibold">ความสะอาด</span>
-                            ${getBadge(row.cleanStatus)}
-                        </div>
-                    </div>
+                dtBody.innerHTML += `<tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-5 py-4 whitespace-nowrap text-sm font-medium text-brand-600">${escapeHtml(row.stationCode)}</td>
+                    <td class="px-5 py-4 whitespace-nowrap text-sm font-semibold text-slate-800">${safeName}</td>
+                    <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(row.basin)}</td>
+                    <td class="px-5 py-4 whitespace-nowrap text-center">${getBadge(row.readyStatus)}</td><td class="px-5 py-4 whitespace-nowrap text-center">${getBadge(row.cleanStatus)}</td>
+                    <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-600">${escapeHtml(row.location)}</td>
+                    <td class="px-5 py-4 text-sm text-rose-600 font-medium"><div class="truncate-text" title="${safeBroken}">${safeBroken}</div></td>
+                    <td class="px-5 py-4 text-sm text-slate-500"><div class="truncate-text" title="${safeNote}">${safeNote}</div></td>
+                    <td class="px-5 py-4 text-sm text-slate-500"><div class="truncate-text" title="${safeComment}">${safeComment}</div></td></tr>`;
 
-                    <div class="flex flex-col gap-1.5 mt-2">
-                        <div class="flex justify-between items-start text-xs">
-                            <span class="text-slate-500 min-w-[80px]">ที่ตั้งอาคาร:</span>
-                            <span class="text-slate-800 font-medium text-right">${row.location}</span>
-                        </div>
-                        <div class="flex justify-between items-start text-xs">
-                            <span class="text-slate-500 min-w-[80px]">อุปกรณ์ชำรุด:</span>
-                            <span class="text-rose-600 font-medium text-right">${row.brokenEquip}</span>
-                        </div>
-                        
-                        ${row.note !== '-' && row.note !== '' ? `
-                        <div class="mt-2 pt-2 border-t border-slate-100 text-xs">
-                            <span class="text-slate-400 block mb-1 font-semibold">อธิบายเพิ่มเติม</span>
-                            <p class="text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">${row.note}</p>
-                        </div>` : ''}
-
-                        ${row.comment !== '-' && row.comment !== '' ? `
-                        <div class="mt-1 text-xs">
-                            <span class="text-slate-400 block mb-1 font-semibold">คอมเม้นจากกรรมการ</span>
-                            <p class="text-slate-600 bg-brand-50 p-2 rounded border border-brand-100">${row.comment}</p>
-                        </div>` : ''}
-                    </div>
-                `;
-                mobileContainer.appendChild(card);
+                let hc = row.readyStatus === 'ใช้ไม่ได้' ? 'border-rose-500' : 'border-brand-500';
+                mbCont.innerHTML += `<div class="bg-white p-5 rounded-xl border border-slate-200 soft-shadow flex flex-col gap-3">
+                    <div class="border-l-4 ${hc} pl-3"><p class="text-xs font-semibold text-brand-600 mb-0.5">${escapeHtml(row.stationCode)} <span class="text-slate-400 ml-1 border-l border-slate-300 pl-1.5">${escapeHtml(row.basin)}</span></p><h3 class="text-sm font-bold text-slate-800">${safeName}</h3></div>
+                    <div class="grid grid-cols-2 gap-2 mt-1"><div class="bg-slate-50 p-2 text-center"><span class="text-[10px] text-slate-500 block mb-1">พร้อมใช้งาน</span>${getBadge(row.readyStatus)}</div><div class="bg-slate-50 p-2 text-center"><span class="text-[10px] text-slate-500 block mb-1">ความสะอาด</span>${getBadge(row.cleanStatus)}</div></div>
+                    <div class="flex flex-col gap-1.5 mt-2 text-xs">
+                        <div class="flex justify-between"><span class="text-slate-500">ที่ตั้งอาคาร:</span><span class="font-medium">${escapeHtml(row.location)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">อุปกรณ์ชำรุด:</span><span class="text-rose-600 font-medium">${safeBroken}</span></div>
+                        ${safeNote !== '-' ? `<div class="mt-2 pt-2 border-t border-slate-100"><span class="text-slate-400 block mb-1 font-semibold">อธิบายเพิ่มเติม</span><p class="text-slate-600 bg-slate-50 p-2 border border-slate-100">${safeNote}</p></div>` : ''}
+                        ${safeComment !== '-' ? `<div class="mt-1"><span class="text-slate-400 block mb-1 font-semibold">กรรมการ</span><p class="text-slate-600 bg-brand-50 p-2 border border-brand-100">${safeComment}</p></div>` : ''}
+                    </div></div>`;
             });
         }
 

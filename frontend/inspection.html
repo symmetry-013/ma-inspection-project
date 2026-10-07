@@ -4,218 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>โปรแกรมตรวจสอบอุปกรณ์ในสนามงาน MA</title>
-    
-    <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- SweetAlert2 (Dark Theme) -->
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    <!-- นำเข้า Constants -->
+    <script src="constants.js"></script>
 
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Prompt', 'sans-serif'],
-                    },
-                    colors: {
-                        neon: {
-                            red: '#FF3333',     
-                            darkred: '#8B0000',
-                            blue: '#3388FF',
-                            green: '#00FF66',
-                            bg: '#0f1012',      
-                            card: '#1a1c20',    
-                            input: '#000000'    
-                        }
-                    },
-                    boxShadow: {
-                        'neon-red': '0 0 5px #FF3333, 0 0 10px rgba(255, 51, 51, 0.5)',
-                    }
-                }
-            }
+            theme: { extend: { fontFamily: { sans: ['Prompt', 'sans-serif'] }, colors: { neon: { red: '#FF3333', darkred: '#8B0000', blue: '#3388FF', green: '#00FF66', bg: '#0f1012', card: '#1a1c20', input: '#000000' } }, boxShadow: { 'neon-red': '0 0 5px #FF3333, 0 0 10px rgba(255, 51, 51, 0.5)' } } }
         }
     </script>
-
     <style>
         body { background-color: #0f1012; color: #ffffff; font-family: 'Prompt', sans-serif; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f1012; }
         ::-webkit-scrollbar-thumb { background: #FF3333; border-radius: 4px; }
-
-        .input-neon {
-            background-color: #000000;
-            border: 1px solid #444;
-            color: #ffffff;
-            transition: all 0.3s ease;
-        }
-        .input-neon:focus {
-            outline: none;
-            border-color: #FF3333;
-            box-shadow: 0 0 8px rgba(255, 51, 51, 0.6);
-        }
-        .input-neon:disabled {
-            background-color: #1a1c20;
-            border-color: #333;
-            color: #666;
-        }
-
+        .input-neon { background-color: #000000; border: 1px solid #444; color: #ffffff; transition: all 0.3s ease; }
+        .input-neon:focus { outline: none; border-color: #FF3333; box-shadow: 0 0 8px rgba(255, 51, 51, 0.6); }
+        .input-neon:disabled { background-color: #1a1c20; border-color: #333; color: #666; }
         .radio-neon-label { cursor: pointer; position: relative; }
-        .radio-neon-content {
-            background: #1a1c20;
-            border: 1px solid #333;
-            color: #888;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
+        .radio-neon-content { background: #1a1c20; border: 1px solid #333; color: #888; transition: all 0.3s ease; position: relative; overflow: hidden; }
         .radio-neon-label:hover .radio-neon-content { border-color: #666; color: #fff; }
-
-        .radio-none:checked + .radio-neon-content {
-            background: #2a2a2a; border-color: #666; color: #ccc;
-        }
-        .radio-normal:checked + .radio-neon-content {
-            background: rgba(0, 255, 102, 0.1); border-color: #00FF66; color: #00FF66;
-            font-weight: bold;
-        }
-        .radio-broken:checked + .radio-neon-content {
-            background: rgba(255, 51, 51, 0.1); border-color: #FF3333; color: #FF3333;
-            font-weight: bold;
-        }
-
-        .btn-neon-submit {
-            background: linear-gradient(90deg, #8B0000, #FF3333);
-            border: none; color: white; transition: all 0.3s ease;
-        }
+        .radio-none:checked + .radio-neon-content { background: #2a2a2a; border-color: #666; color: #ccc; }
+        .radio-normal:checked + .radio-neon-content { background: rgba(0, 255, 102, 0.1); border-color: #00FF66; color: #00FF66; font-weight: bold; }
+        .radio-broken:checked + .radio-neon-content { background: rgba(255, 51, 51, 0.1); border-color: #FF3333; color: #FF3333; font-weight: bold; }
+        .btn-neon-submit { background: linear-gradient(90deg, #8B0000, #FF3333); border: none; color: white; transition: all 0.3s ease; }
         .btn-neon-submit:hover { transform: scale(1.02); box-shadow: 0 0 15px #FF3333; }
-        .btn-neon-submit:disabled {
-            background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none;
-        }
-        
-        .glass-header {
-            background: rgba(15, 16, 18, 0.95);
-            border-bottom: 1px solid #333;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        .card-container {
-            background-color: #1a1c20;
-            border: 1px solid #333;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+        .btn-neon-submit:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
+        .glass-header { background: rgba(15, 16, 18, 0.95); border-bottom: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .card-container { background-color: #1a1c20; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         @keyframes blink { 50% { opacity: 0.5; } }
         .animate-blink { animation: blink 1.5s infinite; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
-
-    <!-- Header -->
     <header class="glass-header sticky top-0 z-50 py-4">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center space-x-4">
-                <!-- ปุ่มกลับหน้าเมนูหลัก -->
-                <a href="index.html" class="w-10 h-10 rounded-lg bg-gray-800 border border-gray-600 flex items-center justify-center hover:bg-gray-700 transition">
-                    <i class="fas fa-arrow-left text-white"></i>
-                </a>
-                <div class="w-12 h-12 rounded-lg bg-black border border-neon-red flex items-center justify-center shadow-neon-red">
-                    <i class="fas fa-shield-alt text-neon-red text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-xl md:text-2xl font-bold tracking-wide text-white uppercase">
-                        MA <span class="text-neon-red">Inspection</span>
-                    </h1>
-                </div>
+                <a href="index.html" class="w-10 h-10 rounded-lg bg-gray-800 border border-gray-600 flex items-center justify-center hover:bg-gray-700 transition"><i class="fas fa-arrow-left text-white"></i></a>
+                <div class="w-12 h-12 rounded-lg bg-black border border-neon-red flex items-center justify-center shadow-neon-red"><i class="fas fa-shield-alt text-neon-red text-xl"></i></div>
+                <div><h1 class="text-xl md:text-2xl font-bold tracking-wide text-white uppercase">MA <span class="text-neon-red">Inspection</span></h1></div>
             </div>
-            
             <div class="flex flex-col items-end gap-1">
                 <div id="gpsStatus" onclick="getLocation()" class="cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-gray-600 bg-gray-900 text-yellow-500 animate-blink">
-                    <i class="fas fa-satellite-dish mr-2 animate-pulse"></i>
-                    <span>กำลังค้นหาพิกัด...</span>
+                    <i class="fas fa-satellite-dish mr-2 animate-pulse"></i><span>กำลังค้นหาพิกัด...</span>
                 </div>
                 <div class="text-[10px] text-gray-500 font-mono" id="gpsCoords">Lat: -, Lon: -</div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 max-w-7xl flex-grow">
         <form id="mainform" onsubmit="handleFormSubmit(event, this)" class="space-y-8">
-            
             <div class="card-container rounded-lg p-6 relative">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800">
-                    <span class="w-2 h-8 bg-neon-red mr-3 shadow-neon-red"></span>
-                    <h2 class="text-xl font-bold text-white uppercase tracking-wider">ข้อมูลการตรวจสอบ</h2>
-                </div>
-                
+                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-neon-red mr-3 shadow-neon-red"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider">ข้อมูลการตรวจสอบ</h2></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-gray-300">งวดที่ตรวจ</label>
-                        <select name="saya" id="saya" required class="w-full p-3 rounded-md input-neon text-white">
-                            <option selected disabled value="">-- เลือกงวดที่ตรวจ --</option>
-                            <option>งวดที่1</option>
-                            <option>งวดที่2</option>
-                            <option>งวดที่3</option>
-                            <option>งวดที่4</option>
-                        </select>
+                        <select name="saya" id="saya" required class="w-full p-3 rounded-md input-neon text-white"><option selected disabled value="">-- เลือกงวดที่ตรวจ --</option><option>งวดที่1</option><option>งวดที่2</option><option>งวดที่3</option><option>งวดที่4</option></select>
                     </div>
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-gray-300">กลุ่มลุ่มน้ำ</label>
-                        <select name="code" id="code" required class="w-full p-3 rounded-md input-neon text-white">
-                            <option selected disabled value="">-- เลือกกลุ่มน้ำ --</option>
-                            <option>โขงเหนือ</option>
-                            <option>โขงอีสาน</option>
-                            <option>ชี</option>
-                            <option>มูล</option>
-                            <option>ปิง</option>
-                            <option>วัง</option>
-                            <option>ยม</option>
-                            <option>น่าน</option>
-                            <option>เจ้าพระยา</option>
-                            <option>ป่าสัก</option>
-                            <option>สะแกกรัง</option>
-                            <option>ท่าจีน</option>
-                            <option>แม่กลอง</option>
-                            <option>บางปะกง</option>
-                            <option>ชายทะเลฝั่งตะวันออก</option>
-                            <option>เพชรบุรี-ประจวบคีรีขันธ์</option>
-                            <option>ภาคใต้ฝั่งตะวันตก</option>
-                            <option>ภาคใต้ฝั่งตะวันออกตอนบน</option>
-                            <option>ภาคใต้ฝั่งตะวันออกตอนล่าง</option>
-                            <option>ทะเลสาบสงขลา</option>
-                            <option>สาละวิน</option>
-                            <option>โตนเลสาป</option>
-                            <option>KRC</option>
-                            <option value="">ไม่มี</option>
-                            <option>ไม่ทราบ</option>
-                        </select>
+                        <select name="code" id="code" required class="w-full p-3 rounded-md input-neon text-white"></select>
                     </div>
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-gray-300">รหัสสถานี</label>
-                        <input list="stationList" type="text" name="id_name" id="id_name" required disabled 
-                                placeholder="ค้นหารหัส..." class="w-full p-3 rounded-md input-neon text-white">
-                        <datalist id="stationList"></datalist>
+                        <input list="stationList" type="text" name="id_name" id="id_name" required disabled placeholder="ค้นหารหัส..." class="w-full p-3 rounded-md input-neon text-white"><datalist id="stationList"></datalist>
                     </div>
-
                     <div class="space-y-2">
                         <label class="text-sm font-semibold text-gray-300">สถานะจุดติดตั้งอาคาร</label>
-                        <select name="install_status" id="install_status" required class="w-full p-3 rounded-md input-neon text-white">
-                            <option selected disabled value="">-- เลือกสถานะ --</option>
-                            <option value="เหนือน้ำ">เหนือน้ำ</option>
-                            <option value="ท้ายน้ำ">ท้ายน้ำ</option>
-                            <option value="ปกติ">ปกติ</option>
-                        </select>
+                        <select name="install_status" id="install_status" required class="w-full p-3 rounded-md input-neon text-white"><option selected disabled value="">-- เลือกสถานะ --</option><option value="เหนือน้ำ">เหนือน้ำ</option><option value="ท้ายน้ำ">ท้ายน้ำ</option><option value="ปกติ">ปกติ</option></select>
                     </div>
-
                     <div class="space-y-2 md:col-span-2 lg:col-span-4">
                         <label class="text-sm font-semibold text-gray-300">ชื่อสถานี</label>
-                        <input type="text" name="name_id" id="name_id" readonly 
-                            class="w-full p-3 rounded-md bg-black border border-neon-blue text-neon-blue font-bold text-center text-lg">
+                        <input type="text" name="name_id" id="name_id" readonly class="w-full p-3 rounded-md bg-black border border-neon-blue text-neon-blue font-bold text-center text-lg">
                     </div>
                 </div>
             </div>
@@ -226,24 +91,9 @@
                     <div class="card-container p-5 rounded-lg border-t-2 border-t-gray-700 hover:border-t-neon-red transition-colors duration-300">
                         <span class="block text-sm font-semibold text-gray-300 mb-4">${label}</span>
                         <div class="flex flex-wrap gap-3">
-                            <label class="radio-neon-label group">
-                                <input type="radio" name="${name}" id="${idPrefix}1" value="" checked class="sr-only radio-none">
-                                <div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium">
-                                    <span class="opacity-50 group-hover:opacity-100"><i class="fas fa-minus mr-2"></i> ไม่มี</span>
-                                </div>
-                            </label>
-                            <label class="radio-neon-label group">
-                                <input type="radio" name="${name}" id="${idPrefix}2" value="P" class="sr-only radio-normal">
-                                <div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium">
-                                    <span class="opacity-80 group-hover:opacity-100"><i class="fas fa-check mr-2"></i> ${labelNormal}</span>
-                                </div>
-                            </label>
-                            <label class="radio-neon-label group">
-                                <input type="radio" name="${name}" id="${idPrefix}3" value="O" class="sr-only radio-broken">
-                                <div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium">
-                                    <span class="opacity-80 group-hover:opacity-100"><i class="fas fa-times mr-2"></i> ${labelBroken}</span>
-                                </div>
-                            </label>
+                            <label class="radio-neon-label group"><input type="radio" name="${name}" id="${idPrefix}1" value="" checked class="sr-only radio-none"><div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium"><span class="opacity-50 group-hover:opacity-100"><i class="fas fa-minus mr-2"></i> ไม่มี</span></div></label>
+                            <label class="radio-neon-label group"><input type="radio" name="${name}" id="${idPrefix}2" value="P" class="sr-only radio-normal"><div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium"><span class="opacity-80 group-hover:opacity-100"><i class="fas fa-check mr-2"></i> ${labelNormal}</span></div></label>
+                            <label class="radio-neon-label group"><input type="radio" name="${name}" id="${idPrefix}3" value="O" class="sr-only radio-broken"><div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium"><span class="opacity-80 group-hover:opacity-100"><i class="fas fa-times mr-2"></i> ${labelBroken}</span></div></label>
                         </div>
                     </div>`;
                 }
@@ -265,201 +115,91 @@
                 </div>
             </div>
 
-            <!-- ===== อุปกรณ์ RTU ===== -->
             <div>
                 <h2 class="text-lg font-bold mb-4 text-neon-red uppercase flex items-center"><i class="fas fa-microchip mr-2"></i> อุปกรณ์ RTU</h2>
                 <div class="mb-5">
                     <label class="text-sm font-semibold text-gray-300 block mb-2">ประเภท RTU</label>
-                    <select id="rtuTypeSelect" onchange="onRtuTypeChange(this.value)" class="w-full md:w-72 p-3 rounded-md input-neon text-white">
-                        <option value="">-- เลือกประเภท RTU --</option>
-                        <option value="rtu">อุปกรณ์ RTU</option>
-                        <option value="plc">อุปกรณ์ RTU PLC</option>
-                    </select>
+                    <select id="rtuTypeSelect" onchange="onRtuTypeChange(this.value)" class="w-full md:w-72 p-3 rounded-md input-neon text-white"><option value="">-- เลือกประเภท RTU --</option><option value="rtu">อุปกรณ์ RTU</option><option value="plc">อุปกรณ์ RTU PLC</option></select>
                 </div>
-                <div id="rtuGroup" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rtuFields"></div>
-                </div>
-                <div id="plcGroup" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="plcFields"></div>
-                </div>
-                <div id="modemGroup" class="hidden mt-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="modemFields"></div>
-                </div>
+                <div id="rtuGroup" class="hidden"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rtuFields"></div></div>
+                <div id="plcGroup" class="hidden"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="plcFields"></div></div>
+                <div id="modemGroup" class="hidden mt-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="modemFields"></div></div>
             </div>
 
-            <!-- ===== อุปกรณ์ภาคสนาม ===== -->
             <div>
                 <h2 class="text-lg font-bold mb-4 text-white uppercase flex items-center"><i class="fas fa-satellite-dish mr-2"></i> อุปกรณ์ภาคสนาม</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" id="fieldStaticEquip"></div>
-
                 <div class="mb-5">
                     <label class="text-sm font-semibold text-gray-300 block mb-2">ประเภท Water Level</label>
-                    <select id="wlTypeSelect" onchange="onWlTypeChange(this.value)" class="w-full md:w-80 p-3 rounded-md input-neon text-white">
-                        <option value="">-- เลือกประเภท Water Level --</option>
-                        <option value="bubble">Water Level (bubble)</option>
-                        <option value="radar">Water Level (Radar)</option>
-                        <option value="float">Water Level (float)</option>
-                    </select>
+                    <select id="wlTypeSelect" onchange="onWlTypeChange(this.value)" class="w-full md:w-80 p-3 rounded-md input-neon text-white"><option value="">-- เลือกประเภท Water Level --</option><option value="bubble">Water Level (bubble)</option><option value="radar">Water Level (Radar)</option><option value="float">Water Level (float)</option></select>
                 </div>
                 <div id="wlDynamicFields" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
             <script>
-                // เรนเดอร์อุปกรณ์ภาคสนาม
                 (function() {
-                    const staticEquip = [
-                        { label: 'Power Supply 1', name: 'sta_p1', id: 'p1_' },
-                        { label: 'Power Supply 2', name: 'sta_p2', id: 'p2_' },
-                        { label: 'CCTV1',          name: 'sta_cctv1', id: 'cctv1' },
-                        { label: 'CCTV2',          name: 'sta_cctv2', id: 'cctv2' },
-                        { label: 'Rain Gauge',     name: 'sta_r', id: 'rain' },
-                        { label: 'Surge Protection', name: 'sta_s', id: 'surge' },
-                    ];
+                    const staticEquip = [ { label: 'Power Supply 1', name: 'sta_p1', id: 'p1_' }, { label: 'Power Supply 2', name: 'sta_p2', id: 'p2_' }, { label: 'CCTV1', name: 'sta_cctv1', id: 'cctv1' }, { label: 'CCTV2', name: 'sta_cctv2', id: 'cctv2' }, { label: 'Rain Gauge', name: 'sta_r', id: 'rain' }, { label: 'Surge Protection', name: 'sta_s', id: 'surge' } ];
                     const container = document.getElementById('fieldStaticEquip');
-                    staticEquip.forEach(e => {
-                        container.innerHTML += createNeonRadioGroup(e.label, e.name, e.id);
-                    });
+                    staticEquip.forEach(e => container.innerHTML += createNeonRadioGroup(e.label, e.name, e.id));
                 })();
-
                 function onRtuTypeChange(val) {
-                    const rtuGroup   = document.getElementById('rtuGroup');
-                    const plcGroup   = document.getElementById('plcGroup');
-                    const modemGroup = document.getElementById('modemGroup');
-                    const rtuFields  = document.getElementById('rtuFields');
-                    const plcFields  = document.getElementById('plcFields');
-                    const modemFields = document.getElementById('modemFields');
-
-                    rtuGroup.classList.add('hidden');
-                    plcGroup.classList.add('hidden');
-                    modemGroup.classList.add('hidden');
+                    const rtuGroup = document.getElementById('rtuGroup'); const plcGroup = document.getElementById('plcGroup'); const modemGroup = document.getElementById('modemGroup');
+                    const rtuFields = document.getElementById('rtuFields'); const plcFields = document.getElementById('plcFields'); const modemFields = document.getElementById('modemFields');
+                    rtuGroup.classList.add('hidden'); plcGroup.classList.add('hidden'); modemGroup.classList.add('hidden');
                     document.querySelectorAll('.rtu-hidden-input').forEach(el => el.remove());
-
                     if (val === 'rtu') {
                         rtuFields.innerHTML = '';
-                        ['CPU Status|sta_cpu|cpu','AI Status|sta_ai|ai','DI Status|sta_di|di','DO Status|sta_do|do','IO Status|sta_io|io']
-                            .forEach(s => {
-                                const [label, name, id] = s.split('|');
-                                rtuFields.innerHTML += createNeonRadioGroup(label, name, id);
-                            });
-                        addHidden('plc', '');
-                        rtuGroup.classList.remove('hidden');
-                        modemFields.innerHTML = createNeonRadioGroup('Modem 1', 'sta_m1', 'm1_') + createNeonRadioGroup('Modem 2', 'sta_m2', 'm2_');
-                        modemGroup.classList.remove('hidden');
+                        ['CPU Status|sta_cpu|cpu','AI Status|sta_ai|ai','DI Status|sta_di|di','DO Status|sta_do|do','IO Status|sta_io|io'].forEach(s => { const [label, name, id] = s.split('|'); rtuFields.innerHTML += createNeonRadioGroup(label, name, id); });
+                        addHidden('plc', ''); rtuGroup.classList.remove('hidden'); modemFields.innerHTML = createNeonRadioGroup('Modem 1', 'sta_m1', 'm1_') + createNeonRadioGroup('Modem 2', 'sta_m2', 'm2_'); modemGroup.classList.remove('hidden');
                     } else if (val === 'plc') {
                         plcFields.innerHTML = createNeonRadioGroup('RTU PLC', 'plc', 'plc');
-                        ['sta_cpu','sta_ai','sta_di','sta_do','sta_io'].forEach(n => addHidden(n, ''));
-                        plcGroup.classList.remove('hidden');
-                        modemFields.innerHTML = createNeonRadioGroup('Modem 1', 'sta_m1', 'm1_') + createNeonRadioGroup('Modem 2', 'sta_m2', 'm2_');
-                        modemGroup.classList.remove('hidden');
-                    } else {
-                        ['sta_cpu','sta_ai','sta_di','sta_do','sta_io','plc'].forEach(n => addHidden(n, ''));
-                    }
+                        ['sta_cpu','sta_ai','sta_di','sta_do','sta_io'].forEach(n => addHidden(n, '')); plcGroup.classList.remove('hidden'); modemFields.innerHTML = createNeonRadioGroup('Modem 1', 'sta_m1', 'm1_') + createNeonRadioGroup('Modem 2', 'sta_m2', 'm2_'); modemGroup.classList.remove('hidden');
+                    } else { ['sta_cpu','sta_ai','sta_di','sta_do','sta_io','plc'].forEach(n => addHidden(n, '')); }
                 }
-
-                function addHidden(name, value) {
-                    const inp = document.createElement('input');
-                    inp.type = 'hidden'; inp.name = name; inp.value = value; inp.className = 'rtu-hidden-input';
-                    document.getElementById('mainform').appendChild(inp);
-                }
-
+                function addHidden(name, value) { const inp = document.createElement('input'); inp.type = 'hidden'; inp.name = name; inp.value = value; inp.className = 'rtu-hidden-input'; document.getElementById('mainform').appendChild(inp); }
                 function onWlTypeChange(val) {
-                    const container = document.getElementById('wlDynamicFields');
-                    container.innerHTML = '';
-                    document.querySelectorAll('.wl-hidden-input').forEach(el => el.remove());
-
-                    if (!val) {
-                        ['sta_wl','sta_wl1','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,''));
-                        return;
-                    }
-
-                    if (val === 'bubble') {
-                        container.innerHTML += createNeonRadioGroup('Water Level (bubble)', 'sta_wl', 'wlevel');
-                        container.innerHTML += createNeonRadioGroup('ท่อลม', 'sta_tro', 'tro');
-                        container.innerHTML += createNeonRadioGroup('ถังแก๊ส', 'sta_gass', 'gass');
-                        ['sta_wl1','sta_wl2','sta_saling'].forEach(n => addHiddenWl(n,''));
-                    } else if (val === 'radar') {
-                        container.innerHTML += createNeonRadioGroup('Water Level (Radar)', 'sta_wl1', 'wlevel1');
-                        ['sta_wl','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,''));
-                    } else if (val === 'float') {
-                        container.innerHTML += createNeonRadioGroup('Water Level (float)', 'sta_wl2', 'wlevel2');
-                        container.innerHTML += createNeonRadioGroup('สายสลิง', 'sta_saling', 'saling');
-                        ['sta_wl','sta_wl1','sta_tro','sta_gass'].forEach(n => addHiddenWl(n,''));
-                    }
+                    const container = document.getElementById('wlDynamicFields'); container.innerHTML = ''; document.querySelectorAll('.wl-hidden-input').forEach(el => el.remove());
+                    if (!val) { ['sta_wl','sta_wl1','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,'')); return; }
+                    if (val === 'bubble') { container.innerHTML += createNeonRadioGroup('Water Level (bubble)', 'sta_wl', 'wlevel') + createNeonRadioGroup('ท่อลม', 'sta_tro', 'tro') + createNeonRadioGroup('ถังแก๊ส', 'sta_gass', 'gass'); ['sta_wl1','sta_wl2','sta_saling'].forEach(n => addHiddenWl(n,'')); }
+                    else if (val === 'radar') { container.innerHTML += createNeonRadioGroup('Water Level (Radar)', 'sta_wl1', 'wlevel1'); ['sta_wl','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,'')); }
+                    else if (val === 'float') { container.innerHTML += createNeonRadioGroup('Water Level (float)', 'sta_wl2', 'wlevel2') + createNeonRadioGroup('สายสลิง', 'sta_saling', 'saling'); ['sta_wl','sta_wl1','sta_tro','sta_gass'].forEach(n => addHiddenWl(n,'')); }
                 }
-
-                function addHiddenWl(name, value) {
-                    const inp = document.createElement('input');
-                    inp.type = 'hidden'; inp.name = name; inp.value = value; inp.className = 'wl-hidden-input';
-                    document.getElementById('mainform').appendChild(inp);
-                }
+                function addHiddenWl(name, value) { const inp = document.createElement('input'); inp.type = 'hidden'; inp.name = name; inp.value = value; inp.className = 'wl-hidden-input'; document.getElementById('mainform').appendChild(inp); }
             </script>
 
             <div class="card-container rounded-lg p-6">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800">
-                    <span class="w-2 h-8 bg-neon-blue mr-3 shadow-neon-blue"></span>
-                    <h2 class="text-xl font-bold text-white uppercase tracking-wider">บันทึกจำนวนและหมายเหตุ</h2>
-                </div>
+                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-neon-blue mr-3 shadow-neon-blue"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider">บันทึกจำนวนและหมายเหตุ</h2></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400 uppercase font-bold">แบตเตอรี่ (ทั้งหมด)</label>
-                        <input type="number" name="b1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-neon-red uppercase font-bold">แบตเตอรี่ (ชำรุด)</label>
-                        <input type="number" name="b2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400 uppercase font-bold">แผ่นวัดน้ำ แบบบวก (ชำรุด)</label>
-                        <input type="number" name="sta1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-neon-red uppercase font-bold">แผ่นวัดน้ำ แบบลบ (ชำรุด)</label>
-                        <input type="number" name="sta2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-gray-400 uppercase font-bold">เสาวัดน้ำ (ทั้งหมดที่เห็น)</label>
-                        <input type="number" name="pole1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-xs text-neon-red uppercase font-bold">เสาวัดน้ำ (ชำรุด)</label>
-                        <input type="number" name="pole2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0">
-                    </div>
+                    <div class="space-y-2"><label class="text-xs text-gray-400 uppercase font-bold">แบตเตอรี่ (ทั้งหมด)</label><input type="number" name="b1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0"></div>
+                    <div class="space-y-2"><label class="text-xs text-neon-red uppercase font-bold">แบตเตอรี่ (ชำรุด)</label><input type="number" name="b2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0"></div>
+                    <div class="space-y-2"><label class="text-xs text-gray-400 uppercase font-bold">แผ่นวัดน้ำ แบบบวก (ชำรุด)</label><input type="number" name="sta1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0"></div>
+                    <div class="space-y-2"><label class="text-xs text-neon-red uppercase font-bold">แผ่นวัดน้ำ แบบลบ (ชำรุด)</label><input type="number" name="sta2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0"></div>
+                    <div class="space-y-2"><label class="text-xs text-gray-400 uppercase font-bold">เสาวัดน้ำ (ทั้งหมดที่เห็น)</label><input type="number" name="pole1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0"></div>
+                    <div class="space-y-2"><label class="text-xs text-neon-red uppercase font-bold">เสาวัดน้ำ (ชำรุด)</label><input type="number" name="pole2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0"></div>
                 </div>
 
-                <!-- เพิ่มช่องอัปโหลดรูปภาพสภาพสนาม -->
+                <!-- ✅ แก้ชื่อ name ให้เป็น photos เพื่อให้ตรงกับฝั่ง Server -->
                 <div class="space-y-2 mb-6 border-t border-gray-800 pt-6">
-                    <label class="text-sm font-semibold text-neon-gold flex items-center">
-                        <i class="fas fa-camera mr-2"></i> ถ่ายรูป/แนบรูปภาพสภาพสถานี (ทางเลือก)
-                    </label>
-                    <input type="file" name="fieldImage" id="fieldImage" accept="image/*" capture="environment" 
+                    <label class="text-sm font-semibold text-neon-gold flex items-center"><i class="fas fa-camera mr-2"></i> ถ่ายรูป/แนบรูปภาพสภาพสถานี (ทางเลือก)</label>
+                    <input type="file" name="photos" id="photos" accept="image/*" multiple capture="environment" 
                            class="w-full p-2 rounded input-neon text-gray-300 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
-                    <p class="text-[10px] text-gray-500 mt-1">รูปภาพจะถูกอัปโหลดและจัดเก็บใน Google Drive โดยอัตโนมัติ</p>
+                    <p class="text-[10px] text-gray-500 mt-1">รูปภาพจะถูกอัปโหลดและจัดเก็บใน Google Drive โดยอัตโนมัติ (เลือกได้หลายรูป)</p>
                 </div>
 
                 <div class="space-y-4">
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">หมายเหตุเพิ่มเติม</label>
-                        <textarea name="note" rows="2" class="w-full p-4 rounded input-neon text-white" placeholder="ระบุรายละเอียด..."></textarea>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">ข้อคิดเห็นจากผู้ตรวจสอบ/คณะกรรมการตรวจรับ</label>
-                        <textarea name="note2" rows="2" class="w-full p-4 rounded input-neon text-white" placeholder="ระบุรายละเอียด..."></textarea>
-                    </div>
+                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">หมายเหตุเพิ่มเติม</label><textarea name="note" rows="2" class="w-full p-4 rounded input-neon text-white" placeholder="ระบุรายละเอียด..."></textarea></div>
+                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ข้อคิดเห็นจากผู้ตรวจสอบ/คณะกรรมการตรวจรับ</label><textarea name="note2" rows="2" class="w-full p-4 rounded input-neon text-white" placeholder="ระบุรายละเอียด..."></textarea></div>
                 </div>
             </div>
 
             <div class="py-6 flex justify-center">
-                <button type="submit" id="btnSubmit" disabled class="btn-neon-submit w-full md:w-2/3 rounded-sm py-5 font-bold text-xl shadow-neon-red flex items-center justify-center gap-4">
-                    <span id="btnText">รอพิกัด GPS...</span>
+                <button type="submit" id="btnSubmit" class="btn-neon-submit w-full md:w-2/3 rounded-sm py-5 font-bold text-xl shadow-neon-red flex items-center justify-center gap-4">
+                    <span id="btnText">ยืนยันข้อมูล</span>
                     <i class="fas fa-chevron-right text-black bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs"></i>
                 </button>
             </div>
         </form>
     </main>
-
-    <footer class="bg-black border-t border-gray-900 py-6 mt-4 text-center">
-        <p class="text-xs text-gray-600">สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน</p>
-    </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
     <script>
@@ -469,87 +209,48 @@
         const btnSubmit = document.getElementById('btnSubmit');
         const btnText = document.getElementById('btnText');
 
-        // ข้อมูลอ้างอิงสถานี (เพื่อความรวดเร็วในการใช้งานออฟไลน์ เก็บไว้ในเครื่อง)
-        const data = {
-            "เจ้าพระยา": {"TC.55":"TC.55","TC.22":"TC.22","TC.3":"TC.3","T.ปตร.ลพบุรี":"T.ปตร.ลพบุรี","TL.2B":"TL.2B","T.ปตร.บรมธาตุ":"T.ปตร.บรมธาตุ","T.ปตร.ผักไห่":"T.ปตร.ผักไห่","T.ปตร.พลเทพ":"T.ปตร.พลเทพ","TC.54":"TC.54","TC.53":"TC.53","TC.29":"TC.29","TC.4":"TC.4","TC.2":"TC.2","TC.7A":"TC.7A","TC.60":"TC.60","TC.12":"TC.12","T.ปตร.มะขามเฒ่า":"T.ปตร.มะขามเฒ่า","T.ปตร.มหาราช":"T.ปตร.มหาราช","T.ปตร.เริงราง":"T.ปตร.เริงราง","T.ปตร.มโนรมย์":"T.ปตร.มโนรมย์","T.ปตร.ช่องแค":"T.ปตร.ช่องแค","T.ปตร.โคกกะเทียม":"T.ปตร.โคกกะเทียม"},
-            "เพชรบุรี-ประจวบคีรีขันธ์": {"TPR.2":"อบต.ห้วยสัตว์ใหญ่","TPR.4":"เขื่อนปราณบุรี","TPR.9":"ปากน้ำปราณบุรี","TPR.1":"บ้านป่าเต็ง","TPR.3":"บ้านเขาเจ้า","TPR.5":"บ้านเขาน้ำตก","TPR.8":"บ้านเขาน้อย","TPR.12":"อ่างเก็บน้ำโป่งสามสิบ","TPR.6":"เทศบาลตำบลหนองพลับ","TPR.7":"บ้านห้วยมงคล","TPR.10":"ห้วยมงคล","TPR.15":"วัดปากแพรก","TPR.14":"เขื่อนวังยาว","TPR.11":"บ้านบ่อนอก","TPR.13":"อ่างเก็บน้ำยางชุม","TPB01":"บ้านโป่งลึก","TPB02":"เขาพะเนินทุ่ง","TPB03":"บ้านแม่คะเมย","TPB04":"บ้านพุมะคำ","TPB05":"บ้านท่าตะคร้อ","TPB10":"บ้านหนองโรง","TPB07":"เขื่อนแก่งกระจาน (เหนือน้ำ)","TPB17":"สถานีเขื่อนเพชร (ท้ายน้ำ)","TPB06":"บ้านห้วยกวางจริง","TPB08":"เขื่อนแก่งกระจาน (ท้ายน้ำ)","TPB09":"บ้านยางคู่","TPB11":"บ้านเขาลูกช้าง","TPB12":"ท่ายาง","TPB13":"บ้านลาด","TPB15":"บ้านแหลม","TPB16":"สถานีเขื่อนเพชร (เหนือน้ำ)","TPB14":"เมืองเพชร"},
-            "แม่กลอง": {"TMK03":"ปตร.บางนกแขวก","TK.10":"บ้านลุ่มสุ่ม","TK.11A":"บ้านวังขนาย","TK.12":"วัดทุ่งนานางหรอก","TK.13":"วัดท่าขนุน","TK.2B":"วัดท่าโขลง","TK.31":"บ้านน้ำโจน","TK.32A":"ห้วยบ้องตี้","TK.35A":"บ้านหนองบัว","TK.36":"บ้านท่ามะนาว","TK.37A":"วัดยางเกาะ","TK.3A":"บ้านลุ่มดงกระเบา","TK.49":"บ้านยางสูง","TK.54":"บ้านลิ่นถิ่น","TK.55A":"บ้านหัวเกาะ","TK.57":"อ.บางคนที","TK.58A":"บ้านเขาพัง","TK.62A":"วัดท่าแย้","TK.63":"วัดอู่ล่อง","TK.64":"ห้วยลำอีซู","TK.65":"ฝายทดน้ำลำเหย","TK.66":"วัดประชุมพลแสน","TK.67":"วัดศรีมงคล","TK.68":"สะพานข้ามลำภาชี","TK.69":"วัดหนองไม้เอื้อย","TK.70":"ฝายบ้านคา","TK.71":"วัดวันดาว","TK.72":"วัดบางคนฑีใน","TK.73":"วัดไทร","TK.74":"โรงเรียนบ้านลาดใหญ่สามัคคี","TK.75":"ปตร.ปากคลองบางป่า","TK.76":"ปตร.กลางคลองบางป่า","TK.77":"วัดลิ่นถิ่น","TK.78":"สะพานโรงโม่หิน","TK.79":"ปตร.ปากคลองท่าสาร - บางปลา","TK.80":"ปตร.คลองจระเข้สามพัน","TK.81":"สำนักงานประปา  อบต.ท่ากระดาน สาขาแก่งแคบ","TMK01":"วัดศรัทธาธรรม","TMK02":"วัดพุตะเคียน"},
-            "โขงเหนือ": {"TG.01":"บ้านโป่งป่าตอง","TG.02":"ศูนย์พัฒนาเด็กเล็ก อบต.บ้านโป่ง","TG.05":"สะพานน้ำลาว","TG.06":"บ้านป่าย้าง","TG.03":"สะพานฝายดินดำ","TG.04":"บ้านดอนสลี","TG.14":"อบต.ป่าซาง","TG.10":"วัดใหม่ขุนกรณ์","TG.12":"บ้านสวนดอก","TG.08":"สะพานบ้านใหม่ริมฝาง","TG.07":"สะพานบ้านแม่ข่า","TG.09":"สะพานบ้านคาย","TG.11":"เทศบาลแม่ยาว","TG.13":"บ้านใหม่กือนา","TG.15":"บ้านสันกลาง","TG.16":"ท่าก่อบง","TG.17":"บ้านศรีวังมูล"},
-            "โขงอีสาน": {"TKS.121":"บ้านป่งไฮ","TKH.118":"ปตร.ห้วยหลวง","TKH.128":"อบต. บ้านแมด","TKH.130":"อ่างเก็บน้ำห้วยหลวง","TKH.129":"อ่างเก็บน้ำบ้านจั่น","TKH.119":"สะพานห้วยลม","TKS.109":"วัดนาหว้า","TKS.107":"เขื่อนน้ำอูน","TKL.125":"บ้านเพีย","TKS.120":"บ้านโป่งเปื่อย","TKS.108":"วัดศรีธรรมราช","TKS.113":"บ้านหนองหมากแซว","TKS.114":"บ้าห้วยหลัว","TKS.115":"บ้านเหล่าสมบูรณ์","TKS.119":"บ้านปากน้ำอูน","TKS.116":"บ้านสุขสำราญ","TKS.117":"บ้านท่าสำราญ","TKS.118":"บ้านดงหนองบัว","TKL.123":"บ้านหนองบอน","TKL.86":"บ้านไร่ม่วง","TKL.61":"บ้านแก่งบง","TKL.58B":"เทศบาลเมืองเลย","TKL.122":"บ้านเลยวังไสย์","TKL.28A":"บ้านฟากเลย","TKL.126":"บ้านโป่ง","TKS.112":"บ้านโพธิ์ชัยทอง","TKS.110":"บ้านพันนา","TKL.105":"บ้านผาน้อย","TKL.77A":"บ้านกกซ้อ","TKH.132":"โรงเรียนบ้านดอนหวาย","TKH.103":"สะพานข้ามห้วยหลวง","TKH.121":"ศูนย์การเรียนรู้ อบต.เตาไห","TKH.53A":"สะพานหนองวัวซอ","TKS.111":"ชุมชนบ้านขัวสูงสวรรค์","TKH.124":"สะพานห้วยน้ำขุ่น","TKH.120":"สะพานห้วยบ้าน","TKH.131":"ปตร.ห้วยดาน","TKH.127":"สะพานข้ามห้วยดาน","TKL-R1":"บ้านยางเดี่ยว","TKL-R2":"บ้านขอนยาง","TKL-R3":"บ้านท่าสะอาด","TKL-R4":"อ่างเก็บน้ำห้วยน้ำหมาน","TKS-R1":"โรงเรียนชุมชนส่องดาว","TKS-R2":"โรงเรียนบ้านนาคำ","TKS-R3":"อบต.บ้านยา","TKS-R4":"เทศบาลเฝ้าไร่","TKS-R5":"อบต.หนองแวงใต้","TKS-R6":"โรงเรียนบ้านนาดี","TKH-R1":"โรงเรียนบ้านหนองฆ้องสีนวล","TKH-R2":"วัดราษฎร์บำรุง","TKH-R3":"วัดสระมณี","TKH-R4":"วัดศรีแก้วจอมทอง","TKH-R5":"กศน.หนองอ้อ","TKH-R6":"โรงเรียน เจซี. บ้านอินทร์แปลง","TKH-R7":"อบต.บ้านตาด","TKH-R8":"โรงเรียนยิ่งยวดพิทยาณุกูล","TKH-R9":"โรงเรียนบ้านทุ่ง อบต.บ้านชัย","TKH-133":"อ่างเก็บน้ำกุดลิงง้อ"},
-            "โตนเลสาป": {"TTL01":"อ่างเก็บน้ำห้วยยาง","TTL12":"บ้านคลองใหญ่","TTL02":"บ้านหนองน้ำใส","TTL07":"บ้านวังกระแพร่","TTL03":"บ้านหนองหมู","TTL04":"บ้านฟากห้วย","TTL05":"บ้านท่าข้าม","TTL10":"บ้านโป่งน้ำร้อน","TTL06":"บ้านทุ่งกร่าง","TTL08":"คลองทรายขาว","TTL09":"บ้านคลองตานี","TTL11":"บ้านเครือหวาย"},
-            "ภาคใต้ฝั่งตะวันตก": {"LA01 (TX.231A)":"ชุมชนประชาบำรุง","LA02 (TLA-R1)":"โรงเรียนบ้านหนองหอยโข่ง","LA03 (TX.333)":"บ้านนาข่าเหนือ","LA04 (TX.334)":"บ้านอุใดใต้","LA05 (TX.335)":" บ้านเหนือคลอง","LA06 (TX.150)":"บ้านวังพระเคียน","LA07 (TX.336)":"บ้านผังปาล์ม 1","LA08 (TX.337)":"บ้านวังสายทอง","LA09 (TLA-R2)":"บ้านทับทุ่ง","TP1 (TX.185)":"วัดนิกรวราราม (ย่านยาว)","TP10 (TX.188A)":"บ้านรมณีย์","TP2 (TX.186)":" บ้านตลาดเก่า","TP3 (TKP-R1)":"บ้านดอกแดง","TP4 (TX.331)":"บ้านสะพานเสือ","TP5 (TKP-R2)":"โรงเรียนบ้านช้างเชื่อ","TP6 (TX.187)":" บ้านหินดาน","TP7 (TX.196)":"บ้านท่านา","TP8 (TKP-R3)":"รพ.ส่งเสริมสุขภาพตำบลกะปง","TP9 (TX.332)":"บ้านเหล","TTr1":"ฝายวังอ้ายว่าว","TTr10":"วัดโคกกฐิน","TTr11":"บ้านต้นปรง","TTr12":"ฝายคลองนางน้อย","TTr13":"วัดคูหาวิไล","TTr14":"วัดนาเมืองเพชร","TTr15":"อบต.โพรงจระเข้","TTr16":"บ้านเกาะเคี่ยม","TTr2":"อำเภอทุ่งสง","TTr3":"บ้านวังปราง","TTr4":"บ้านปากมูด","TTr5":"อำเภอบางขัน","TTr6":"บ้านนิคม","TTr7":"อ่างเก็บน้ำคลองท่างิ้ว","TTr8":"บ้านเขาหลัก","TTr9":"บ้านลำภูรา","TX.139B":"บ้านปากแครง","TX.230":"บ้านท่าปาบ(X.230)","TX.234":"วัดไพรสณฑ์ (X.234)","TX.236":"บ้านย่านตาขาว(X.236)","TX.56":"บ้านท่าประดู่ (X.56)"},
-            "ชายทะเลฝั่งตะวันออก": {"ST_01":"อบต.จันทเขลม","ST_02":"ฝายบ้านน้ำขุ่น","ST_03":"บ้านทุ่งตาอินทร์","ST_05":"เขื่อนคลองทุ่งเพล","ST_06":"กะบกเตี้ย","ST_07":"วัดฉมัน (Z.14)","ST_09":"อบต.อ่างคีร","ST_10":"ฝายยาง","ST_11":"ท่าแฉลบ","ST_04":"วัดปึก (Z.13)","ST_08":"วัดวังจะอ้าย","TTR.01":"ชลประทานวังกระแจะ","TTR.02":"ชลประทานตราด","TTR.03":"บ้านปลายคลอง","TTR.04":"บ้านไร่ป่า","TTR.05":"เขาสมิง","TTR.06":"วัดเทพนิมิต","TTR.07":"บ้านศรีบัวทอง","TTR.08":"วัดคลองขุด","TTR.09":"อ่างเก็บน้ำห้วยแร้ง","TTR.10":"วัดวุรุณดิตถาราม","TTR.11":"วัดตาพลาย","TTR.12":"บ่อไร่","TTR.13":"บ้านด่านชุมพล","TTR.14":"บ้านคลองขวาง"},
-            "ชี": {"LP-02":"สถานีฝายกุมภวาปี","LP-03":"สถานี E.65","LP-04":"สถานีอ.วังสามหมอ","LP-05":"สถานีอ.สมเด็จ","LP-06":"สถานีเขื่อนลำปาว","LP-07":"สถานี E.75","LP-08":"สถานีอ.กมลาไสย E.87","LP-09":"สถานีฝายวังยาง","LP-10":"สถานีฝายร้อยเอ็ด","TE.100":"ฝายมหาสารคาม (บ้านคุยเชือก)","TE.101":"บ้านไผ่ล้อม","TE.102":"ท้ายเขื่อนลำปะทาว","TE.103":"(บ้านโนนสมอ)","TE.104":"ฝายยางบุตามี","TE.105":"วัดปทุมชาติ (บ้านกอก)","TE.106":"วัดอัมพวันนาราม","TE.107":"ฝายยโสธร","TE.108":"ฝายธาตุน้อย","TE.109":"ฝายร้อยเอ็ด (บ้านดอนวิเวก)","TE.110":"สบลำกระจวนแม่น้ำชี","TE.111":"สบแม่น้ำชีลำกระจวน","TE.112":"สบห้วยสามหมอแม่น้ำชี (บ.วังสามหมอ)","TE.113":"สบแม่น้ำชีห้วยสามหมอ (บ.วังสามหมอ)","TE.114":"ฝายห้วยสายบาตร","TE.115":"วัดเสมาท่าค้อ","TE.116":"บ้านหนองเป็ด","TE.117":"บ้านโนนเขวา","TE.118":"โรงเรียนบ้านหนองหอย","TE.119":"หอทะหลา มเหศักดิ์","TE.120":"กุดน้ำใส","TE.121":"วัดศรีแก้ว","TE.122":"วัดท่าประทาย","TE.123":"ฝายพรม-เชิญ","TE.124":"ลาดใหญ่","TE.125":"บ้านนางใย","TE.126":"วัดโพธิ์ศรีท่าแห่","TE.127":"ฝายยางลำน้ำยัง","TE.128":"บุ่งเลิศ","TE.129":"ฝายบ้านดอนปอ","TE.130":"บ้านพรมเหนือ","TE.16A":"E.16A (บ้านพระเนาว์)","TE.17":"E.17 (วัดท่าสองคร)","TE.18":"E.18 (วัดบ้านท่าสะแบง)","TE.20A":"E.20A (กปภ.มหาชนะชัย)","TE.22B":"E.22B (บ้านวังชัย)","TE.23":"E.23 (บ้านค่าย)","TE.2A":"E.2A (กปภ.ยโสธร)","TE.32A":"E.32A (บ้านหนองอ้อ)","TE.53":"E.53 (ฝายปากจาบ)","TE.54":"E.54 (ทล.สาย 2046 กม.47)","TE.66A":"E.66A (บ้านม่วงลาด)","TE.6C":"E.6C (บ้านตาดโตน)","TE.73":"E.73 (บ้านวังตะกู)","TE.83":"E.83 (บ้านนาเจริญ)","TE.8A":"E.8A (บ้านดินดำ)","TE.92":"E.92 (บ้านท่างาม)","TE.99":"ฝายชนบท","TE-R1":"วัดโนนศรีสง่า","TE-R10":"บ้านท่ากูบ","TE-R11":"สำนักชลประทานที่ 6","TE-R12":"วัดดอนน้ำผึ้ง","TE-R13":"ร.ร.บ้านจำปาหัวบึง","TE-R14":"วัดหัวขัว","TE-R15":"วัดสะพุงเหนือ","TE-R16":"สนง.สาธารณสุข อ.หนองบัวแดง","TE-R17":"สถานีสูบน้ำแห่งที่ 2","TE-R18":"ร.ร.อนุบาลบ้านเขว้า","TE-R19":"วัดนันทพิมพาราม","TE-R2":"วัดอุดมคีรีเขต","TE-R20":"วัดกลางเชียงยืน","TE-R21":"วัดเอกกษัตริย์บำรุง","TE-R22":"วัดแสงอรุณผดุงสันติ์","TE-R23":"ร.ร.บ้านทรายมูล (ประชาราษฎร์)","TE-R24":"ร.ร.นาหนองทุ่มวิทยา","TE-R25":"ร.ร.เขื่องในพิทยาคาร","TE-R26":"สถานีอนามัยโคกกลาง","TE-R27":"วัดบ้านทัน","TE-R3":"ร.ร.นักธุรกิจ","TE-R4":"สถานีอนามัยบ้านท่าลาด","TE-R5":"อ่างเก็บน้ำลำพะยัง","TE-R6":"ร.ร.บ้านคำม่วง","TE-R7":"อ่างเก็บน้ำห้วยแกง","TE-R8":"วัดโพธิ์ศรีสว่าง","TE-R9":"วัดหนองริวหนัง"},
-            "ทะเลสาบสงขลา": {"TSL28":"ปตร.ท่าช้าง-บางกล่ำ","TX68":"บ้านท่าแค","STN01":"สถานี ชป.คลองวาด","STN02":"สถานี X.181","STN03":"สถานี X.194","STN04":"สถานี X.44","STN05":"สถานีคลองต่ำ","STN06":"สถานี X.90","STN07":"สถานีคลองหวะ","STN08":"สถานี ชป.คลองหอยโข่ง","STN09":"สถานี X.173A","STN10":"สถานีคลองรำใหญ่","STN11":"สถานี X.112","STN12":"สถานี X.113","STN13":"สถานีอ่างเก็บน้ำสะเดา","TSL02":"สถานีโรงสูบน้ำระโนด","TSL03":"สถานีปากคลองระโนด","TSL04":"สถานีบ้านลำปำ","TSL05":"สถานีเกาะใหญ่","TSL06":"สถานีบ้านเกาะเสือ","TSL07":"สถานีบ้านปากพะยูน","TSL08":"สถานีบ้านปากรอ","TSL09":"สถานีบ่อยาง","TSL11":"ฝายคลองบ้านพร้าว","TSL12":"ปตร.คลองท่าแนะ","TSL13":"ฝายพญาโฮ้ง","TSL14":"ฝายคลองหลักสาม","TSL15":"ฝายควนกุฏิ","TSL16":"วัดตะโหมด","TSL17":"เขาชัยสน","TSL18":"บางแก้ว","TSL19":"ปตร. ท้าย อ่างเก็บน้ำคลองป่าบอน","TSL20":"ฝายคลองป่าบอน","TSL21":"โรงเรียนบ้านเขาพระ","TSL22":"ฝายชะมวง","TSL23":"วัดควนเนียง","TSL24":"ปตร.อู่ตะเภา","TSL25":"ปตร.หน้าควน","TSL26":"ปตร.คลอง ร6","TSL27":"ปตร.คลอง 1ซ-ร1","TSL29":"สถาบันวิจัยการเพาะเลี้ยงสัตว์น้ำชายฝั่ง","TSL30":"คลองหลา","TSL31":"คลองหอยโข่ง(จำไหร)","TSL32":"คลองนาท่อม","TSL33":"คลองลำเบ็ดบน","TSL34":"คลองลำเบ็ดล่าง","TSL35":"คลองเหมืองตะกั่ว","TSL36":"คลองห้วยเผยอ","TSL37":"คลองตงตอนบน","TSL38":"คลองตงตอนล่าง","TSL39":"คลองหวะตอนบน","TSL40":"คลองหวะตอนล่าง","TX109":"บ้านควนอินนอโม","TX141":"ฝายนาท่อม","TX170":"บ้านคลองลำ","TX21A":"ฝายท่าเชียด","TX265":"โรงเรียนเทศบาลวัดภูผาภิมุข","TX276":"บ้านเขาปู่","TX69":"บ้านพรุพร้อ","TX83":"บ้านทะเลน้อย"},
-            "ท่าจีน": {"TTC01":"ปตร.พลเทพ","TTC02":"ปตร.ท่าโบสถ์","TTC03":"ปตร.สามชุก","TTC04":"ปตร.โพธิ์พระยา","TTC05":"วัดมณีวรรณ","TTC06":"วัดท่าเจดีย์","TTC07":"โรงเรียนวัดบางปลา","TTC08":"ที่ว่าการ อ.นครชัยศรี","TTC09":"วัดท่ากระบือ","TTC10":"วัดช่องลม","TTC11":"ห้วยโตนด","TTC12":"คลองบ้านเชียน","TTC13":"บ้านผาทั่ง","TTC14":"บ้านด่านช้าง","TTC15":"ไซฟอนกระเสียว","TTC16":"ฝายคลองหมื่นเทพ","TTC17":"ปตร.ยางยี่แส","TTC18":"วัดหนองปลิง","TTC19":"ปตร.กำแพงแสน"},
-            "น่าน": {"TN.09":"ฝายน้ำสา(ท้ายฝาย)","TN.10":"บ้านนาสา","TNwt.22":"อำเภอวังทอง","TN.04":"บ้านนาหนุน","TN.07":"บ้านภูแยง","TN.11":"ฝ่ายน้ำปาด","TN.03":"วัดบ้านท่าล้อม","TN.08":"ฝายน้ำปั้ว","TN.01":"บ้านป่าเปื่อย","TN.05":"บ้านสบหนอง","TN.06":"สะพานเหนือ","TN.12":"ใต้เขื่อนทดน้ำผาจุก","TN.18":"ปตร.โคกช้าง","TN.19":"ปตร.DR.2.8","TN.5A":"อ.เมือง จ.พิษณุโลก","TN.67":"บ้านเกยไชย","TN.12A":"เขื่อนสิริกิติ์","TN.2B":"สถานีสูบน้ำวัดกลาง","T.เขื่อนนเรศวร":"เขื่อนนเรศวร","TN.22A":"อ.วัดโบสถ์ จ.พิษณุโลก","TN.24":"วัดนกแอ่น","TN.7A":"อ.เมือง จ.พิจิตร","TNwt.17":"บ้านร่มเกล้า","TN.17":"ฝ่ายน้ำล้นคลองสิงห์","TN.20":"ปตร.DR.7","TN.13":"ปตร.คลองโพธิ์","TN.14":"ฝ่ายคลองตรอน","TN.15":"บ้านแก่งใต้","TNwt.21":"บ้านหนองแม่นา","TNwt.15":"วังนกแอ่น","TNwt.6":"บ้านโป่งปะ","TN.02":"บ้านสบกอน","TN.16":"ปตร.คอรุม","TN.21":"ปตร.แม่น้ำยมเก่า","TNwt.5":"บ้านเล่าลือเก่า"},
-            "บางปะกง": {"TKgt61":"หอทอง","TKgt62":"ศรีมหาโพธิ์","TKgt3":"กบินทร์บุรี","TKgt54":"ปากแม่น้ำบางประกง","TKgt55":"สะพานเทพหัสดิน","TKgt56":"บ้านโพธิ์","TKgt57":"สะพานฉะเชิงเทรา","TKgt58":"เขื่อนทดน้ำบางปะกง","TKgt60":"บางขนาก","TKgt63":"วัดใหม่บางคล้า","TKgt64":"ทำนบดินเดิม","TNy12":"เขื่อนคลองท่าด่าน","TNy13":"คลองบ้านนา(ชะอม)","TNy9":"สมบูรณ์","TNy10":"คลองแม่น้ำใน(โพธิ์แทน)","TNy11":"เขื่อนนายก","TNy1":"เขานางบวช","TKgt59":"ฝายท่าลาด","TKgt18":"สียัด","TKgt14":"บ้านทุ่งแฝก","TKgt49":"วัดชะอม ","TKgt53":"บ้านตะเภาลาย ","TKgt52":"วัดสง่างาม ","TKgt51":"ประจันตคาม","TKgt15A":"บ้านแก่งดินสอ","TKgt48":"บ้านเนินหินกอง","TKgt50":"บ้านตะคล้อเหนือ","TKgt66":"คลองวังจิก","TKgt67":"คลองยาง","TKgt10":"บ้านเนินผาสุก","TKgt47":"บ้านด่านชัยพัฒนา","TKgt46":"บ้านวังเจริญ","TKgt45":"บ้านตาเรืองล่าง","TKgt13A":"บ้านกุดบอน  ","TKgt44":"บ้านแก่งไทร","TKgt43":"บ้านท่าพระจันทร์","TKgt65":"คลองเจ้าแรง"},
-            "ป่าสัก": {"TS.3":"เขื่อนห้วยป่าแดง","TS.2":"หล่มสัก","TS.1":"หล่มเก่า","TS.8":"ปตร.ลำสนธิ","TS.15":"วัดท่าแร่","TS.25":"วัดจอมเกษ","TS.4":"เพชรบูรณ์","TS.5P":"หนองไผ่","TS.6":"วิเชียรบุรี","TS.7":"บัวขุม","TS.9P":"เขื่อนพระราม 6","TS.10":"เหนือเขื่อนป่าสัก","TS.11":"ท้ายเขื่อนป่าสัก","TS.14":"ชลประทานเสาไห้","TS.9":"อ.แก่งคอย จ.สระบุรี","TS.5":"อ.พระนครศรีอยุธยา จ.อยุธยา","T.เขื่อนพระรามหก":"เขื่อนพระรามหก","TS.22":"ฝายคลองสุคต","TS.23":"คลองส้ม","TS.18":"คลองลำกง","T.ปตร.พระศรีเสาวภาค":"T.ปตร.พระศรีเสาวภาค","TS.24":"คลองเพรียว","TS.16":"คลองปู่เจ้า","TS.17":"คลองน้ำจู","TS.20":"คลองท่าเสา","TS.21":"คลองตะแบก","TS.19":"คลองกองทูล"},
-            "ปิง": {"TP.91":"สถานีน้ำแม่ขอด (P.91) บ้านสันปูเลย","TP.1":"สถานีแม่น้ำปิง (P.1) สะพานนวรัฐ","TP.100":"ฝายคลองสวนหมาก","TP.101":"บ้านโป่งน้ำร้อน","TP.102":"คลองวังหิน","TP.103":"บ้านโชคชัยพัฒนา-หินดาต","TP.104":"ศูนย์พัฒนาสังคมหน่วยที่ 4","TP.105":"สำนักสงฆ์มอหินเพลิง","TP.106":"บ้านคลองน้ำไหลใต้","TP.107":"บ้านคลองสีนวล","TP.108":"บ้านแม่ปั๋ง","TP.109":"บ้านท้องฟ้า","TP.110":"บ้านปากร้อง","TP.111":"บ้านวังชะโอน","TP.112":"แม่กลางบ้านลุ่ม","TP.113":"บ้านเกาะตาล","TP.14A":"สถานีน้ำแม่แจ่ม (P.14 A)","TP.20":"สถานีแม่น้ำปิง (P.20) บ้านเกาะ","TP.21":"สถานีน้ำแม่ริม (P.21) บ้านริมใต้","TP.26A":"บ้านหัวฝาย( P.26A เดิม)","TP.5":"สถานีน้ำแม่กวง (P.5)","TP.56A":"สถานีน้ำแม่งัด (P.56A) บ้านสหกรณ์ร่มเกล้า","TP.65":"สถานีน้ำแม่แตง (P.65) บ้านม่วงป๊อก","TP.67":"สถานีน้ำแม่น้ำปิง (P.67) บ้านแม่แต","TP.71A":"สถานีน้ำแม่ขาน(P.71A) บ้านกลาง","TP.73":"สถานีแม่น้ำปิง (P.73) บ้านสบสอย","TP.75":"สถานีแม่น้ำปิง (P.75) บ้านช่อแล","TP.77":"สถานีน้ำแม่ทา (P.77) บ้านสบสะป๊วด","TP.79":"สถานีน้ำแม่กวง (P.79) บ้านแม่หวาน","TP.80":"สถานีน้ำแม่ลาย (P.80) บ้านโป่งดิน","TP.81":"สถานีน้ำแม่กวง (P.81) บ้านโป่ง","TP.85":"สถานีน้ำแม่ลี้ (P.85) บ้านหล่ายแก้ว","TP.86":"สถานีน้ำแม่ออน (P.86) บ้านโฮ้ง","TP.87":"สถานีน้ำแม่ทา (P.87) บ้านป่าซาง","TP.90":"สถานีน้ำแม่ปิง (P.90) บ้านทับเดื่อ","TP.92":"สถานีน้ำแม่แตง (P.92) บ้านแม่กึ๊ด","TP.93":"สถานีน้ำแม่ริม (P.93) บ้านสลวงนอก","TP.94":"สถานีน้ำแม่แจ่ม (P.94) บ้านเจียง","TP.95":"เทศบาลวังเจ้า","TP.96":"บ้านใหม่เสรีธรรม","TP.97":"อุทยานแห่งชาติคลองวังเจ้า","TP.98":"วัดอุทุมพร","TP.99":"วัดเขาแก้วสวรรค์","TRKl.1":"อ่างเก็บน้ำคลองน้ำไหล","TRKl.2":"โรงเรียนบ้านบึงหล่ม","TRKl.3":"โรงเรียนบ้านคลองปลาสร้อย","TRSm.1":"อ่างเก็บน้ำหนองกอง","TRSm.2":"อ่างเก็บน้ำคลองมดแดง","TRSn.1":"วัดวังทอง","TRWc.1":"โรงเรียนบ้านหนองปลาไหล","TUP.02":"สถานีน้ำแม่แตง (ฝายแม่แตงเหนือน้ำ)","TUP.10":"สถานีแม่น้ำปิงที่ฝายหนองสลีก","TUP.11":"สถานีน้ำแม่งัดที่ท้ายเขื่อนแม่งัดสมบูรณ์ชล","TUP.12":"เขื่อนแม่กวงอุดมธารา","TUP.13":"สถานีวัดน้ำฝน บ้านตีนตั่ง","TUP.14":"สถานีแม่น้ำปิงที่โครงการส่งน้ำและบำรุงรักษาแม่แฝก-แม่งัด","TUP.15":"สถานีวัดน้ำฝนที่วัดท่ามะเกี๋ยง","TUP.16":"สถานีเขื่อนแม่งัดสมบูรณ์ชล","TUP.17":"สถานีวัดน้ำฝน บ้านเมืองคอง","TUP.18":"สถานีโครงการชลประทานแม่ปิงเก่า","TUP.19":"สถานีคลองส่งน้ำแม่แตง","TUP.20":"สถานีวัดน้ำฝน ศูนย์วิจัยข้าวสะเมิง","TUP.21":"สถานีวัดน้ำฝนทุ่งหัวช้าง","TUP.22":"สถานีฝายวังปาน","TUP.23":"สถานีวัดน้ำฝนในบริเวณลุ่มน้ำแม่แจ่มตอนบน บ้านปางอุ๋ง","TP.12C":"สถานีโทรมาตร เขื่อนแม่ปิงตอนล่าง","TP.17":"สถานีโทรมาตร อ.บรรพตพิสัย จ.นครสรรค์","TP.2A":"สถานีโทรมาตร อ.เมือง จ.ตาก","TP.78":"สถานีโทรมาตร อ.คลองขลุง จ.กำแพงเพชร","TP.7A":"สถานีโทรมาตร อ.เมือง จ.กำแพงเพชร"},
-            "ภาคใต้ฝั่งตะวันออกตอนบน": {"TTP01":"บ้านต้นโพธิ์ (X.195)","TTP02":"ที่ว่าการ อ.ช้างกลาง","TTP03":"บ้านวังตลับ","TTP04":"ที่ว่าการ อ.ลำทับ","TTP05":"บ้านบางรูป (X.198)","TTP06":"วัดสองแพรก","TTP07":"โรงเรียนวัดบางสวรรค์","TTP08":"บ้านไทรขึง","TTP09":"บ้านย่านดินแดง (X.37A)","TTP10":"ฝายคลองเทวดา","TTP11":"บ้านนาสาร (X.81)","TTP12":"บ้านเคียนซา (X.217)","TTP13":"บ้านต้นสะท้อน","TTP14":"โรงเรียนบ้านบางสาน","TTP15":"ที่ทำการ อบต.คลองศก","TTP16":"วัดตาขุน (X.38A)","TTP17":"โรงเรียนบ้านท่านหญิงวิภา","TTP18":"บ้านโพธิ์น้อย","TTP19":"วัดจันทร์ประดิษฐาราม","TTP20":"บ้านท่าขนอน(X.36)","TTP21":"สวนสาธารณะเกาะลำพู","TTP22":"ฝายคลองลำพูน3","TTP23":"สถานีวัดบางใหญ่","TTP24":"สถานีบ้านมอเก็ต","TTP25":"สถานีบ้านบางน้ำเย็น","TTP26":"สถานีวัดสองพี่น้อง","TTP27":"สถานีบ้านทุ่งกรวด","TTP28":"สถานีวัดบางเงิน","TNA.01":"ฝายบ้านตาล","TNA.02":"คลองวัดหญ้า","TNA.03":"คลองท่าแพ","TNA.04":"คลองนอกท่า","TNA.05":"คลองโรงฆ้อง","TNB.06":"บ้านวังไทร","TNB.07":"ฝายท่าดี","TNB.08":"บ้านนาป่า","TNB.09":"บ้านโคกข่อย","TNB.10":"คลองหน้าเมือง","TNB.12":"บ้านปากพญา","TNB.13":"บ้านหนองลุง","TNB.14":"คลองวังวัว","TNB.15":"คลองท่าเรือ","TNC.16":"วัดธงทอง","TNC.17":"บ้านปากกลอง","TNC.18":"ปตร.บางจาก","TPN.01":"ปตร.อุทกวิภาชประสิทธิ","TPN.02":"บ้านสองพี่น้อง","TPN.03":"ปตร.บางไทร","TPN.04":"บ้านปากแพรก","TPN.05":"อำเภอหัวไทร","TPN.06":"ปตร.เชียรใหญ่","TPN.07":"ปตร.คลองชะเมา","TPN.08":"ฝายเสาธง","TPN.09":"ปตร.คลองฆ้อง","TPN.10":"บ้านตูล","TPN.11":"ฝายไม้เสียบ","TPN.12":"บ้านปากนคร","TPN.13":"บ้านการะเกด","TPN.14":"ปตร.หน้าโกฏิ","TPN.15":"เทศบาลปากพนัง","TPN.16":"ปตร.แพรกเมือง","TSN.01":"บ้านคีรีล้อม","TSN.02":"บ้านบางเจริญ","TSN.03":"คลองท่าแซะ","TSN.04":"บ้านวังมะปราง","TSN.05":"อนามัยบ้านสลุย","TSN.06":"อนามัยบ้านธรรมเจริญ","TSN.07":"คลองรับร่อ","TSN.08":"บ้านวังครก","TSN.09":"ประตูระบายน้ำหัววัง","TSN.10":"ประตูระบายน้ำสามแก้ว","TSN.11":"สะพานเทศบาล2","TSN.12":"ปากน้ำ"},
-            "ภาคใต้ฝั่งตะวันออกตอนล่าง": {"BNR.04":"ปตร.สุไหงปาดี 1","BNR.05":"ปตร.สุไหงปาดี 2","BNR.06":"ยะกัง","BNR.07":"บ้านบางปอ","BNR.09":"บ้านตาเซะ","BNR.10":"บ้านศาลาอูมา","BNR.01":"ปตร.บางนราตอนบน","BNR.02":"ปตร.น้ำแบ่ง","BNR.03":"ปตร.บางนราตอนล่าง","BNR.08":"สะพานยะกัง","Tpat.21":"บ้านกูหมัง","Tpat.7":"สะพานท่าสาป","Tkol.1(TX.357)":"บ้านตาบา","Tkol.10":"โรงเรียนบ้านกรือซอ","Tkol.11":"บ้านแว้ง","Tkol.12":"บ้านบาโงมาแย","Tkol.13":"อบต กายูคละ","Tkol.14":"บ้านกาวะ","Tkol.15":"อบต.ริโก๋","Tkol.16":"หน้า ทรบ. ปากคลองปาเสมัส","Tkol.17":"ท้าย ทรบ. ปากคลองปาเสมัส","Tkol.18":"ปตร.ปากคลองมูโนะ","Tkol.19":"ปตร.ปลายคลองโต๊ะแดง","Tkol.2(TX.358)":"โรงเรียนบ้านปะลุกา","Tkol.20":"บ้านลาแล","Tkol.21":"บ้านไอบาตู","Tkol.22":"บ้านใหม่","Tkol.23":"บ้านโคกกูแว","Tkol.24":"ทรบ.คลองระบายสายที่ 13","Tkol.25":"ปตร.ปูยู","Tkol.3(TX.359)":"บ้านบรือโมง","Tkol.4(TX.360)":"สวนสิรินธร","Tkol.5(TX.361)":"บ้านตอออ","Tkol.6(TX.362)":"บ้านบางขุด","Tkol.7":"บ้านบูเก๊ะตา","Tkol.8":"บ้านบาลา","Tkol.9":"บ้านราษฎร์พัฒนา","Tpat.1":"ปากแม่น้ำปัตตานี","Tpat.10":"ท้ายเขื่อนบางลาง","Tpat.11":"ปตร.ปลายคลอง D8","Tpat.12":"ปตร.ตุยง","Tpat.13":"บ้านกาแลภูมิ","Tpat.14":"ปตร.D2","Tpat.15":"บ้านตาสา","Tpat.16":"โรงเรียนลำพะยาประชานุเคราะห์","Tpat.17":"บ้านอาบอ","Tpat.18":"โรงเรียนบ้านบายอ","Tpat.19":"โรงเรียนสันติวิทยา","Tpat.2":"เทศบาลเมืองปัตตานี","Tpat.20":"รร.บ้านหลักเขต","Tpat.22":"ฟาร์มตัวอย่างฯ ธารโต","Tpat.23":"เทศบาลตำบลบุดี","Tpat.24":"นิคมสร้างตนเองพัฒนาภาคใต้","Tpat.25":"บ้านทรายแก้ว","Tpat.26":"คลองเบตง","Tpat.3":"บ้านแนบุ","Tpat.4":"บ้านบาซาเอ","Tpat.5":"โรงเรียนบ้านคูระ","Tpat.6":"เขื่อนปัตตานี","Tpat.8":"บ้านกะดูโด๊ะ","Tpat.9":"บ้านยีลาปัน"},
-            "มูล": {"TM.104":"TM.104 (มูลนิธิวัดสวนแก้ว)","TM.145":"TM.145","TM.159":"TM.159","TM.164":"TM.164","TM.171":"TM.171","TM.173":"TM.173","TM.174":"TM.174","TM.176":"TM.176 (วัดลือชัย)","TM.177":"TM.177 (วัดลาดบัวขาว)","TM.180":"TM.180","TM.182":"TM.182","TM.185":"TM.185 (วัดสง่าท่าชนนที)","TM.186":"TM.186","TM.193":"T สะพานบ้านหัน","TM.194 (U/S), (D/S)":"T ขรน.มะเกลือใหม่ (U/S), (D/S)","TM.195 (U/S), (D/S)":"T ขรน.กันผม (U/S), (D/S)","TM.196":"T-MUN3 (ฝายโคกตอง)","TM.197 (D/S)":"T ปตร.ลำสะแทด (D/S)","TM.198":"Tสบห้วยเหนือ+ห้วยสำราญ","TM.199":"Tใต้ฝายห้วยขะยุง","TM.1A":"TM.1A (วัดใหม่อัมพร)","TM.200 (U/S), (D/S)":"Tฝายยางบ้านส้ม (U/S), (D/S)","TM.201 (D/S)":"T ปตร.น้ำเค็ม (D/S)","TM.202 (U/S), (D/S)":"Tเขื่อนพิมาย (U/S), (D/S)","TM.203":"T หลุมข้าว","TM.204 (U/S), (D/S)":"Tฝายชุมพวง (U/S), (D/S)","TM.205 (U/S), (D/S)":"Tฝายยางบ้านเขว้า  (U/S), (D/S)","TM.206 (U/S), (D/S)":"Tฝายยางบ้านตะลุง (U/S), (D/S)","TM.2A":"TM.2A","TM.4":"TM.4","TM.42":"TM.42","TM.5":"TM.5 (ใต้ฝายราษีไศล)","TM.50":"TM.50 (วัดแชะ)","TM.6A":"TM.6A","TM.89":"TM.89","TM.9":"TM.9","TMN 02":"โพนทอง","TMN 03":"ฝายยโสธร - พนมไพร","TMN 04":"ฝายธาตุน้อย","TMN 05":"ฝายราษีไศล","TMN 06":"ฝายบ้านป่าใต้","TMN 07":"ศรีรัตนะ","TMN 08":"บ้านวังยาง","TMN 09":"ฝายลำเซบาย","TMN 10":"ฝายอำนาจเจริญ","TMN 11":"พนา","TMN 12":"ฝายลำเซบก","TMN 13":"เดชอุดม","TMN 14":"อุบลราชธานี","TMN 15":"พิบูลมังสาหาร","TM-R1":"T ขนงพระ","TM-R2":"T หนองตะลุมปุ๊ก","TM-R3":"T บึงปรือ","TM-R4":"T ซับกระจาย","TM-R5":"T25162(อำเภอคง)","TM-R6":"T ปตร.ลำพังชู","TM-R7":"T ผักไหม"},
-            "ยม": {"12247":" วัดคลองราษฎร์เจริญ จ.กำแพงเพชร","12237":" บ้านแก้วสุวรรณ จ.กำแพงเพชร","59277":" วัดปทุมคีรี จ.สุโขทัย","59287":" บ้านกุ้มเนิ้ง จ.สุโขทัย","40307":" สภ.สรอย จ.แพร่","59297":" วัดแม่คุ จ.สุโขทัย","40317":" บ้านห้วยไร่ จ.แพร่","40347":" วัดต้าแป้น จ.แพร่","TY.42":" อำเภอโพธิ์ประทับช้าง จ.พิจิตร","TY.43":" วัดวังเคียน จ.แพร่","TY.44":" ตำบลต้าผาหมอก จ.แพร่","TY.45":" บ้านไผ่โทน จ.แพร่","TY.13B":" บ้านหลวงเหนือ จ.ลำปาง","TY.46":" บ้านวังยาว จ.น่าน","TY.31":" บ้านทุ่งหนอง จ.พะเยา","TY.47":" อำเภอปง จ.พะเยา","TY.48":" บ้านแฮะ จ.พะเยา","TY.58":"วัดท่าไม้","TY.57":"ปตร.บ้านวังสะตือ","TY.56":"สะพานเขาโค้ง","TY.55":"แม่น้ำยม ปากคลองเข้า ปตร.บางพระ","TY.54":"ปตร.คลองหกบาท","TY.53":"ห้วยแม่สิน","TY.52":"ห้วยแม่สรอย","TY.51":"ห้วยแม่พวก","TY.50":"ห้วยแม่ลาน เทศบาลแม่ลานนา","TY.49":"น้ำงิม บ้านฝายแก้ว อบต.ออย","TY.1C":"อ.เมือง จ.แพร่","TY.4":"อ.เมือง จ.สุโขทัย","T.ฝายแม่ยม":"ฝายแม่ยม อ.สอง จ.แพร่","TY.37":"บ้านใหม่กลาง อ.วังชิ้น จ.แพร่","TY.14":"อ.ศรีสัชนาลัย จ.สุโขทัย","TY.3A":"อ.สวรรคโลก จ.สุโขทัย","TY.16":"อ.บางระกำ จ.พิษณุโลก","TY.17":"อ.สามง่าม จ.พิจิตร"},
-            "วัง": {"TW.ss":"ฝายยางประสบสุก","TW.25":"แม่น้ำวัง  W.25","TW.16A":"แม่น้ำวัง  W.16A","TW.17A":"น้ำแม่สอย  W.17A","TW.26":"ห้วยแม่ต๋า  W.26","TW.kl":"เขื่อนกิ่วลม","TW.ls":"ฝายหลวงสบอาง","TW.1C":"แม่น้ำวัง  W.1C","TW.km":"เขื่อนกิ่วคอหมา","TW.22":"น้ำแม่จาง  W.22","TW.20":"น้ำแม่ตุ๋ย  W.20","TW.18A":"น้ำแม่ต๋ำ  W.18A","TW.5A":"แม่น้ำวัง  W.5A","TW.6A":"แม่น้ำวัง  W.6A","TW.23":"แม่น้ำวัง  W.23 (W.3A)","TW.27":"TW.27","TW.28":"TW.28","TW.29":"TW.29","TW.30":"TW.30","TW.31":"TW.31","TW.32":"TW.32","TW.33":"TW.33","TW.34":"TW.34","TW.35":"TW.35","TW.21":"วัดต้นธงชัย อ.เมือง จ.ลำปาง","TW.3A":"บ้านดอนชัย อ.เถิน จ.ลำปาง","TW.4A":"วังหมัน อ.สามเงา จ.ตาก","TW.10A":"เขื่อนกิ่วลม อ.แจ้ห่ม จ.ลำปาง"},
-            "สะแกกรัง": {"TSK.8":"ฝายฆ้องชัย ป่าอ้อ อ.ลานสัก จ.อุทัยธานี","TCt.5A":"สถานีโทรมาตร อ.ขารนุวรลักษ์บุรี จ.กำแพงเพชร","TCt.2A":"สถานีโทรมาตร  อ.เมือง จ.อุทัยธานี","TSK.16":"วัดเวฬุวนาราม ท่าซุง เมือง อุทัยธานี","TSK.11":"สถานีโทรมาตร บ้านวังม้า วังม้า อ.ลาดยาว จ.นครสวรรค์","TSK.2":"สถานีโทรมาตร บ้านศาลเจ้าไก่ต่อ ศาลเจ้าไก่ต่อ อ.ลาดยาว  จ.นครสวรรค์","TSK.1":"สถานีโทรมาตร วัดใหม่แม่เรวา แม่เล่ย์ อ.แม่วงก์ จ.นครสวรรค์","TSK.12":"เขื่อนวังร่มเกล้า เนินศาลา อ.โกรกพระ จ.นครสวรรค์","TSK.15":"วัดโคกหม้อ โคกหม้อ ทัพหัน อุทัยธานี","TSK.13":"อบต.ศาลเจ้าไก่ต่อ ลาดยาว นครสวรรค์","TSK.10":"สถานีโทรมาตร วัดผาลาดธาราราม ตลุกดู่  อ.ทัพทัน จ.อุทัยธานี","TSK.3":"สถานีโทรมาตร วัดแม่กะสีวราราม แม่เปิน อ.แม่เปิน จ.นครสวรรค์","TSK.4":"สถานีโทรมาตร บ้านใหม่คลองเจริญ ชุมตาบง อ.ชุมตาบง จ.นครสวรรค์","TSK.5":"สถานีโทรมาตร บ้านหนองบำหรุ มาบแก อ.ลาดยาว จ.นครสวรรค์","TSK.14":"อบต.สว่างแจ้งสบายใจ สว่างอารามณ์ อุทัยธานี","TSK.7":"สถานีโทรมาตร บ้านท่ามะนาว ระบำ  อ.ลานสัก จ.อุทัยธานี","TSK.6":"เขื่อนทับเสลา ระบำ  อ.ลานสัก  จ.อุทัยธานี","TSK.9":"ฝายทับเสลา เขากวางทอง อ.หนองฉาง จ.อุทัยธานี"},
-            "สาละวิน": {"TSW01":"อ่างเก็บน้ำห้วยแม่สอด","TSW02":"เทศบาลนครแม่สอด","TSW03":"ห้วยแม่สอด","TSW04":"บ้านโกกไก่","TSW05":"บ้านแม่กึ๊ดสามท่า","TSW06":"บ้านวังผา","TSW14":"ห้วยน้ำของ","TSW07":"บ้านปางตอง","TSW08":"บ้านห้วยไก่ป่า","TSW09":"บ้านทุ่งรวงทอง","TSW10":"บ้านพะมอลอ","TSW11":"บ้านแม่ตะควน","TSW12":"แม่น้ำปาย","TSW13":"บ้านสบสา","TSW15":"ปางหมู"},
-            "KRC": {"KRC1":"TPR-10 เขื่อนปราณบุรี","KRC2":"TPR-11 คลองส่งน้ำสายใหญ่ กม 6+900","KRC3":"TPR-12 คลองส่งน้ำสายใหญ่ กม 9+280","KRC4":"TPR-13 คลองซอย กม. 46+380","KRC5":"TPR-14 คลองส่งน้ำสายใหญ่ กม. 48+875","KRC6":"TPR-15 คลองซอย กม 65+150","KRC7":"SC-2 คลองซอย กม. 5+98","KRC8":"SC-5 คลองซอย กม. 48+875","KRC9":"SC-7 คลองซอย กม 5+100","KRC10":"SC-9 คลองซอย 46 ซ้าย"}
-        };
-
         const basinSelect = document.getElementById("code");
         const stationInput = document.getElementById("id_name");
         const stationList = document.getElementById("stationList");
         const stationNameInput = document.getElementById("name_id");
 
+        basinSelect.innerHTML = '<option selected disabled value="">-- เลือกกลุ่มลุ่มน้ำ --</option>';
+        hardcodedBasins.forEach(b => { basinSelect.innerHTML += `<option value="${b}">${b}</option>`; });
+        basinSelect.innerHTML += '<option value="">ไม่มี</option><option value="ไม่ทราบ">ไม่ทราบ</option>';
+
         basinSelect.addEventListener("change", () => {
             const selectedBasin = basinSelect.value.trim();
-            stationInput.value = "";
-            stationNameInput.value = "";
-            stationList.innerHTML = "";
-            if (data[selectedBasin]) {
+            stationInput.value = ""; stationNameInput.value = ""; stationList.innerHTML = "";
+            if (stationsData[selectedBasin]) {
                 stationInput.disabled = false;
-                for (let code in data[selectedBasin]) {
-                    const opt = document.createElement("option");
-                    opt.value = code;
-                    stationList.appendChild(opt);
+                for (let code in stationsData[selectedBasin]) {
+                    const opt = document.createElement("option"); opt.value = code; stationList.appendChild(opt);
                 }
-            } else {
-                stationInput.disabled = true;
-            }
+            } else { stationInput.disabled = true; }
         });
 
         stationInput.addEventListener("input", () => {
             const selectedBasin = basinSelect.value.trim();
             const code = stationInput.value.trim();
-            if (data[selectedBasin] && data[selectedBasin][code]) {
-                stationNameInput.value = data[selectedBasin][code];
-            } else {
-                stationNameInput.value = "";
-            }
+            if (stationsData[selectedBasin] && stationsData[selectedBasin][code]) {
+                stationNameInput.value = stationsData[selectedBasin][code];
+            } else { stationNameInput.value = ""; }
         });
 
-        // ฟังก์ชันอัพเดท UI ของ GPS
         function updateGPSUI(status) {
             if (status === 'searching') {
                 gpsStatus.className = "cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-gray-600 bg-gray-900 text-yellow-500 animate-blink";
                 gpsStatus.innerHTML = '<i class="fas fa-satellite-dish mr-2"></i><span>กำลังค้นหา...</span>';
-                btnSubmit.disabled = true;
-                btnText.innerText = "รอพิกัด GPS...";
                 gpsCoords.innerText = "Lat: -, Lon: -";
             } else if (status === 'success') {
                 gpsStatus.className = "cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-green-600 bg-green-900/30 text-green-400";
                 gpsStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i><span>จับพิกัดได้แล้ว</span>';
                 gpsStatus.classList.remove('animate-blink');
                 gpsCoords.innerText = `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}`;
-                
-                btnSubmit.disabled = false;
-                btnText.innerText = "ยืนยันข้อมูล";
             } else if (status === 'error') {
                 gpsStatus.className = "cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-red-600 bg-red-900/30 text-red-400";
                 gpsStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i><span>ไม่พบพิกัด (กดใหม่)</span>';
                 gpsStatus.classList.remove('animate-blink');
-                btnSubmit.disabled = true;
-                btnText.innerText = "กรุณาเปิด GPS";
             }
         }
 
@@ -557,65 +258,48 @@
             updateGPSUI('searching');
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    (p) => { 
-                        lat = p.coords.latitude; 
-                        lon = p.coords.longitude; 
-                        updateGPSUI('success');
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'จับสัญญาณ GPS สำเร็จ', showConfirmButton: false, timer: 3000, background: '#1a1c20', color: '#fff' });
-                        }
-                    },
-                    (e) => { 
-                        console.warn("Geo Error: " + e.message);
-                        updateGPSUI('error');
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({ icon: 'error', title: 'ไม่พบสัญญาณ GPS', text: 'กรุณาเปิด GPS และกดอนุญาต', background: '#1a1c20', color: '#fff' });
-                        } else { alert('ไม่พบสัญญาณ GPS'); }
-                    },
+                    (p) => { lat = p.coords.latitude; lon = p.coords.longitude; updateGPSUI('success'); },
+                    (e) => { updateGPSUI('error'); },
                     { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
                 );
-            } else {
-                updateGPSUI('error');
-                alert('Browser ไม่รองรับ GPS');
-            }
+            } else { updateGPSUI('error'); }
         }
 
-        window.addEventListener('load', function() {
-            getLocation();
-        });
+        window.addEventListener('load', getLocation);
 
-        // ปรับปรุงฟังก์ชันส่งฟอร์ม ให้รองรับการส่งไฟล์ภาพด้วย FormData
         async function handleFormSubmit(event, form) {
             event.preventDefault();
             
+            // ✅ อนุญาตให้กดส่งได้แม้ไม่มี GPS
             if (lat === null || lon === null) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'warning', title: 'ไม่พบพิกัด GPS', text: 'กรุณารอ GPS สักครู่', background: '#1a1c20', color: '#fff' });
-                } else { alert('รอ GPS'); }
-                getLocation();
-                return;
-            }
-
-            // ใช้ FormData ดึงข้อมูลทั้งหมดในฟอร์ม (รวมถึงไฟล์)
-            const formData = new FormData(form);
-            formData.append('lat', lat);
-            formData.append('lon', lon);
-
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'กำลังส่งข้อมูล...', text: 'กำลังบันทึกข้อมูลและอัปโหลดรูปภาพ กรุณารอสักครู่', allowOutsideClick: false,
-                    background: '#1a1c20', color: '#fff',
-                    didOpen: () => Swal.showLoading()
+                const confirmNoGPS = await Swal.fire({
+                    title: 'ไม่พบสัญญาณ GPS',
+                    text: 'คุณต้องการยืนยันส่งข้อมูลการตรวจสอบ "โดยไม่ระบุพิกัด" หรือไม่?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'ยืนยันส่งข้อมูล',
+                    cancelButtonText: 'ยกเลิก',
+                    background: '#1a1c20', color: '#fff'
                 });
+                if (!confirmNoGPS.isConfirmed) { return; }
             }
+
+            const formData = new FormData(form);
+            if (lat !== null) formData.append('lat', lat);
+            if (lon !== null) formData.append('lon', lon);
+
+            Swal.fire({
+                title: 'กำลังส่งข้อมูล...', text: 'กำลังบันทึกข้อมูลและอัปโหลดรูปภาพ กรุณารอสักครู่', allowOutsideClick: false,
+                background: '#1a1c20', color: '#fff', didOpen: () => Swal.showLoading()
+            });
 
             try {
-                // *** หมายเหตุ: หากขึ้นระบบจริง ต้องเปลี่ยน URL นี้เป็นโดเมนหรือ IP ของ Backend ของคุณ ***
-                const API_URL = '/api/inspections';
-                
+                // ✅ แก้ไข URL ให้ตรงกับ Backend
+                const API_URL = '/api/inspection';
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    // ไม่ต้องตั้ง Content-Type ระบบ fetch จะจัดการ Boundary ของไฟล์ (multipart/form-data) ให้เอง
                     body: formData
                 });
 
@@ -623,24 +307,17 @@
 
                 if (response.ok && result.success) {
                     document.getElementById("mainform").reset();
-                    // รีเซ็ตการแสดงผลช่องที่ถูกซ่อนไป
                     document.getElementById('rtuGroup').classList.add('hidden');
                     document.getElementById('plcGroup').classList.add('hidden');
                     document.getElementById('modemGroup').classList.add('hidden');
                     document.getElementById('wlDynamicFields').innerHTML = '';
-                    
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({ position: 'center', icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', showConfirmButton: false, timer: 2000, background: '#1a1c20', color: '#fff' });
-                    } else { alert('สำเร็จ'); }
+                    Swal.fire({ position: 'center', icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', showConfirmButton: false, timer: 2000, background: '#1a1c20', color: '#fff' });
                 } else {
                     throw new Error(result.message || 'การตอบกลับจากเซิร์ฟเวอร์ผิดพลาด');
                 }
-                
             } catch (error) {
                 console.error('Submit Error:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.message, background: '#1a1c20', color: '#fff' });
-                } else { alert('Error: ' + error.message); }
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.message, background: '#1a1c20', color: '#fff' });
             }
         }
     </script>
