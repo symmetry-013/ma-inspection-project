@@ -1,0 +1,15 @@
+# โฟลเดอร์ไลบรารีของ Node (ไม่ต้องอัปโหลดขึ้น GitHub เพราะบน Render จะสั่ง npm install เอง)
+node_modules/
+
+# ไฟล์ข้อมูลลับและกุญแจ Google Service Account (ห้ามเอาขึ้น GitHub เด็ดขาด!)
+credentials.json
+
+# ไฟล์ตั้งค่าสิ่งแวดล้อม
+.env
+
+# โฟลเดอร์ที่เก็บไฟล์อัปโหลดในเครื่อง
+uploads/
+
+# ระบบปฏิบัติการ
+.DS_Store
+Thumbs.db

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารจัดการอุปกรณ์สนาม</title>
+    
+    <!-- นำเข้า Tailwind CSS สำหรับการจัดหน้าจออัตโนมัติ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- นำเข้า Google Fonts (Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- นำเข้า FontAwesome สำหรับไอคอนสวยๆ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        // ตั้งค่า Theme สีและ Font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#0f172a',
+                        secondary: '#334155',
+                        accent: '#eab308',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-luxury {
+            transition: all 0.3s ease;
+        }
+        .btn-luxury:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+    <!-- Container หลัก -->
+    <div class="w-full max-w-4xl">
+        
+        <!-- Header ส่วนหัว -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-5xl font-bold text-white mb-2 tracking-wide mt-8">
+                <i class="fa-solid fa-layer-group text-yellow-400 mr-2"></i> ศูนย์ปฏิบัติการสนาม
+            </h1>
+            <p class="text-gray-400 text-sm md:text-lg font-light">
+                ระบบจัดการและตรวจสอบมาตรฐานน้ำและฝน
+            </p>
+        </div>
+
+        <!-- Grid Layout -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Card 1: ตรวจสอบอุปกรณ์สนาม -->
+            <!-- สังเกตว่า href เปลี่ยนไปเรียกไฟล์ html ในเครื่องแทน -->
+            <a href="inspection.html" 
+               class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center btn-luxury group cursor-pointer no-underline">
+                <div class="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-400 transition">
+                    <i class="fa-solid fa-screwdriver-wrench text-2xl text-white"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">ตรวจสอบอุปกรณ์สนาม</h2>
+                <p class="text-gray-300 text-sm">เข้าสู่ระบบบันทึกการตรวจสอบ</p>
+            </a>
+
+            <!-- Card 2: สอบเทียบค่าระดับน้ำและฝน -->
+            <a href="calibration.html" 
+               class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center btn-luxury group cursor-pointer no-underline">
+                <div class="w-16 h-16 bg-teal-500 rounded-full flex items-center justify-center mb-4 group-hover:bg-teal-400 transition">
+                    <i class="fa-solid fa-ruler-combined text-2xl text-white"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">สอบเทียบค่าระดับน้ำและฝน</h2>
+                <p class="text-gray-300 text-sm">บันทึกค่าการสอบเทียบมาตรฐาน</p>
+            </a>
+
+            <!-- Card 3: ผลตรวจสอบอุปกรณ์สนาม -->
+            <a href="report_inspection.html" 
+               class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center btn-luxury group cursor-pointer no-underline border-l-4 border-yellow-500">
+                <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mb-4 group-hover:bg-gray-600 transition">
+                    <i class="fa-solid fa-clipboard-check text-2xl text-yellow-400"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">ผลตรวจสอบอุปกรณ์สนาม</h2>
+                <p class="text-gray-300 text-sm">ดูรายงานข้อมูลย้อนหลัง</p>
+            </a>
+
+            <!-- Card 4: ผลสอบเทียบค่าระดับน้ำและฝน -->
+            <a href="report_calibration.html" 
+               class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center btn-luxury group cursor-pointer no-underline border-l-4 border-yellow-500">
+                <div class="w-16 h-16 bg-gray-700 rounded-full flex items-center justify-center mb-4 group-hover:bg-gray-600 transition">
+                    <i class="fa-solid fa-file-invoice text-2xl text-yellow-400"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">ผลสอบเทียบค่าระดับน้ำและฝน</h2>
+                <p class="text-gray-300 text-sm">ดูรายงานการสอบเทียบ</p>
+            </a>
+
+            <!-- Card 5: ติดตามการตรวจงาน -->
+            <a href="tracking.html" 
+               class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center btn-luxury group cursor-pointer no-underline border-l-4 border-purple-500">
+                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-purple-500 transition">
+                    <i class="fa-solid fa-bars-progress text-2xl text-white"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">ติดตามการตรวจงาน</h2>
+                <p class="text-gray-300 text-sm">ตรวจสอบสถานะและความคืบหน้า</p>
+            </a>
+
+            <!-- Card 6: สรุปผลอุปกรณ์ที่ชำรุด -->
+            <a href="defects.html" 
+               class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center btn-luxury group cursor-pointer no-underline border-l-4 border-red-500">
+                <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-red-500 transition">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl text-white"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-white mb-2">สรุปผลอุปกรณ์ที่ชำรุด</h2>
+                <p class="text-gray-300 text-sm">ดูรายงานอุปกรณ์ที่ต้องซ่อมแซม</p>
+            </a>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-12 mb-8 text-gray-500 text-xs">
+            &copy; 2024 Field Operations System. All rights reserved.
+        </div>
+
+    </div>
+
+</body>
+</html>

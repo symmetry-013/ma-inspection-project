@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard แสดงผลสอบเทียบ | Calibration Report</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a; /* Dark Blue-Grey */
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-color: #cca43b; /* Luxury Gold */
+            --accent-hover: #e5c15d;
+            --input-bg: #334155;
+            --border-color: #475569;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Prompt', sans-serif;
+            font-weight: 300;
+            min-height: 100vh;
+            padding-bottom: 50px;
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding-top: 20px;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        /* Typography Adjustments */
+        .header-title { text-align: center; margin-bottom: 30px; }
+        .header-title h1 {
+            font-weight: 600; color: var(--accent-color);
+            letter-spacing: 1px; text-transform: uppercase;
+            font-size: clamp(1.5rem, 4vw, 2.2rem); 
+        }
+        .header-title p { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Card Styling */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            border-color: rgba(204, 164, 59, 0.3);
+        }
+        .section-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px; margin-bottom: 25px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .section-header h5 { margin: 0; color: var(--accent-color); font-weight: 500; font-size: 1.1rem; }
+        .section-header i { color: var(--text-muted); font-size: 1.2rem; }
+
+        /* Form Controls */
+        .form-label { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .form-control, .form-select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main); border-radius: 10px;
+            padding: 10px 15px; font-size: 0.95rem;
+            transition: all 0.3s ease; appearance: none; 
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3b4d66; border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(204, 164, 59, 0.2);
+            color: white; outline: none;
+        }
+        .form-control::placeholder { color: #64748b; }
+
+        /* Button Styling */
+        .btn-submit {
+            background: linear-gradient(135deg, var(--accent-color), #b89334);
+            color: #0f172a; border: none; padding: 12px 30px;
+            border-radius: 50px; font-weight: 600; letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(204, 164, 59, 0.4);
+            transition: all 0.3s ease; font-size: 1rem;
+        }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(204, 164, 59, 0.6); color: #0f172a; }
+
+        /* Loading Spinner */
+        .loader-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; }
+        .loader {
+            border: 4px solid var(--border-color); border-top: 4px solid var(--accent-color);
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Image Grid in Results */
+        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; margin-top: 15px; }
+        .image-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .image-wrapper {
+            aspect-ratio: 1; width: 100%; border-radius: 8px; overflow: hidden;
+            border: 1px solid var(--border-color); background-color: var(--bg-color);
+            transition: transform 0.3s ease; margin-bottom: 8px;
+        }
+        .image-wrapper:hover { transform: scale(1.05); border-color: var(--accent-color); z-index: 10; position: relative;}
+        .image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Helper animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        .badge-accent { background-color: rgba(204, 164, 59, 0.2); color: var(--accent-color); border: 1px solid rgba(204, 164, 59, 0.4); }
+
+        /* Table custom styling for dark theme */
+        .table-dark-custom { border-color: var(--border-color); color: var(--text-main); font-size: 0.9rem; }
+        .table-dark-custom th, .table-dark-custom td { border-color: var(--border-color); vertical-align: middle; }
+        .table-dark-custom thead { background-color: var(--input-bg); }
+        .text-accent { color: var(--accent-color) !important; }
+        
+        .local-search-input {
+            background-color: rgba(0,0,0,0.2) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-main) !important; font-size: 1.1rem; padding: 12px 20px;
+        }
+        .local-search-input:focus {
+            border-color: var(--accent-color) !important;
+            box-shadow: 0 0 10px rgba(204, 164, 59, 0.2) !important;
+        }
+
+        .btn-back-menu {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-muted); text-decoration: none;
+            padding: 8px 16px; border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        .btn-back-menu:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <div class="container main-container">
+        
+        <!-- กลับหน้าหลัก -->
+        <div class="mb-4 fade-in">
+            <a href="index.html" class="btn-back-menu">
+                <i class="fas fa-arrow-left"></i> กลับเมนูหลัก
+            </a>
+        </div>
+
+        <!-- Header -->
+        <div class="header-title fade-in">
+            <h1><i class="fas fa-chart-line me-2"></i> Calibration Dashboard</h1>
+            <p>ระบบตรวจสอบและแสดงผลการสอบเทียบสถานีโทรมาตร</p>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="glass-card fade-in" style="animation-delay: 0.1s;">
+            <div class="section-header">
+                <i class="fas fa-filter"></i>
+                <h5>ค้นหาข้อมูลจากฐานข้อมูล</h5>
+            </div>
+
+            <div class="row g-3">
+                <!-- แถวที่ 1 (เอาชีตออก ใช้แค่งวดและลุ่มน้ำ) -->
+                <div class="col-md-6 col-12">
+                    <label for="myDataPeriod" class="form-label">งวดตรวจงาน MA</label>
+                    <select class="form-select" id="myDataPeriod">
+                        <option value="">ทั้งหมด (ทุกงวด)</option>
+                        <option value="งวดที่1">งวดที่ 1</option>
+                        <option value="งวดที่2">งวดที่ 2</option>
+                        <option value="งวดที่3">งวดที่ 3</option>
+                        <option value="งวดที่4">งวดที่ 4</option>
+                    </select>
+                </div>
+                <div class="col-md-6 col-12">
+                    <label for="myData0" class="form-label">กลุ่มลุ่มน้ำ</label>
+                    <select class="form-select" id="myData0">
+                        <option value="">ทั้งหมด (ทุกลุ่มน้ำ)</option>
+                        <!-- Options generated by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <div class="text-end mt-4">
+                <button onclick="fetchData()" id="searchBtn" class="btn btn-submit">
+                    <i class="fas fa-cloud-download-alt me-2"></i> ดึงข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingIndicator" class="loader-wrapper d-none fade-in">
+            <div class="loader mb-3"></div>
+            <p class="text-muted" id="loadingText">กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorMessage" class="alert alert-danger d-none fade-in text-center" style="background: rgba(220, 53, 69, 0.1); border-color: #dc3545; color: #ff6b6b;" role="alert">
+        </div>
+
+        <!-- Local Search Box -->
+        <div id="localSearchContainer" class="glass-card fade-in d-none mb-4" style="padding: 15px 25px; border-color: var(--accent-color);">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-search text-accent me-3" style="font-size: 1.5rem;"></i>
+                <input type="text" id="localSearchInput" class="form-control local-search-input rounded-pill" 
+                       placeholder="พิมพ์เพื่อค้นหา 'รหัส/ชื่อสถานี' จากรายการด้านล่าง..." 
+                       onkeyup="filterLocalData()">
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsContainer" class="fade-in">
+            <!-- Initial Empty State -->
+            <div class="text-center py-5" id="emptyState" style="color: var(--border-color);">
+                <i class="fas fa-folder-open fa-4x mb-3"></i>
+                <p class="fs-5 mt-2">กรุณาเลือกเงื่อนไขและกดดึงข้อมูล</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- กำหนดค่า URL ของ API (เปลี่ยนให้ตรงกับ Backend ของคุณ) ---
+        const API_URL = window.API_BASE;
+
+        // --- Data Mapping Logic ---
+        const data = {
+            "โขงเหนือ": {}, "โขงอีสาน": {}, "ชี": {}, "มูล": {}, "ปิง": {}, 
+            "วัง": {}, "ยม": {}, "น่าน": {}, "เจ้าพระยา": {}, "ป่าสัก": {}, 
+            "สะแกกรัง": {}, "ท่าจีน": {}, "แม่กลอง": {}, "บางปะกง": {}, 
+            "ชายทะเลฝั่งตะวันออก": {}, "เพชรบุรี-ประจวบคีรีขันธ์": {}, 
+            "ภาคใต้ฝั่งตะวันตก": {}, "ภาคใต้ฝั่งตะวันออกตอนบน": {}, 
+            "ภาคใต้ฝั่งตะวันออกตอนล่าง": {}, "ทะเลสาบสงขลา": {}, 
+            "สาละวิน": {}, "โตนเลสาป": {}, "KRC": {}
+        };
+
+        const basinSelect = document.getElementById("myData0");
+
+        // กำหนด Options เริ่มต้นให้ลุ่มน้ำ
+        for (let basin in data) {
+            let opt = document.createElement("option");
+            opt.value = basin;
+            opt.textContent = basin;
+            basinSelect.appendChild(opt);
+        }
+
+        // ตัวแปร Global ไว้เก็บข้อมูลทั้งหมดที่ดึงมาจากเซิร์ฟเวอร์
+        let globalFetchedData = [];
+
+        // --- Data Fetching Logic (ดึงจาก Node.js API) ---
+        async function fetchData() {
+            document.getElementById('emptyState')?.classList.add('d-none');
+            document.getElementById('errorMessage').classList.add('d-none');
+            document.getElementById('resultsContainer').innerHTML = '';
+            
+            document.getElementById('localSearchContainer').classList.add('d-none');
+            document.getElementById('localSearchInput').value = ''; 
+            
+            document.getElementById('loadingIndicator').classList.remove('d-none');
+            document.getElementById('searchBtn').disabled = true;
+
+            const filterPeriod = document.getElementById('myDataPeriod').value;
+            const filterBasin = document.getElementById('myData0').value;
+
+            try {
+                // ดึงข้อมูลทั้งหมดจาก API (ในโปรเจ็กต์ใหญ่ อาจส่ง filter ไปคิวรี่ในฝั่ง Server เลยเพื่อประหยัด Data)
+                const response = await fetch(`${API_URL}/api/calibrations`);
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // กรองข้อมูลด้วย JavaScript
+                    // ป้องกัน XSS: escape ข้อความทุกช่องก่อนนำไปแสดงผล (ไม่กระทบรูปภาพ/ตัวเลข)
+                    const textKeys = ['myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
+                    result.data.forEach(it => textKeys.forEach(k => { if (typeof it[k] === 'string') it[k] = escapeHtml(it[k]); }));
+                    let filteredData = result.data;
+                    
+                    if (filterPeriod) {
+                        filteredData = filteredData.filter(item => item.myDataPeriod === filterPeriod);
+                    }
+                    if (filterBasin) {
+                        filteredData = filteredData.filter(item => item.myData0 === filterBasin);
+                    }
+
+                    globalFetchedData = filteredData;
+
+                    if (globalFetchedData.length > 0) {
+                        document.getElementById('localSearchContainer').classList.remove('d-none');
+                    }
+                    renderCards(globalFetchedData);
+
+                } else {
+                    throw new Error(result.message || 'ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้');
+                }
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loadingIndicator').classList.add('d-none');
+                document.getElementById('searchBtn').disabled = false;
+            }
+        }
+
+        // ฟังก์ชันสำหรับค้นหาข้อมูลในตารางฝั่ง Client (Local Search)
+        function filterLocalData() {
+            const searchTerm = document.getElementById('localSearchInput').value.toLowerCase().trim();
+            
+            if (searchTerm === "") {
+                renderCards(globalFetchedData);
+                return;
+            }
+
+            const filteredData = globalFetchedData.filter(item => {
+                const stationId = (item.myData1 || "").toLowerCase();
+                const stationName = (item.myData2 || "").toLowerCase();
+                return stationId.includes(searchTerm) || stationName.includes(searchTerm);
+            });
+
+            renderCards(filteredData);
+        }
+
+        // --- STREAMING_CHUNK:Rendering Result Cards ---
+        // ฟังก์ชันแยกสำหรับสร้าง HTML Card ตามข้อมูลที่ส่งเข้ามา
+        function renderCards(dataItems) {
+            const container = document.getElementById('resultsContainer');
+
+            if (dataItems.length === 0) {
+                const searchTerm = document.getElementById('localSearchInput').value;
+                let msg = searchTerm ? `ไม่พบสถานีที่ตรงกับคำว่า "${searchTerm}" ในรายการนี้` : `ไม่พบรายงานที่ตรงกับเงื่อนไขการค้นหา`;
+                
+                container.innerHTML = `
+                    <div class="text-center py-5 glass-card fade-in" style="color: var(--text-muted);">
+                        <i class="fas fa-search-minus fa-3x mb-3"></i>
+                        <h5>ไม่พบข้อมูล</h5>
+                        <p class="mb-0">${msg}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            
+            // Map คอลัมน์รูปภาพตามชื่อฟิลด์ใน Database
+            const imageColsMap = [
+                { field: 'myFileUrl', label: "เสาวัดระดับน้ำ (1)" },
+                { field: 'myFileUrl2', label: "RTU (1)" },
+                { field: 'myFileUrl3', label: "Website (1)" },
+                { field: 'myFileUrl4', label: "เสาวัดระดับน้ำ (2)" },
+                { field: 'myFileUrl5', label: "RTU (2)" },
+                { field: 'myFileUrl6', label: "Website (2)" },
+                { field: 'myFileUrl7', label: "ค่าน้ำฝน RTU" },
+                { field: 'myFileUrl8', label: "ค่าน้ำฝน Website" }
+            ];
+
+            dataItems.forEach((item, index) => {
+                
+                // แปลงเวลาให้แสดงสวยงาม
+                const dateObj = new Date(item.timestamp);
+                const dateStr = !isNaN(dateObj.getTime()) ? dateObj.toLocaleString('th-TH', { 
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                }) : '-';
+                
+                // รูปภาพ: เช็คว่ามีการอัปโหลดไฟล์เข้ามาหรือไม่
+                let imagesHtml = '';
+                let hasImage = false;
+
+                imageColsMap.forEach(col => {
+                    if (item[col.field] && item[col.field].trim() !== '') {
+                        hasImage = true;
+                        // เพิ่ม Slash กรณี path จาก DB ไม่มี (backend return: uploads/...)
+                        const imgPath = item[col.field].startsWith('/') ? item[col.field] : `/${item[col.field]}`;
+                        // ลิงก์จาก Google Drive เป็น URL เต็มอยู่แล้ว ไม่ต้องเติม API_URL นำหน้า
+                        const fullImgUrl = /^https?:\/\//i.test(item[col.field]) ? item[col.field] : `${API_URL}${imgPath}`;
+
+                        imagesHtml += `
+                            <div class="image-item">
+                                <a href="${fullImgUrl}" target="_blank" class="image-wrapper">
+                                    <img src="${fullImgUrl}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/150x150/1e293b/94a3b8?text=Image+Error';">
+                                </a>
+                                <span class="badge bg-secondary" style="font-size: 0.75rem; font-weight: normal;">${col.label}</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                if (!hasImage) {
+                    imagesHtml = `<p class="text-muted fst-italic w-100 mb-0" style="font-size: 0.85rem;"><i class="fas fa-image me-1"></i>ไม่มีรูปภาพแนบสำหรับรายงานนี้</p>`;
+                }
+
+                // ตารางแสดงข้อมูลรายละเอียด
+                let detailsTableHtml = `
+                    <div class="table-responsive mt-3 mb-4">
+                        <table class="table table-bordered table-dark-custom">
+                            <thead>
+                                <tr>
+                                    <th colspan="4" class="text-center text-accent bg-transparent" style="font-size: 1rem;">
+                                        <i class="fas fa-map-marker-alt me-1"></i> ที่ตั้งอาคาร: <span class="text-white fw-normal">${item.myData3 || '-'}</span>
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th width="25%" class="text-center">หัวข้อการสอบเทียบ</th>
+                                    <th width="25%" class="text-center">เสาวัดระดับ / จำนวนเคาะ</th>
+                                    <th width="25%" class="text-center">RTU</th>
+                                    <th width="25%" class="text-center">Website</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- สอบเทียบระดับน้ำ ครั้งที่ 1 -->
+                                <tr>
+                                    <td><i class="fas fa-water me-2 text-muted"></i>ระดับน้ำ ครั้งที่ 1</td>
+                                    <td class="text-center">${item.myData4 || '-'}</td>
+                                    <td class="text-center">${item.myData5 || '-'}</td>
+                                    <td class="text-center">${item.myData6 || '-'}</td>
+                                </tr>
+                                ${item.myData7 ? `<tr><td colspan="4" class="text-muted fst-italic py-1" style="font-size: 0.8rem; border-top: none;">หมายเหตุ 1: ${item.myData7}</td></tr>` : ''}
+                                
+                                <!-- สอบเทียบระดับน้ำ ครั้งที่ 2 -->
+                                <tr>
+                                    <td><i class="fas fa-water me-2 text-muted"></i>ระดับน้ำ ครั้งที่ 2</td>
+                                    <td class="text-center">${item.myData8 || '-'}</td>
+                                    <td class="text-center">${item.myData9 || '-'}</td>
+                                    <td class="text-center">${item.myData10 || '-'}</td>
+                                </tr>
+
+                                <!-- สอบเทียบค่าน้ำฝน -->
+                                <tr>
+                                    <td><i class="fas fa-cloud-rain me-2 text-muted"></i>ค่าน้ำฝน</td>
+                                    <td class="text-center">${item.myData11 || '-'}</td>
+                                    <td class="text-center">${item.myData12 || '-'}</td>
+                                    <td class="text-center">${item.myData13 || '-'}</td>
+                                </tr>
+                                ${item.myData14 ? `<tr><td colspan="4" class="text-muted fst-italic py-1" style="font-size: 0.8rem; border-top: none;">หมายเหตุฝน: ${item.myData14}</td></tr>` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                html += `
+                    <div class="glass-card result-card fade-in" style="animation-delay: ${0.05 * (index % 5)}s;">
+                        <div class="row align-items-start">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge badge-accent px-2 py-1 rounded-pill">
+                                        <i class="fas fa-water me-1"></i>ลุ่มน้ำ ${item.myData0 || '-'}
+                                    </span>
+                                    <span class="badge" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">
+                                        งวด: ${item.myDataPeriod || '-'}
+                                    </span>
+                                </div>
+                                <h4 style="color: var(--text-main); font-weight: 500; margin-bottom: 5px;">
+                                    ${item.myData2 || item.myData1 || 'ไม่ระบุชื่อสถานี'}
+                                </h4>
+                                <p style="color: var(--accent-color); font-size: 0.95rem;">รหัสสถานี: ${item.myData1 || '-'}</p>
+                            </div>
+                            <div class="col-md-4 text-md-end text-start mt-3 mt-md-0">
+                                <p class="mb-0 text-muted" style="font-size: 0.8rem; text-transform: uppercase;">วันที่บันทึกรายงาน</p>
+                                <p class="mb-0" style="color: var(--text-main); font-weight: 400;"><i class="far fa-calendar-alt me-1 text-muted"></i> ${dateStr}</p>
+                            </div>
+                        </div>
+                        
+                        ${detailsTableHtml}
+                        
+                        <div>
+                            <p class="mb-2 text-muted" style="font-size: 0.9rem;"><i class="fas fa-camera retro me-1"></i> ภาพประกอบ</p>
+                            <div class="image-grid">
+                                ${imagesHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function showError(errorMsg) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> <strong>เกิดข้อผิดพลาด:</strong> ${errorMsg}`;
+            errorDiv.classList.remove('d-none');
+        }
+    </script>
+</body>
+</html>
