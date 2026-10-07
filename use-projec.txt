@@ -6,3 +6,6 @@ ZD7CCIFklVJxsPcy
 cd  Desktop
 cd  MA-Project
 
+git add .
+git commit -m "Update server.js and remove server_2.js"
+git push

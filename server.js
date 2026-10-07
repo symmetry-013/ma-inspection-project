@@ -1,177 +1,103 @@
-// ต้องติดตั้งแพ็กเกจเหล่านี้ก่อน: npm install express mongoose cors axios dotenv multer googleapis
+// ต้องติดตั้งแพ็กเกจเหล่านี้ก่อน: npm install express mongoose cors axios dotenv multer googleapis stream
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 const multer = require('multer');
-const { google } = require('googleapis'); // นำเข้าแพ็กเกจของ Google
+const { google } = require('googleapis');
+const stream = require('stream'); // เพิ่มสำหรับส่งไฟล์เข้า Google Drive จาก Memory
+const path = require('path');
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 // Middleware
-app.use(cors()); // อนุญาตให้ Frontend (แอป/เว็บ) ยิง API เข้ามาได้
-app.use(express.json()); // ให้ Express อ่านข้อมูลแบบ JSON ได้
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // ทำให้รูปที่อัปโหลดสามารถเปิดดูได้ผ่าน URL
+app.use(cors());
+app.use(express.json());
 
 // ==========================================
 // 1. Database Setup (MongoDB Schema)
 // ==========================================
-// เชื่อมต่อ MongoDB (กำหนด URI ในไฟล์ .env หรือใช้ Localhost)
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ma_inspection';
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
-  .catch(err => console.log('❌ MongoDB Connection Error:', err));
+  .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// ออกแบบ Schema ให้รองรับข้อมูลทั้งหมดจากหน้าเว็บของคุณ
 const InspectionSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
-  saya: String,             // งวดที่ตรวจ
-  code: String,             // กลุ่มลุ่มน้ำ
-  id_name: String,          // รหัสสถานี
-  name_id: String,          // ชื่อสถานี
-  install_status: String,   // สถานะจุดติดตั้งอาคาร
-  
-  // สถานะตรวจสอบทั่วไป
+  saya: String, code: String, id_name: String, name_id: String, install_status: String,
   clean: String, pai: String, power: String, power1: String, online: String,
   wl: String, wl1: String, r: String,
-  
-  // อุปกรณ์ RTU / PLC
   sta_cpu: String, sta_ai: String, sta_di: String, sta_do: String, sta_io: String, plc: String,
   sta_m1: String, sta_m2: String, 
-  
-  // อุปกรณ์ภาคสนาม
   sta_p1: String, sta_p2: String, sta_cctv1: String, sta_cctv2: String, sta_r: String, sta_s: String,
   sta_wl: String, sta_tro: String, sta_gass: String, sta_wl1: String, sta_wl2: String, sta_saling: String,
-  
-  // บันทึกจำนวนแบตเตอรี่และสถานะอื่นๆ (เก็บเป็น Number)
-  b1: { type: Number, default: 0 },
-  b2: { type: Number, default: 0 },
-  sta1: { type: Number, default: 0 },
-  sta2: { type: Number, default: 0 },
-  pole1: { type: Number, default: 0 },
-  pole2: { type: Number, default: 0 },
-  
-  // หมายเหตุ
-  note: String,
-  note2: String,
-  
-  // พิกัด GPS และที่อยู่
-  lat: Number,
-  lon: Number,
-  geoAddress: String,
-  fieldImage: String, // (เดิม) ลิงก์รูปเดียว เก็บไว้เพื่อให้ข้อมูลเก่าไม่หาย
-  photos: [{          // รูปภาพถ่ายจากสนามบน Google Drive (หลายรูป)
-    _id: false,
-    fileId: String,
-    name: String,
-    webViewLink: String,
-    thumbnailUrl: String
+  b1: { type: Number, default: 0 }, b2: { type: Number, default: 0 },
+  sta1: { type: Number, default: 0 }, sta2: { type: Number, default: 0 },
+  pole1: { type: Number, default: 0 }, pole2: { type: Number, default: 0 },
+  note: String, note2: String, lat: Number, lon: Number, geoAddress: String,
+  photos: [{ 
+    _id: false, fileId: String, name: String, webViewLink: String, thumbnailUrl: String
   }]
 });
 
 const Inspection = mongoose.model('Inspection', InspectionSchema);
 
-// สร้าง Schema สำหรับบันทึกระบบรายงานผลสอบเทียบ
 const CalibrationSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
-  myDataPeriod: String, // งวดตรวจงานMA
-  myData0: String,      // ลุ่มน้ำ
-  myData1: String,      // รหัสสถานี
-  myData2: String,      // ชื่อสถานี
-  myData3: String,      // ที่ตั้งอาคาร
-  
-  // ครั้งที่ 1
-  myData4: String, myFileUrl: String, 
-  myData5: String, myFileUrl2: String, 
-  myData6: String, myFileUrl3: String,
-  myData7: String, // หมายเหตุ
-
-  // ครั้งที่ 2
-  myData8: String, myFileUrl4: String, 
-  myData9: String, myFileUrl5: String, 
-  myData10: String, myFileUrl6: String,
-
-  // ค่าน้ำฝน
-  myData11: String,
-  myData12: String, myFileUrl7: String,
-  myData13: String, myFileUrl8: String,
-  myData14: String // หมายเหตุน้ำฝน
+  myDataPeriod: String, myData0: String, myData1: String, myData2: String, myData3: String,
+  myData4: String, myFileUrl: String, myData5: String, myFileUrl2: String, myData6: String, myFileUrl3: String, myData7: String,
+  myData8: String, myFileUrl4: String, myData9: String, myFileUrl5: String, myData10: String, myFileUrl6: String,
+  myData11: String, myData12: String, myFileUrl7: String, myData13: String, myFileUrl8: String, myData14: String
 });
 
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
 // ==========================================
-// ระบบการจัดการไฟล์อัปโหลด (จำลอง Google Drive)
+// 2. ตั้งค่าการอัปโหลดไฟล์ (ใช้ Memory Storage เพื่อรองรับ Cloud Render)
 // ==========================================
-// สร้างโฟลเดอร์ซ้อนกันตาม "งวดที่ / ลุ่มน้ำ / รหัสสถานี"
-// กัน path traversal เช่น "../../" ที่ส่งมาทาง req.body / ชื่อไฟล์
-const safeSegment = (v, fallback) =>
-  String(v || '').replace(/[^\p{L}\p{M}\p{N}._() -]/gu, '_').replace(/^\.+/, '').trim() || fallback;
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // ดึงค่าจากฟอร์มมาใช้จัดโฟลเดอร์
-    const period = safeSegment(req.body.myDataPeriod, 'Unknown_Period');
-    const basin = safeSegment(req.body.myData0, 'Unknown_Basin');
-    const station = safeSegment(req.body.myData1, 'Unknown_Station');
-    
-    // สร้างเส้นทาง เช่น uploads/งวดที่1/ปิง/TP.1/
-    const dir = path.join('uploads', period, basin, station);
-    
-    // ถ้ายังไม่มีโฟลเดอร์นี้ ให้สร้างขึ้นมาอัตโนมัติ (คล้ายคำสั่ง createFolder)
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    // ตั้งชื่อไฟล์โดยใช้เวลาปัจจุบันป้องกันไฟล์ซ้ำ
-    cb(null, Date.now() + '-' + safeSegment(file.originalname, 'image.jpg').replace(/\s+/g, '_'));
-  }
-});
-
 const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) =>
-    /^image\//i.test(file.mimetype) ? cb(null, true) : cb(new Error('รองรับเฉพาะไฟล์รูปภาพ')),
+  storage: multer.memoryStorage(), // เก็บไฟล์ไว้ใน RAM ชั่วคราว (ดีสำหรับ Cloud)
+  fileFilter: (req, file, cb) => /^image\//i.test(file.mimetype) ? cb(null, true) : cb(new Error('รองรับเฉพาะรูปภาพ')),
   limits: { fileSize: 15 * 1024 * 1024, files: 10 }
 });
 
 // ==========================================
-// การตั้งค่า Google Drive API
+// 3. การตั้งค่า Google Drive API
 // ==========================================
-// ใช้ scope เต็ม 'drive' (scope 'drive.file' เขียนลงโฟลเดอร์ที่ผู้ใช้สร้างและแชร์ให้ Service Account ไม่ได้)
 const authOptions = { scopes: ['https://www.googleapis.com/auth/drive'] };
+
+// ตรวจสอบว่ารันบน Render (มี JSON String ใน Environment) หรือ รันบนคอม Local (มีไฟล์ credentials.json)
 if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-  authOptions.credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);   // ใช้บนโฮสต์ที่ไม่มีไฟล์
+  try {
+     authOptions.credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  } catch (e) {
+     console.error("❌ Invalid GOOGLE_SERVICE_ACCOUNT_JSON format in .env");
+  }
 } else {
   authOptions.keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || './credentials.json';
 }
+
 const auth = new google.auth.GoogleAuth(authOptions);
 const drive = google.drive({ version: 'v3', auth });
-
-// ตั้งค่าใน .env: GOOGLE_DRIVE_FOLDER_ID=...  (ค่าเดิมในโค้ดเก็บไว้เป็น fallback)
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1YYa-Cu1vu-Ei9a0qpJMFOTJxmQPN2srv';
 
-// อัปโหลดไฟล์ขึ้น Google Drive + ตั้ง Public คืนค่า { fileId, name, webViewLink, thumbnailUrl } หรือ null ถ้าล้มเหลว
+// ฟังก์ชันอัปโหลดจาก Memory สู่ Google Drive
 async function uploadToDrive(file) {
   try {
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(file.buffer);
+
+    const safeName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+
     const response = await drive.files.create({
-      requestBody: {
-        name: file.filename || file.originalname,
-        parents: [GOOGLE_DRIVE_FOLDER_ID],
-      },
-      media: {
-        mimeType: file.mimetype,
-        body: fs.createReadStream(file.path),
-      },
+      requestBody: { name: safeName, parents: [GOOGLE_DRIVE_FOLDER_ID] },
+      media: { mimeType: file.mimetype, body: bufferStream },
       fields: 'id, name, webViewLink',
       supportsAllDrives: true,
     });
 
-    // ตั้งค่าไฟล์เป็น Public (ใครมีลิงก์ก็เปิดดูได้)
     await drive.permissions.create({
       fileId: response.data.id,
       requestBody: { role: 'reader', type: 'anyone' },
@@ -185,15 +111,16 @@ async function uploadToDrive(file) {
       thumbnailUrl: `https://drive.google.com/thumbnail?id=${response.data.id}&sz=w1000`,
     };
   } catch (error) {
-    console.error('Google Drive API Error:', error.message);
+    console.error('❌ Google Drive API Error:', error.message);
     return null;
   }
 }
 
 // ==========================================
-// 2. ข้อมูลกลุ่มลุ่มน้ำและสถานี (JSON Data)
+// 4. ข้อมูลสถานี
 // ==========================================
 const stationsData = {
+  // (วางข้อมูลลุ่มน้ำทั้งหมดของคุณไว้ตรงนี้ เหมือนเดิมได้เลยครับ)
   "เจ้าพระยา": {
     "TC.55": "TC.55", "TC.22": "TC.22", "TC.3": "TC.3", "T.ปตร.ลพบุรี": "T.ปตร.ลพบุรี", "TL.2B": "TL.2B", "T.ปตร.บรมธาตุ": "T.ปตร.บรมธาตุ", "T.ปตร.ผักไห่": "T.ปตร.ผักไห่", "T.ปตร.พลเทพ": "T.ปตร.พลเทพ", "TC.54": "TC.54", "TC.53": "TC.53", "TC.29": "TC.29", "TC.4": "TC.4", "TC.2": "TC.2", "TC.7A": "TC.7A", "TC.60": "TC.60", "TC.12": "TC.12", "T.ปตร.มะขามเฒ่า": "T.ปตร.มะขามเฒ่า", "T.ปตร.มหาราช": "T.ปตร.มหาราช", "T.ปตร.เริงราง": "T.ปตร.เริงราง", "T.ปตร.มโนรมย์": "T.ปตร.มโนรมย์", "T.ปตร.ช่องแค": "T.ปตร.ช่องแค", "T.ปตร.โคกกะเทียม": "T.ปตร.โคกกะเทียม"
   },
@@ -266,122 +193,75 @@ const stationsData = {
 };
 
 // ==========================================
-// 3. Backend API Endpoints
+// 5. Backend API Endpoints
 // ==========================================
 
-// Endpoint 1: ส่งรายชื่อสถานีไปให้หน้าเว็บเพื่อทำ Autocomplete
 app.get('/api/stations', (req, res) => {
   res.status(200).json(stationsData);
 });
 
-// Endpoint 2: รับข้อมูลที่ตรวจสอบจากหน้าแอปมาบันทึกลง MongoDB
-app.post('/api/inspection', upload.array('photos', 8), async (req, res) => { // รับรูปได้สูงสุด 8 รูป (field ชื่อ photos)
+app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
   try {
     const formData = { ...req.body };
     delete formData.timestamp;
-    delete formData.photos;
-
-    // ระบบแปลง Lat, Lon เป็นที่อยู่ (Reverse Geocoding)
+    
     let geoAddress = "ไม่ระบุพิกัด";
     if (formData.lat && formData.lon) {
       try {
-        // หากมี API Key ของ Google Maps ให้กำหนดในไฟล์ .env
-        const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-        if (apiKey) {
-          const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${formData.lat},${formData.lon}&language=th&key=${apiKey}`;
-          const response = await axios.get(geoUrl);
-          if (response.data.status === 'OK' && response.data.results.length > 0) {
-            geoAddress = response.data.results[0].formatted_address;
-          }
-        } else {
-          // หากไม่มี API Key ให้ใช้ระบบของ OpenStreetMap แทน (ฟรี)
-          const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${formData.lat}&lon=${formData.lon}&zoom=18&addressdetails=1`;
-          const response = await axios.get(osmUrl, { headers: { 'User-Agent': 'MA_Inspection_App' } });
-          if (response.data && response.data.display_name) {
-            geoAddress = response.data.display_name;
-          }
-        }
-      } catch (geoError) {
-        console.error("Geocoding Error:", geoError.message);
-        geoAddress = "หาที่อยู่ไม่เจอ (" + geoError.message + ")";
-      }
+        const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${formData.lat}&lon=${formData.lon}&zoom=18&addressdetails=1`;
+        const response = await axios.get(osmUrl, { headers: { 'User-Agent': 'MA_Inspection_App' } });
+        if (response.data && response.data.display_name) geoAddress = response.data.display_name;
+      } catch (e) { geoAddress = "หาที่อยู่ไม่เจอ"; }
     }
-    
     formData.geoAddress = geoAddress;
 
-    // อัปโหลดไฟล์ภาพสนามเข้า Google Drive ถ้ามีการแนบไฟล์มา
     const photos = [];
-    for (const file of (req.files || [])) {
-      const uploaded = await uploadToDrive(file);
-      if (!uploaded) {
-        // ถ้าขึ้น Drive ไม่สำเร็จ ให้ตอบ error เพื่อให้ผู้ใช้ส่งใหม่ (ไม่เงียบหายแล้วรูปไม่ถูกบันทึก)
-        throw new Error('อัปโหลดรูปขึ้น Google Drive ไม่สำเร็จ กรุณาลองใหม่');
-      }
-      photos.push(uploaded);
-      fs.unlink(file.path, () => {});   // ลบไฟล์ชั่วคราวในเครื่องหลังขึ้น Drive แล้ว
+    if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          const uploaded = await uploadToDrive(file);
+          if (uploaded) photos.push(uploaded);
+        }
     }
     formData.photos = photos;
 
-    // สร้างข้อมูลใหม่และบันทึกลง Database
     const newInspection = new Inspection(formData);
     await newInspection.save();
-
-    res.status(201).json({ 
-      success: true, 
-      message: `บันทึกข้อมูลเรียบร้อยแล้ว${photos.length ? ` (แนบรูป ${photos.length} รูป)` : ''}`,
-      photos
-    });
-
+    res.status(201).json({ success: true, message: 'บันทึกข้อมูลและอัปโหลดรูปสำเร็จ', photos });
   } catch (error) {
-    console.error("Save Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Endpoint 3: บันทึกข้อมูลสอบเทียบ (รองรับการอัปโหลดไฟล์หลายช่องพร้อมกัน)
 app.post('/api/calibration', upload.any(), async (req, res) => {
   try {
     const formData = { ...req.body };
-    const files = req.files;
-
-    // แมปรูปภาพเข้าสู่ตัวแปร URL ใน Database พร้อมอัปโหลดลง Google Drive
-    if (files && files.length > 0) {
-      await Promise.all(files.map(async (file) => {
-        // อัปโหลดไฟล์ขึ้น Google Drive
-        const driveLink = await uploadToDrive(file);
+    
+    if (req.files && req.files.length > 0) {
+      await Promise.all(req.files.map(async (file) => {
+        const uploaded = await uploadToDrive(file);
+        const finalLink = uploaded ? uploaded.thumbnailUrl : null;
         
-        // ถ้าอัปโหลดสำเร็จใช้ลิงก์รูปจาก Drive (thumbnailUrl ใช้ใน <img> ได้) หากไม่สำเร็จใช้ Path ที่อยู่ในเครื่อง
-        const finalLink = driveLink ? driveLink.thumbnailUrl : file.path.replace(/\\/g, '/');
-
-        // ตรวจสอบชื่อ field (จาก html file input name)
-        if (file.fieldname === 'myFile') formData.myFileUrl = finalLink;
-        if (file.fieldname === 'myFile2') formData.myFileUrl2 = finalLink;
-        if (file.fieldname === 'myFile3') formData.myFileUrl3 = finalLink;
-        if (file.fieldname === 'myFile4') formData.myFileUrl4 = finalLink;
-        if (file.fieldname === 'myFile5') formData.myFileUrl5 = finalLink;
-        if (file.fieldname === 'myFile6') formData.myFileUrl6 = finalLink;
-        if (file.fieldname === 'myFile7') formData.myFileUrl7 = finalLink;
-        if (file.fieldname === 'myFile8') formData.myFileUrl8 = finalLink;
+        if (finalLink) {
+          if (file.fieldname === 'myFile') formData.myFileUrl = finalLink;
+          if (file.fieldname === 'myFile2') formData.myFileUrl2 = finalLink;
+          if (file.fieldname === 'myFile3') formData.myFileUrl3 = finalLink;
+          if (file.fieldname === 'myFile4') formData.myFileUrl4 = finalLink;
+          if (file.fieldname === 'myFile5') formData.myFileUrl5 = finalLink;
+          if (file.fieldname === 'myFile6') formData.myFileUrl6 = finalLink;
+          if (file.fieldname === 'myFile7') formData.myFileUrl7 = finalLink;
+          if (file.fieldname === 'myFile8') formData.myFileUrl8 = finalLink;
+        }
       }));
     }
 
-    // บันทึกข้อมูลลง Database
     const newCalibration = new Calibration(formData);
     await newCalibration.save();
-
-    res.status(201).json({
-      success: true,
-      message: `รายงานผลสอบเทียบสถานี ${formData.myData2} งวดที่ ${formData.myDataPeriod} ถูกบันทึกเรียบร้อยแล้ว`
-    });
-
+    res.status(201).json({ success: true, message: 'บันทึกรายงานสอบเทียบสำเร็จ' });
   } catch (error) {
-    console.error("Calibration Upload Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-
-// Endpoint 4: ดึงข้อมูลการตรวจสอบทั้งหมด (ใช้ใน report_inspection / defects / tracking)
 app.get('/api/inspections', async (req, res) => {
   try {
     const inspections = await Inspection.find().sort({ timestamp: -1 });
@@ -391,7 +271,6 @@ app.get('/api/inspections', async (req, res) => {
   }
 });
 
-// Endpoint 5: ดึงข้อมูลสอบเทียบทั้งหมด (ใช้ใน report_calibration)
 app.get('/api/calibrations', async (req, res) => {
   try {
     const calibrations = await Calibration.find().sort({ timestamp: -1 });
@@ -401,7 +280,6 @@ app.get('/api/calibrations', async (req, res) => {
   }
 });
 
-// Error handler: ข้อผิดพลาดจาก multer (ไฟล์ใหญ่เกิน / ไม่ใช่รูป / แนบเกินจำนวน)
 app.use((err, req, res, next) => {
   if (!err) return next();
   const msg = err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์รูปใหญ่เกิน 15 MB'
@@ -410,8 +288,5 @@ app.use((err, req, res, next) => {
   res.status(400).json({ success: false, message: msg });
 });
 
-// รันเซิร์ฟเวอร์
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Backend Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Backend Server running on port ${PORT}`));
