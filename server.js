@@ -11,6 +11,9 @@ const path = require('path');
 const crypto = require('crypto'); 
 
 const app = express();
+
+// อนุญาตให้อ่านค่า protocol (http/https) ที่ถูกต้องเมื่อใช้งานบน Hosting เช่น Render
+app.set('trust proxy', 1); 
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 app.use(cors());
@@ -166,7 +169,7 @@ app.get('/auth/google/callback', async (req, res) => {
 });
 
 // ==========================================
-// 4. ฟังก์ชันค้นหา/สร้างโฟลเดอร์ & อัปโหลดรูปลง Google Drive
+// 4. โลจิกดึงรูปภาพ (Proxy API) & อัปโหลด
 // ==========================================
 const folderCache = new Map();
 
@@ -207,7 +210,6 @@ async function getTargetFolderId(folderPathArray) {
           supportsAllDrives: true,
         });
 
-        // ทำให้โฟลเดอร์ที่สร้างใหม่เป็นแบบสาธารณะ
         await drive.permissions.create({
           fileId: folder.data.id,
           requestBody: { role: 'reader', type: 'anyone' },
@@ -224,7 +226,8 @@ async function getTargetFolderId(folderPathArray) {
   return currentParentId;
 }
 
-async function uploadFileToFolder(file, targetFolderId) {
+// 🔥 อัปเดตฟังก์ชันใหรับ baseUrl เพื่อสร้างลิงก์รูปมายังเซิร์ฟเวอร์ของเราเอง
+async function uploadFileToFolder(file, targetFolderId, baseUrl) {
   if (!driveAuthorized) return null;
   try {
     const bufferStream = new stream.PassThrough();
@@ -245,7 +248,6 @@ async function uploadFileToFolder(file, targetFolderId) {
       supportsAllDrives: true,
     });
 
-    // ทำให้รูปภาพเป็นแบบสาธารณะ
     await drive.permissions.create({
       fileId: response.data.id,
       requestBody: { role: 'reader', type: 'anyone' },
@@ -254,14 +256,14 @@ async function uploadFileToFolder(file, targetFolderId) {
 
     const fileId = response.data.id;
     
-    // 🔥 แก้ไขลิงก์แสดงผล (ใช้ CDN ของ Google เพื่อป้องกันการโดนบล็อกในแอปมือถือ)
-    const directImageLink = `https://lh3.googleusercontent.com/d/${fileId}`;
+    // 🔥 ลิงก์รูปภาพจะชี้กลับมาที่เซิร์ฟเวอร์ของเราแทน Google Drive เพื่อป้องกันการโดนบล็อก
+    const internalImageLink = `${baseUrl}/api/images/${fileId}`;
 
     return {
       fileId: fileId,
       name: response.data.name,
       webViewLink: response.data.webViewLink,
-      thumbnailUrl: directImageLink, 
+      thumbnailUrl: internalImageLink, 
     };
   } catch (error) {
     if (/invalid_grant/i.test(error.message)) {
@@ -352,6 +354,33 @@ const stationsData = {
 // ==========================================
 // 6. Backend API Endpoints
 // ==========================================
+
+// 🔥 NEW: API สตรีมรูปภาพจาก Google Drive โดยตรง (แก้ไขปัญหาภาพไม่แสดง 100%)
+app.get('/api/images/:fileId', async (req, res) => {
+  try {
+    if (!driveAuthorized) return res.status(403).send('Google Drive not authorized');
+
+    const fileId = req.params.fileId;
+    const response = await drive.files.get(
+      { fileId: fileId, alt: 'media' },
+      { responseType: 'stream' }
+    );
+
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // เปิดแคชให้แอปโหลดเร็วขึ้น
+
+    response.data
+      .on('end', () => {})
+      .on('error', err => {
+        console.error('❌ Error streaming image:', err.message);
+        if (!res.headersSent) res.status(500).send('Error loading image');
+      })
+      .pipe(res);
+  } catch (error) {
+    console.error('❌ Fetch image API error:', error.message);
+    if (!res.headersSent) res.status(404).send('Image not found');
+  }
+});
+
 app.get('/api/stations', (req, res) => {
   res.status(200).json(stationsData);
 });
@@ -379,10 +408,13 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
 
     const targetFolderId = await getTargetFolderId(folderStructure);
 
+    // 🔥 ส่ง baseUrl ของเซิร์ฟเวอร์เราเข้าไปตอนอัปโหลด
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
     const photos = [];
+
     if (req.files && req.files.length > 0) {
         for (const file of req.files) {
-          const uploaded = await uploadFileToFolder(file, targetFolderId);
+          const uploaded = await uploadFileToFolder(file, targetFolderId, baseUrl);
           if (uploaded) photos.push(uploaded);
         }
     }
@@ -407,10 +439,13 @@ app.post('/api/calibration', upload.any(), async (req, res) => {
     ];
 
     const targetFolderId = await getTargetFolderId(folderStructure);
+    
+    // 🔥 ส่ง baseUrl ของเซิร์ฟเวอร์เราเข้าไปตอนอัปโหลด
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
 
     if (req.files && req.files.length > 0) {
       await Promise.all(req.files.map(async (file) => {
-        const uploaded = await uploadFileToFolder(file, targetFolderId);
+        const uploaded = await uploadFileToFolder(file, targetFolderId, baseUrl);
         const finalLink = uploaded ? uploaded.thumbnailUrl : null;
         
         if (finalLink) {
