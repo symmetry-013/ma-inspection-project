@@ -191,8 +191,8 @@ app.get('/auth/google/status', requireAdmin, async (req, res) => {
   }
 });
 
-// ฟังก์ชันอัปโหลดจาก Memory สู่ Google Drive (ใช้พื้นที่ของบัญชี Gmail ที่เชื่อมต่อ)
-async function uploadToDrive(file) {
+// ฟังก์ชันอัปโหลดจาก Memory สู่ Google Drive (รองรับการเติม Prefix ในชื่อไฟล์)
+async function uploadToDrive(file, filePrefix = '') {
   if (!driveAuthorized) {
     console.error('❌ Google Drive ยังไม่ได้เชื่อมต่อ (เปิด /auth/google?key=... ก่อน)');
     return null;
@@ -201,7 +201,16 @@ async function uploadToDrive(file) {
     const bufferStream = new stream.PassThrough();
     bufferStream.end(file.buffer);
 
-    const safeName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // ล้างอักขระพิเศษในชื่อไฟล์เดิม
+    const originalCleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    
+    // ตั้งชื่อไฟล์ใหม่ตามข้อมูลที่เลือก
+    let safeName;
+    if (filePrefix) {
+        safeName = `${filePrefix}_${Date.now()}_${originalCleanName}`;
+    } else {
+        safeName = Date.now() + '-' + originalCleanName;
+    }
 
     const requestBody = { name: safeName };
     if (GOOGLE_DRIVE_FOLDER_ID) requestBody.parents = [GOOGLE_DRIVE_FOLDER_ID];
@@ -295,117 +304,4 @@ const stationsData = {
     "TM.104": "TM.104 (มูลนิธิวัดสวนแก้ว)", "TM.145": "TM.145", "TM.159": "TM.159", "TM.164": "TM.164", "TM.171": "TM.171", "TM.173": "TM.173", "TM.174": "TM.174", "TM.176": "TM.176 (วัดลือชัย)", "TM.177": "TM.177 (วัดลาดบัวขาว)", "TM.180": "TM.180", "TM.182": "TM.182", "TM.185": "TM.185 (วัดสง่าท่าชนนที)", "TM.186": "TM.186", "TM.193": "T สะพานบ้านหัน", "TM.194 (U/S), (D/S)": "T ขรน.มะเกลือใหม่ (U/S), (D/S)", "TM.195 (U/S), (D/S)": "T ขรน.กันผม (U/S), (D/S)", "TM.196": "T-MUN3 (ฝายโคกตอง)", "TM.197 (D/S)": "T ปตร.ลำสะแทด (D/S)", "TM.198": "Tสบห้วยเหนือ+ห้วยสำราญ", "TM.199": "Tใต้ฝายห้วยขะยุง", "TM.1A": "TM.1A (วัดใหม่อัมพร)", "TM.200 (U/S), (D/S)": "Tฝายยางบ้านส้ม (U/S), (D/S)", "TM.201 (D/S)": "T ปตร.น้ำเค็ม (D/S)", "TM.202 (U/S), (D/S)": "Tเขื่อนพิมาย (U/S), (D/S)", "TM.203": "T หลุมข้าว", "TM.204 (U/S), (D/S)": "Tฝายชุมพวง (U/S), (D/S)", "TM.205 (U/S), (D/S)": "Tฝายยางบ้านเขว้า  (U/S), (D/S)", "TM.206 (U/S), (D/S)": "Tฝายยางบ้านตะลุง (U/S), (D/S)", "TM.2A": "TM.2A", "TM.4": "TM.4", "TM.42": "TM.42", "TM.5": "TM.5 (ใต้ฝายราษีไศล)", "TM.50": "TM.50 (วัดแชะ)", "TM.6A": "TM.6A", "TM.89": "TM.89", "TM.9": "TM.9", "TMN 02": "โพนทอง", "TMN 03": "ฝายยโสธร - พนมไพร", "TMN 04": "ฝายธาตุน้อย", "TMN 05": "ฝายราษีไศล", "TMN 06": "ฝายบ้านป่าใต้", "TMN 07": "ศรีรัตนะ", "TMN 08": "บ้านวังยาง", "TMN 09": "ฝายลำเซบาย", "TMN 10": "ฝายอำนาจเจริญ", "TMN 11": "พนา", "TMN 12": "ฝายลำเซบก", "TMN 13": "เดชอุดม", "TMN 14": "อุบลราชธานี", "TMN 15": "พิบูลมังสาหาร", "TM-R1": "T ขนงพระ", "TM-R2": "T หนองตะลุมปุ๊ก", "TM-R3": "T บึงปรือ", "TM-R4": "T ซับกระจาย", "TM-R5": "T25162(อำเภอคง)", "TM-R6": "T ปตร.ลำพังชู", "TM-R7": "T ผักไหม"
   },
   "ยม": {
-    "12247": " วัดคลองราษฎร์เจริญ จ.กำแพงเพชร", "12237": " บ้านแก้วสุวรรณ จ.กำแพงเพชร", "59277": " วัดปทุมคีรี จ.สุโขทัย", "59287": " บ้านกุ้มเนิ้ง จ.สุโขทัย", "40307": " สภ.สรอย จ.แพร่", "59297": " วัดแม่คุ จ.สุโขทัย", "40317": " บ้านห้วยไร่ จ.แพร่", "40347": " วัดต้าแป้น จ.แพร่", "TY.42": " อำเภอโพธิ์ประทับช้าง จ.พิจิตร", "TY.43": " วัดวังเคียน จ.แพร่", "TY.44": " ตำบลต้าผาหมอก จ.แพร่", "TY.45": " บ้านไผ่โทน จ.แพร่", "TY.13B": " บ้านหลวงเหนือ จ.ลำปาง", "TY.46": " บ้านวังยาว จ.น่าน", "TY.31": " บ้านทุ่งหนอง จ.พะเยา", "TY.47": " อำเภอปง จ.พะเยา", "TY.48": " บ้านแฮะ จ.พะเยา", "TY.58": "วัดท่าไม้", "TY.57": "ปตร.บ้านวังสะตือ", "TY.56": "สะพานเขาโค้ง", "TY.55": "แม่น้ำยม ปากคลองเข้า ปตร.บางพระ", "TY.54": "ปตร.คลองหกบาท", "TY.53": "ห้วยแม่สิน", "TY.52": "ห้วยแม่สรอย", "TY.51": "ห้วยแม่พวก", "TY.50": "ห้วยแม่ลาน เทศบาลแม่ลานนา", "TY.49": "น้ำงิม บ้านฝายแก้ว อบต.ออย", "TY.1C": "อ.เมือง จ.แพร่", "TY.4": "อ.เมือง จ.สุโขทัย", "T.ฝายแม่ยม": "ฝายแม่ยม อ.สอง จ.แพร่", "TY.37": "บ้านใหม่กลาง อ.วังชิ้น จ.แพร่", "TY.14": "อ.ศรีสัชนาลัย จ.สุโขทัย", "TY.3A": "อ.สวรรคโลก จ.สุโขทัย", "TY.16": "อ.บางระกำ จ.พิษณุโลก", "TY.17": "อ.สามง่าม จ.พิจิตร"
-  },
-  "วัง": {
-    "TW.ss": "ฝายยางประสบสุก", "TW.25": "แม่น้ำวัง  W.25", "TW.16A": "แม่น้ำวัง  W.16A", "TW.17A": "น้ำแม่สอย  W.17A", "TW.26": "ห้วยแม่ต๋า  W.26", "TW.kl": "เขื่อนกิ่วลม", "TW.ls": "ฝายหลวงสบอาง", "TW.1C": "แม่น้ำวัง  W.1C", "TW.km": "เขื่อนกิ่วคอหมา", "TW.22": "น้ำแม่จาง  W.22", "TW.20": "น้ำแม่ตุ๋ย  W.20", "TW.18A": "น้ำแม่ต๋ำ  W.18A", "TW.5A": "แม่น้ำวัง  W.5A", "TW.6A": "แม่น้ำวัง  W.6A", "TW.23": "แม่น้ำวัง  W.23 (W.3A)", "TW.27": "TW.27", "TW.28": "TW.28", "TW.29": "TW.29", "TW.30": "TW.30", "TW.31": "TW.31", "TW.32": "TW.32", "TW.33": "TW.33", "TW.34": "TW.34", "TW.35": "TW.35", "TW.21": "วัดต้นธงชัย อ.เมือง จ.ลำปาง", "TW.3A": "บ้านดอนชัย อ.เถิน จ.ลำปาง", "TW.4A": "วังหมัน อ.สามเงา จ.ตาก", "TW.10A": "เขื่อนกิ่วลม อ.แจ้ห่ม จ.ลำปาง"
-  },
-  "สะแกกรัง": {
-    "TSK.8": "ฝายฆ้องชัย ป่าอ้อ อ.ลานสัก จ.อุทัยธานี", "TCt.5A": "สถานีโทรมาตร อ.ขารนุวรลักษ์บุรี จ.กำแพงเพชร", "TCt.2A": "สถานีโทรมาตร  อ.เมือง จ.อุทัยธานี", "TSK.16": "วัดเวฬุวนาราม ท่าซุง เมือง อุทัยธานี", "TSK.11": "สถานีโทรมาตร บ้านวังม้า วังม้า อ.ลาดยาว จ.นครสวรรค์", "TSK.2": "สถานีโทรมาตร บ้านศาลเจ้าไก่ต่อ ศาลเจ้าไก่ต่อ อ.ลาดยาว  จ.นครสวรรค์", "TSK.1": "สถานีโทรมาตร วัดใหม่แม่เรวา แม่เล่ย์ อ.แม่วงก์ จ.นครสวรรค์", "TSK.12": "เขื่อนวังร่มเกล้า เนินศาลา อ.โกรกพระ จ.นครสวรรค์", "TSK.15": "วัดโคกหม้อ โคกหม้อ ทัพหัน อุทัยธานี", "TSK.13": "อบต.ศาลเจ้าไก่ต่อ ลาดยาว นครสวรรค์", "TSK.10": "สถานีโทรมาตร วัดผาลาดธาราราม ตลุกดู่  อ.ทัพทัน จ.อุทัยธานี", "TSK.3": "สถานีโทรมาตร วัดแม่กะสีวราราม แม่เปิน อ.แม่เปิน จ.นครสวรรค์", "TSK.4": "สถานีโทรมาตร บ้านใหม่คลองเจริญ ชุมตาบง อ.ชุมตาบง จ.นครสวรรค์", "TSK.5": "สถานีโทรมาตร บ้านหนองบำหรุ มาบแก อ.ลาดยาว จ.นครสวรรค์", "TSK.14": "อบต.สว่างแจ้งสบายใจ สว่างอารามณ์ อุทัยธานี", "TSK.7": "สถานีโทรมาตร บ้านท่ามะนาว雷บำ  อ.ลานสัก จ.อุทัยธานี", "TSK.6": "เขื่อนทับเสลา ระบำ  อ.ลานสัก  จ.อุทัยธานี", "TSK.9": "ฝายทับเสลา เขากวางทอง อ.หนองฉาง จ.อุทัยธานี"
-  },
-  "สาละวิน": {
-    "TSW01": "อ่างเก็บน้ำห้วยแม่สอด", "TSW02": "เทศบาลนครแม่สอด", "TSW03": "ห้วยแม่สอด", "TSW04": "บ้านโกกไก่", "TSW05": "บ้านแม่กึ๊ดสามท่า", "TSW06": "บ้านวังผา", "TSW14": "ห้วยน้ำของ", "TSW07": "บ้านปางตอง", "TSW08": "บ้านห้วยไก่ป่า", "TSW09": "บ้านทุ่งรวงทอง", "TSW10": "บ้านพะมอลอ", "TSW11": "บ้านแม่ตะควน", "TSW12": "แม่น้ำปาย", "TSW13": "บ้านสบสา", "TSW15": "ปางหมู"
-  },
-  "KRC": {
-    "KRC1":"TPR-10 เขื่อนปราณบุรี", "KRC2":"TPR-11 คลองส่งน้ำสายใหญ่ กม 6+900", "KRC3":"TPR-12 คลองส่งน้ำสายใหญ่ กม 9+280", "KRC4":"TPR-13 คลองซอย กม. 46+380", "KRC5":"TPR-14 คลองส่งน้ำสายใหญ่ กม. 48+875", "KRC6":"TPR-15 คลองซอย กม 65+150", "KRC7":"SC-2 คลองซอย กม. 5+98", "KRC8":"SC-5 คลองซอย กม. 48+875", "KRC9":"SC-7 คลองซอย กม 5+100", "KRC10":"SC-9 คลองซอย 46 ซ้าย"
-  }
-};
-
-// ==========================================
-// 5. Backend API Endpoints
-// ==========================================
-
-app.get('/api/stations', (req, res) => {
-  res.status(200).json(stationsData);
-});
-
-app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
-  try {
-    const formData = { ...req.body };
-    delete formData.timestamp;
-    
-    let geoAddress = "ไม่ระบุพิกัด";
-    if (formData.lat && formData.lon) {
-      try {
-        const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${formData.lat}&lon=${formData.lon}&zoom=18&addressdetails=1`;
-        const response = await axios.get(osmUrl, { headers: { 'User-Agent': 'MA_Inspection_App' } });
-        if (response.data && response.data.display_name) geoAddress = response.data.display_name;
-      } catch (e) { geoAddress = "หาที่อยู่ไม่เจอ"; }
-    }
-    formData.geoAddress = geoAddress;
-
-    const photos = [];
-    if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          const uploaded = await uploadToDrive(file);
-          if (uploaded) photos.push(uploaded);
-        }
-    }
-    formData.photos = photos;
-
-    const newInspection = new Inspection(formData);
-    await newInspection.save();
-    res.status(201).json({ success: true, message: 'บันทึกข้อมูลและอัปโหลดรูปสำเร็จ', photos });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.post('/api/calibration', upload.any(), async (req, res) => {
-  try {
-    const formData = { ...req.body };
-    
-    if (req.files && req.files.length > 0) {
-      await Promise.all(req.files.map(async (file) => {
-        const uploaded = await uploadToDrive(file);
-        const finalLink = uploaded ? uploaded.thumbnailUrl : null;
-        
-        if (finalLink) {
-          if (file.fieldname === 'myFile') formData.myFileUrl = finalLink;
-          if (file.fieldname === 'myFile2') formData.myFileUrl2 = finalLink;
-          if (file.fieldname === 'myFile3') formData.myFileUrl3 = finalLink;
-          if (file.fieldname === 'myFile4') formData.myFileUrl4 = finalLink;
-          if (file.fieldname === 'myFile5') formData.myFileUrl5 = finalLink;
-          if (file.fieldname === 'myFile6') formData.myFileUrl6 = finalLink;
-          if (file.fieldname === 'myFile7') formData.myFileUrl7 = finalLink;
-          if (file.fieldname === 'myFile8') formData.myFileUrl8 = finalLink;
-        }
-      }));
-    }
-
-    const newCalibration = new Calibration(formData);
-    await newCalibration.save();
-    res.status(201).json({ success: true, message: 'บันทึกรายงานสอบเทียบสำเร็จ' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.get('/api/inspections', async (req, res) => {
-  try {
-    const inspections = await Inspection.find().sort({ timestamp: -1 });
-    res.status(200).json({ success: true, data: inspections });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.get('/api/calibrations', async (req, res) => {
-  try {
-    const calibrations = await Calibration.find().sort({ timestamp: -1 });
-    res.status(200).json({ success: true, data: calibrations });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.use((err, req, res, next) => {
-  if (!err) return next();
-  const msg = err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์รูปใหญ่เกิน 15 MB'
-    : (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') ? 'แนบรูปเกินจำนวนที่กำหนด'
-    : err.message;
-  res.status(400).json({ success: false, message: msg });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Backend Server running on port ${PORT}`));
+    "12247": " วัดคลองราษฎร์เจริญ จ.กำแพงเพชร", "12237": " บ้านแก้วสุวรรณ จ.กำแพงเพชร", "59277": " วัดปทุมคีรี จ.สุโขทัย", "59287": " บ้านกุ้มเนิ้ง จ.สุโขทัย", "40307": " สภ.สรอย จ.แพร่", "59297": " วัดแม่คุ จ.สุโขทัย", "40317": " บ้านห้วยไร่ จ.แพร่", "40347": " วัดต้าแป้น จ.แพร่", "TY.42": " อำเภอโพธิ์ประทับช้าง จ.พิจิตร", "TY.43": " วัดวังเคียน จ.แพร่", "TY.44": " ตำบลต้าผาหมอก จ.แพร่", "TY.45": " บ้านไผ่โทน จ.แพร่", "TY.13B": " บ้านหลวงเหนือ จ.ลำปาง", "TY.46": " บ้านวังยาว จ.น่าน", "TY.31": " บ้านทุ่งหนอง จ.พะเยา", "TY.47": " อำเภอปง จ.พะเยา", "TY.48": " บ้านแฮะ จ.พะเยา", "TY.58": "วัดท่าไม้", "TY.57": "ปตร.บ้านวังสะตือ", "TY.56": "สะพานเขาโค้ง", "TY.55": "แม่น้ำยม ปากคลองเข้า ปตร.บางพระ", "TY.54": "ปตร.คลองหกบาท", "TY.53": "ห้วยแม่สิน", "TY.52": "ห้วยแม่สรอย", "TY.51": "ห้วยแม่พวก", "TY.50": "ห้วยแม่ลาน เทศบาลแม่ลานนา", "TY.49": "น้ำงิม บ้านฝายแก้ว อบต.ออย", "TY.1C": "อ.เมือง จ.แพร่", "TY.4
