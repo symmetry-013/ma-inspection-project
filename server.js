@@ -6,9 +6,9 @@ const cors = require('cors');
 const axios = require('axios');
 const multer = require('multer');
 const { google } = require('googleapis');
-const stream = require('stream'); // เพิ่มสำหรับส่งไฟล์เข้า Google Drive จาก Memory
+const stream = require('stream'); 
 const path = require('path');
-const crypto = require('crypto'); // ใช้สร้าง state ป้องกัน CSRF ตอนขอสิทธิ์ OAuth2
+const crypto = require('crypto'); 
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -16,6 +16,7 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ==========================================
 // 1. Database Setup (MongoDB Schema)
@@ -70,8 +71,7 @@ const upload = multer({
 const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive'];
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI
-  || `http://localhost:${process.env.PORT || 3000}/auth/google/callback`;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `http://localhost:${process.env.PORT || 3000}/auth/google/callback`;
 const ADMIN_KEY = process.env.ADMIN_KEY; 
 
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
@@ -141,10 +141,7 @@ app.get('/auth/google', requireAdmin, (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   pendingStates.set(state, Date.now() + 10 * 60 * 1000);
   const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    prompt: 'consent',     
-    scope: DRIVE_SCOPES,
-    state
+    access_type: 'offline', prompt: 'consent', scope: DRIVE_SCOPES, state
   });
   res.redirect(url);
 });
@@ -155,97 +152,91 @@ app.get('/auth/google/callback', async (req, res) => {
 
   const expires = pendingStates.get(state);
   pendingStates.delete(state);
-  if (!expires || expires < Date.now()) {
-    return res.status(400).send('state ไม่ถูกต้องหรือหมดอายุ กรุณาเริ่มใหม่ที่ /auth/google');
-  }
+  if (!expires || expires < Date.now()) return res.status(400).send('state ไม่ถูกต้องหรือหมดอายุ');
 
   try {
     const { tokens } = await oauth2Client.getToken(code);
-    if (!tokens.refresh_token) {
-      return res.status(400).send('ไม่ได้รับ refresh_token — ไปที่ https://myaccount.google.com/permissions ลบสิทธิ์ของแอปนี้ แล้วเริ่มใหม่');
-    }
+    if (!tokens.refresh_token) return res.status(400).send('ไม่ได้รับ refresh_token — ลบสิทธิ์ของแอปเก่า แล้วเริ่มใหม่');
     applyRefreshToken(tokens.refresh_token);
     await saveRefreshToken(tokens.refresh_token);
 
     const about = await drive.about.get({ fields: 'user(emailAddress)' });
     res.send(`✅ เชื่อมต่อ Google Drive สำเร็จด้วยบัญชี ${about.data.user.emailAddress} — ปิดหน้านี้ได้เลย`);
   } catch (e) {
-    console.error('❌ OAuth callback error:', e.message);
     res.status(500).send('เชื่อมต่อไม่สำเร็จ: ' + e.message);
   }
 });
 
-app.get('/auth/google/status', requireAdmin, async (req, res) => {
-  if (!driveAuthorized) return res.json({ connected: false });
-  try {
-    const about = await drive.about.get({ fields: 'user(emailAddress), storageQuota' });
-    res.json({ connected: true, account: about.data.user.emailAddress, storageQuota: about.data.storageQuota });
-  } catch (e) {
-    res.status(500).json({ connected: false, message: e.message });
-  }
-});
-
 // ==========================================
-// ฟังก์ชันค้นหาและสร้างโฟลเดอร์อัตโนมัติ
+// ระบบ Folder Cache ป้องกันการสร้างโฟลเดอร์ซ้ำจาก Index Delay
 // ==========================================
-async function getOrCreateFolder(folderName, parentFolderId) {
-  try {
-    const query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${parentFolderId}' in parents and trashed=false`;
-    const res = await drive.files.list({
-      q: query,
-      fields: 'files(id, name)',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    });
+const folderCache = new Map();
 
-    if (res.data.files && res.data.files.length > 0) {
-      return res.data.files[0].id; // มีโฟลเดอร์นี้อยู่แล้ว ส่ง ID กลับไป
-    } else {
-      // สร้างโฟลเดอร์ใหม่
-      const fileMetadata = {
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: [parentFolderId]
-      };
-      const folder = await drive.files.create({
-        requestBody: fileMetadata,
-        fields: 'id',
-        supportsAllDrives: true,
-      });
+async function getTargetFolderId(folderPathArray) {
+  if (!driveAuthorized) return null;
+  let currentParentId = GOOGLE_DRIVE_FOLDER_ID;
 
-      // ตั้งค่าให้โฟลเดอร์เป็นสาธารณะ (ให้ไฟล์ข้างในเข้าถึงได้)
-      await drive.permissions.create({
-        fileId: folder.data.id,
-        requestBody: { role: 'reader', type: 'anyone' },
-        supportsAllDrives: true,
-      });
+  for (const folderName of folderPathArray) {
+    if (!folderName || folderName === 'ไม่ระบุ') continue;
 
-      return folder.data.id;
+    // สร้าง Key สำหรับตรวจสอบในหน่วยความจำ
+    const cacheKey = `${currentParentId}_${folderName}`;
+    
+    // 1. ถ้าเพิ่งสร้างไปเสี้ยววินาทีก่อน จะมีข้อมูลใน Cache ให้ดึงมาใช้ได้เลย
+    if (folderCache.has(cacheKey)) {
+      currentParentId = folderCache.get(cacheKey);
+      continue;
     }
-  } catch (err) {
-    console.error(`❌ Google Drive API Error (สร้างโฟลเดอร์ ${folderName}):`, err.message);
-    return parentFolderId; // ถ้าพลาดให้กลับไปใช้โฟลเดอร์แม่แทน
+
+    try {
+      // 2. ถ้าไม่มีใน Cache ค่อยไปค้นใน Google Drive
+      const query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${currentParentId}' in parents and trashed=false`;
+      const res = await drive.files.list({
+        q: query,
+        fields: 'files(id, name)',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+      });
+
+      if (res.data.files && res.data.files.length > 0) {
+        currentParentId = res.data.files[0].id;
+        folderCache.set(cacheKey, currentParentId); // บันทึกไว้เผื่อรูปต่อไป
+      } else {
+        // 3. ถ้าไม่มีโฟลเดอร์จริงๆ ให้สร้างใหม่
+        const folder = await drive.files.create({
+          requestBody: {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [currentParentId]
+          },
+          fields: 'id',
+          supportsAllDrives: true,
+        });
+
+        // เปิดสิทธิ์สาธารณะเพื่อให้ลิงก์รูปแบบ uc?export=view ดึงรูปไปแสดงได้
+        await drive.permissions.create({
+          fileId: folder.data.id,
+          requestBody: { role: 'reader', type: 'anyone' },
+          supportsAllDrives: true,
+        });
+
+        currentParentId = folder.data.id;
+        folderCache.set(cacheKey, currentParentId); // บันทึกไว้เผื่อรูปต่อไปป้องกันการซ้ำ
+      }
+    } catch (err) {
+      console.error(`❌ Google Drive API Error (สร้างโฟลเดอร์ ${folderName}):`, err.message);
+      // หากพลาด ให้ใช้ parent เดิมในการอัปโหลดรูปแทน
+    }
   }
+  return currentParentId;
 }
 
 // ==========================================
-// ฟังก์ชันอัปโหลดไฟล์ลงในโฟลเดอร์ที่ระบุ
+// ฟังก์ชันอัปโหลดไฟล์ (รับ Folder ID ตรงๆ ไม่ต้องค้นหาใหม่แล้ว)
 // ==========================================
-async function uploadToDrive(file, folderPathArray = []) {
-  if (!driveAuthorized) {
-    console.error('❌ Google Drive ยังไม่ได้เชื่อมต่อ');
-    return null;
-  }
+async function uploadFileToFolder(file, targetFolderId) {
+  if (!driveAuthorized) return null;
   try {
-    let currentParentId = GOOGLE_DRIVE_FOLDER_ID;
-
-    // ไล่สร้าง/ค้นหาโฟลเดอร์ตาม Path ที่ส่งเข้ามา (งวด > ลุ่มน้ำ > สถานี)
-    for (const folderName of folderPathArray) {
-      if (folderName && folderName !== 'ไม่ระบุ') {
-        currentParentId = await getOrCreateFolder(folderName, currentParentId);
-      }
-    }
-
     const bufferStream = new stream.PassThrough();
     bufferStream.end(file.buffer);
 
@@ -254,7 +245,7 @@ async function uploadToDrive(file, folderPathArray = []) {
 
     const requestBody = { 
       name: safeName,
-      parents: [currentParentId] 
+      parents: targetFolderId ? [targetFolderId] : [] 
     };
 
     const response = await drive.files.create({
@@ -271,21 +262,20 @@ async function uploadToDrive(file, folderPathArray = []) {
     });
 
     const fileId = response.data.id;
-    // แก้ไขลิงก์แสดงผลใหม่ เปลี่ยนเป็นลิงก์ดาวน์โหลดตรง เพื่อไม่ให้รูปแตกเวลาเปิดในแอป
     const directImageLink = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
     return {
       fileId: fileId,
       name: response.data.name,
       webViewLink: response.data.webViewLink,
-      thumbnailUrl: directImageLink, // ส่งลิงก์ใหม่กลับไปให้หน้าแอป
+      thumbnailUrl: directImageLink, 
     };
   } catch (error) {
     if (/invalid_grant/i.test(error.message)) {
       driveAuthorized = false;
       console.error('❌ Refresh Token หมดอายุ/ถูกเพิกถอน');
     } else {
-      console.error('❌ Google Drive API Error:', error.message);
+      console.error('❌ Google Drive Upload API Error:', error.message);
     }
     return null;
   }
@@ -390,18 +380,21 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
     }
     formData.geoAddress = geoAddress;
 
-    // สร้างโครงสร้างโฟลเดอร์สำหรับหน้า ตรวจสถานี (งวด > ลุ่มน้ำ > รหัสสถานี)
+    // เตรียมรายชื่อโครงสร้างโฟลเดอร์สำหรับหน้า ตรวจสถานี (งวด > ลุ่มน้ำ > รหัสสถานี)
     const folderStructure = [
       formData.saya || 'ไม่ระบุงวด',
       formData.code || 'ไม่ระบุลุ่มน้ำ',
       formData.id_name || 'ไม่ระบุรหัส'
     ];
 
+    // เรียกหาหรือสร้าง Folder ID ให้เสร็จก่อน *เพียง 1 ครั้ง*
+    const targetFolderId = await getTargetFolderId(folderStructure);
+
     const photos = [];
     if (req.files && req.files.length > 0) {
         for (const file of req.files) {
-          // ส่งไฟล์พร้อมกับระบุโฟลเดอร์ที่ต้องเข้าไปสร้าง
-          const uploaded = await uploadToDrive(file, folderStructure);
+          // โยนไฟล์พร้อม ID ของโฟลเดอร์ปลายทางที่หามาได้ ไม่ต้องไปค้นหาโฟลเดอร์ใหม่แล้ว
+          const uploaded = await uploadFileToFolder(file, targetFolderId);
           if (uploaded) photos.push(uploaded);
         }
     }
@@ -409,7 +402,7 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
 
     const newInspection = new Inspection(formData);
     await newInspection.save();
-    res.status(201).json({ success: true, message: 'บันทึกข้อมูลและสร้างโฟลเดอร์สำเร็จ', photos });
+    res.status(201).json({ success: true, message: 'บันทึกข้อมูลและอัปโหลดรูปภาพสำเร็จ', photos });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -420,17 +413,20 @@ app.post('/api/calibration', upload.any(), async (req, res) => {
   try {
     const formData = { ...req.body };
     
-    // สร้างโครงสร้างโฟลเดอร์สำหรับหน้า สอบเทียบ (งวด > ลุ่มน้ำ > รหัสสถานี)
+    // เตรียมรายชื่อโครงสร้างโฟลเดอร์สำหรับหน้า สอบเทียบ (งวด > ลุ่มน้ำ > รหัสสถานี)
     const folderStructure = [
       formData.myDataPeriod || 'ไม่ระบุงวด',
       formData.myData0 || 'ไม่ระบุลุ่มน้ำ',
       formData.myData1 || 'ไม่ระบุรหัส'
     ];
 
+    // เรียกหาหรือสร้าง Folder ID ให้เสร็จก่อน *เพียง 1 ครั้ง*
+    const targetFolderId = await getTargetFolderId(folderStructure);
+
     if (req.files && req.files.length > 0) {
       await Promise.all(req.files.map(async (file) => {
-        // ส่งไฟล์พร้อมกับระบุโฟลเดอร์ที่ต้องเข้าไปสร้าง
-        const uploaded = await uploadToDrive(file, folderStructure);
+        // อัปโหลดไฟล์ตรงไปที่โฟลเดอร์ปลายทางเลย
+        const uploaded = await uploadFileToFolder(file, targetFolderId);
         const finalLink = uploaded ? uploaded.thumbnailUrl : null;
         
         if (finalLink) {
@@ -448,7 +444,7 @@ app.post('/api/calibration', upload.any(), async (req, res) => {
 
     const newCalibration = new Calibration(formData);
     await newCalibration.save();
-    res.status(201).json({ success: true, message: 'บันทึกรายงานสอบเทียบสำเร็จ' });
+    res.status(201).json({ success: true, message: 'บันทึกรายงานสอบเทียบและอัปโหลดรูปสำเร็จ' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
