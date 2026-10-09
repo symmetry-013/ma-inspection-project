@@ -13,13 +13,12 @@ const crypto = require('crypto');
 const app = express();
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ==========================================
-// 1. Database Setup (MongoDB Schema)
+// 1. Database Setup (MongoDB)
 // ==========================================
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ma_inspection';
 mongoose.connect(MONGODB_URI)
@@ -57,7 +56,7 @@ const CalibrationSchema = new mongoose.Schema({
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
 // ==========================================
-// 2. ตั้งค่าการอัปโหลดไฟล์ (ใช้ Memory Storage)
+// 2. ตั้งค่า File Upload (Memory Storage)
 // ==========================================
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -66,7 +65,7 @@ const upload = multer({
 });
 
 // ==========================================
-// 3. การตั้งค่า Google Drive API
+// 3. Google Drive API & OAuth2
 // ==========================================
 const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive'];
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -128,7 +127,6 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
   });
 }
 
-// --- เส้นทางสำหรับเชื่อมต่อบัญชี Gmail ---
 const pendingStates = new Map();
 
 function requireAdmin(req, res, next) {
@@ -168,7 +166,7 @@ app.get('/auth/google/callback', async (req, res) => {
 });
 
 // ==========================================
-// ระบบ Folder Cache ป้องกันการสร้างโฟลเดอร์ซ้ำจาก Index Delay
+// 4. ฟังก์ชันค้นหา/สร้างโฟลเดอร์ & อัปโหลดรูปลง Google Drive
 // ==========================================
 const folderCache = new Map();
 
@@ -179,17 +177,14 @@ async function getTargetFolderId(folderPathArray) {
   for (const folderName of folderPathArray) {
     if (!folderName || folderName === 'ไม่ระบุ') continue;
 
-    // สร้าง Key สำหรับตรวจสอบในหน่วยความจำ
     const cacheKey = `${currentParentId}_${folderName}`;
     
-    // 1. ถ้าเพิ่งสร้างไปเสี้ยววินาทีก่อน จะมีข้อมูลใน Cache ให้ดึงมาใช้ได้เลย
     if (folderCache.has(cacheKey)) {
       currentParentId = folderCache.get(cacheKey);
       continue;
     }
 
     try {
-      // 2. ถ้าไม่มีใน Cache ค่อยไปค้นใน Google Drive
       const query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${currentParentId}' in parents and trashed=false`;
       const res = await drive.files.list({
         q: query,
@@ -200,9 +195,8 @@ async function getTargetFolderId(folderPathArray) {
 
       if (res.data.files && res.data.files.length > 0) {
         currentParentId = res.data.files[0].id;
-        folderCache.set(cacheKey, currentParentId); // บันทึกไว้เผื่อรูปต่อไป
+        folderCache.set(cacheKey, currentParentId);
       } else {
-        // 3. ถ้าไม่มีโฟลเดอร์จริงๆ ให้สร้างใหม่
         const folder = await drive.files.create({
           requestBody: {
             name: folderName,
@@ -213,7 +207,7 @@ async function getTargetFolderId(folderPathArray) {
           supportsAllDrives: true,
         });
 
-        // เปิดสิทธิ์สาธารณะเพื่อให้ลิงก์รูปแบบ uc?export=view ดึงรูปไปแสดงได้
+        // ทำให้โฟลเดอร์ที่สร้างใหม่เป็นแบบสาธารณะ
         await drive.permissions.create({
           fileId: folder.data.id,
           requestBody: { role: 'reader', type: 'anyone' },
@@ -221,19 +215,15 @@ async function getTargetFolderId(folderPathArray) {
         });
 
         currentParentId = folder.data.id;
-        folderCache.set(cacheKey, currentParentId); // บันทึกไว้เผื่อรูปต่อไปป้องกันการซ้ำ
+        folderCache.set(cacheKey, currentParentId);
       }
     } catch (err) {
       console.error(`❌ Google Drive API Error (สร้างโฟลเดอร์ ${folderName}):`, err.message);
-      // หากพลาด ให้ใช้ parent เดิมในการอัปโหลดรูปแทน
     }
   }
   return currentParentId;
 }
 
-// ==========================================
-// ฟังก์ชันอัปโหลดไฟล์ (รับ Folder ID ตรงๆ ไม่ต้องค้นหาใหม่แล้ว)
-// ==========================================
 async function uploadFileToFolder(file, targetFolderId) {
   if (!driveAuthorized) return null;
   try {
@@ -255,6 +245,7 @@ async function uploadFileToFolder(file, targetFolderId) {
       supportsAllDrives: true,
     });
 
+    // ทำให้รูปภาพเป็นแบบสาธารณะ
     await drive.permissions.create({
       fileId: response.data.id,
       requestBody: { role: 'reader', type: 'anyone' },
@@ -262,7 +253,9 @@ async function uploadFileToFolder(file, targetFolderId) {
     });
 
     const fileId = response.data.id;
-    const directImageLink = `https://drive.google.com/uc?export=view&id=${fileId}`;
+    
+    // 🔥 แก้ไขลิงก์แสดงผล (ใช้ CDN ของ Google เพื่อป้องกันการโดนบล็อกในแอปมือถือ)
+    const directImageLink = `https://lh3.googleusercontent.com/d/${fileId}`;
 
     return {
       fileId: fileId,
@@ -282,7 +275,7 @@ async function uploadFileToFolder(file, targetFolderId) {
 }
 
 // ==========================================
-// 4. ข้อมูลสถานี
+// 5. ข้อมูลสถานี
 // ==========================================
 const stationsData = {
   "เจ้าพระยา": {
@@ -357,14 +350,12 @@ const stationsData = {
 };
 
 // ==========================================
-// 5. Backend API Endpoints
+// 6. Backend API Endpoints
 // ==========================================
-
 app.get('/api/stations', (req, res) => {
   res.status(200).json(stationsData);
 });
 
-// API ของหน้าตรวจสถานี
 app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
   try {
     const formData = { ...req.body };
@@ -380,20 +371,17 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
     }
     formData.geoAddress = geoAddress;
 
-    // เตรียมรายชื่อโครงสร้างโฟลเดอร์สำหรับหน้า ตรวจสถานี (งวด > ลุ่มน้ำ > รหัสสถานี)
     const folderStructure = [
       formData.saya || 'ไม่ระบุงวด',
       formData.code || 'ไม่ระบุลุ่มน้ำ',
       formData.id_name || 'ไม่ระบุรหัส'
     ];
 
-    // เรียกหาหรือสร้าง Folder ID ให้เสร็จก่อน *เพียง 1 ครั้ง*
     const targetFolderId = await getTargetFolderId(folderStructure);
 
     const photos = [];
     if (req.files && req.files.length > 0) {
         for (const file of req.files) {
-          // โยนไฟล์พร้อม ID ของโฟลเดอร์ปลายทางที่หามาได้ ไม่ต้องไปค้นหาโฟลเดอร์ใหม่แล้ว
           const uploaded = await uploadFileToFolder(file, targetFolderId);
           if (uploaded) photos.push(uploaded);
         }
@@ -408,24 +396,20 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
   }
 });
 
-// API ของหน้าสอบเทียบ
 app.post('/api/calibration', upload.any(), async (req, res) => {
   try {
     const formData = { ...req.body };
     
-    // เตรียมรายชื่อโครงสร้างโฟลเดอร์สำหรับหน้า สอบเทียบ (งวด > ลุ่มน้ำ > รหัสสถานี)
     const folderStructure = [
       formData.myDataPeriod || 'ไม่ระบุงวด',
       formData.myData0 || 'ไม่ระบุลุ่มน้ำ',
       formData.myData1 || 'ไม่ระบุรหัส'
     ];
 
-    // เรียกหาหรือสร้าง Folder ID ให้เสร็จก่อน *เพียง 1 ครั้ง*
     const targetFolderId = await getTargetFolderId(folderStructure);
 
     if (req.files && req.files.length > 0) {
       await Promise.all(req.files.map(async (file) => {
-        // อัปโหลดไฟล์ตรงไปที่โฟลเดอร์ปลายทางเลย
         const uploaded = await uploadFileToFolder(file, targetFolderId);
         const finalLink = uploaded ? uploaded.thumbnailUrl : null;
         
