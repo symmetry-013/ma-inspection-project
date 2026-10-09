@@ -11,9 +11,7 @@ const path = require('path');
 const crypto = require('crypto'); 
 
 const app = express();
-
-// อนุญาตให้อ่านค่า protocol (http/https) ที่ถูกต้องเมื่อใช้งานบน Hosting เช่น Render
-app.set('trust proxy', 1); 
+app.set('trust proxy', 1); // รองรับการทำ Proxy บนโฮสติ้ง
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 app.use(cors());
@@ -169,7 +167,7 @@ app.get('/auth/google/callback', async (req, res) => {
 });
 
 // ==========================================
-// 4. โลจิกดึงรูปภาพ (Proxy API) & อัปโหลด
+// 4. ฟังก์ชันดึง/สร้างโฟลเดอร์ และ อัปโหลด
 // ==========================================
 const folderCache = new Map();
 
@@ -181,7 +179,6 @@ async function getTargetFolderId(folderPathArray) {
     if (!folderName || folderName === 'ไม่ระบุ') continue;
 
     const cacheKey = `${currentParentId}_${folderName}`;
-    
     if (folderCache.has(cacheKey)) {
       currentParentId = folderCache.get(cacheKey);
       continue;
@@ -189,33 +186,18 @@ async function getTargetFolderId(folderPathArray) {
 
     try {
       const query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${currentParentId}' in parents and trashed=false`;
-      const res = await drive.files.list({
-        q: query,
-        fields: 'files(id, name)',
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-      });
+      const res = await drive.files.list({ q: query, fields: 'files(id, name)', supportsAllDrives: true, includeItemsFromAllDrives: true });
 
       if (res.data.files && res.data.files.length > 0) {
         currentParentId = res.data.files[0].id;
         folderCache.set(cacheKey, currentParentId);
       } else {
         const folder = await drive.files.create({
-          requestBody: {
-            name: folderName,
-            mimeType: 'application/vnd.google-apps.folder',
-            parents: [currentParentId]
-          },
-          fields: 'id',
-          supportsAllDrives: true,
+          requestBody: { name: folderName, mimeType: 'application/vnd.google-apps.folder', parents: [currentParentId] },
+          fields: 'id', supportsAllDrives: true
         });
-
-        await drive.permissions.create({
-          fileId: folder.data.id,
-          requestBody: { role: 'reader', type: 'anyone' },
-          supportsAllDrives: true,
-        });
-
+        await drive.permissions.create({ fileId: folder.data.id, requestBody: { role: 'reader', type: 'anyone' }, supportsAllDrives: true });
+        
         currentParentId = folder.data.id;
         folderCache.set(cacheKey, currentParentId);
       }
@@ -226,23 +208,15 @@ async function getTargetFolderId(folderPathArray) {
   return currentParentId;
 }
 
-// 🔥 อัปเดตฟังก์ชันใหรับ baseUrl เพื่อสร้างลิงก์รูปมายังเซิร์ฟเวอร์ของเราเอง
 async function uploadFileToFolder(file, targetFolderId, baseUrl) {
   if (!driveAuthorized) return null;
   try {
     const bufferStream = new stream.PassThrough();
     bufferStream.end(file.buffer);
 
-    const originalCleanName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const safeName = Date.now() + '-' + originalCleanName;
-
-    const requestBody = { 
-      name: safeName,
-      parents: targetFolderId ? [targetFolderId] : [] 
-    };
-
+    const safeName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     const response = await drive.files.create({
-      requestBody,
+      requestBody: { name: safeName, parents: targetFolderId ? [targetFolderId] : [] },
       media: { mimeType: file.mimetype, body: bufferStream },
       fields: 'id, name, webViewLink',
       supportsAllDrives: true,
@@ -255,23 +229,14 @@ async function uploadFileToFolder(file, targetFolderId, baseUrl) {
     });
 
     const fileId = response.data.id;
-    
-    // 🔥 ลิงก์รูปภาพจะชี้กลับมาที่เซิร์ฟเวอร์ของเราแทน Google Drive เพื่อป้องกันการโดนบล็อก
-    const internalImageLink = `${baseUrl}/api/images/${fileId}`;
-
     return {
       fileId: fileId,
       name: response.data.name,
       webViewLink: response.data.webViewLink,
-      thumbnailUrl: internalImageLink, 
+      thumbnailUrl: `${baseUrl}/api/images/${fileId}`, 
     };
   } catch (error) {
-    if (/invalid_grant/i.test(error.message)) {
-      driveAuthorized = false;
-      console.error('❌ Refresh Token หมดอายุ/ถูกเพิกถอน');
-    } else {
-      console.error('❌ Google Drive Upload API Error:', error.message);
-    }
+    console.error('❌ Google Drive Upload API Error:', error.message);
     return null;
   }
 }
@@ -341,7 +306,7 @@ const stationsData = {
     "TW.ss": "ฝายยางประสบสุก", "TW.25": "แม่น้ำวัง  W.25", "TW.16A": "แม่น้ำวัง  W.16A", "TW.17A": "น้ำแม่สอย  W.17A", "TW.26": "ห้วยแม่ต๋า  W.26", "TW.kl": "เขื่อนกิ่วลม", "TW.ls": "ฝายหลวงสบอาง", "TW.1C": "แม่น้ำวัง  W.1C", "TW.km": "เขื่อนกิ่วคอหมา", "TW.22": "น้ำแม่จาง  W.22", "TW.20": "น้ำแม่ตุ๋ย  W.20", "TW.18A": "น้ำแม่ต๋ำ  W.18A", "TW.5A": "แม่น้ำวัง  W.5A", "TW.6A": "แม่น้ำวัง  W.6A", "TW.23": "แม่น้ำวัง  W.23 (W.3A)", "TW.27": "TW.27", "TW.28": "TW.28", "TW.29": "TW.29", "TW.30": "TW.30", "TW.31": "TW.31", "TW.32": "TW.32", "TW.33": "TW.33", "TW.34": "TW.34", "TW.35": "TW.35", "TW.21": "วัดต้นธงชัย อ.เมือง จ.ลำปาง", "TW.3A": "บ้านดอนชัย อ.เถิน จ.ลำปาง", "TW.4A": "วังหมัน อ.สามเงา จ.ตาก", "TW.10A": "เขื่อนกิ่วลม อ.แจ้ห่ม จ.ลำปาง"
   },
   "สะแกกรัง": {
-    "TSK.8": "ฝายฆ้องชัย ป่าอ้อ อ.ลานสัก จ.อุทัยธานี", "TCt.5A": "สถานีโทรมาตร อ.ขารนุวรลักษ์บุรี จ.กำแพงเพชร", "TCt.2A": "สถานีโทรมาตร  อ.เมือง จ.อุทัยธานี", "TSK.16": "วัดเวฬุวนาราม ท่าซุง เมือง อุทัยธานี", "TSK.11": "สถานีโทรมาตร บ้านวังม้า วังม้า อ.ลาดยาว จ.นครสวรรค์", "TSK.2": "สถานีโทรมาตร บ้านศาลเจ้าไก่ต่อ ศาลเจ้าไก่ต่อ อ.ลาดยาว  จ.นครสวรรค์", "TSK.1": "สถานีโทรมาตร วัดใหม่แม่เรวา แม่เล่ย์ อ.แม่วงก์ จ.นครสวรรค์", "TSK.12": "เขื่อนวังร่มเกล้า เนินศาลา อ.โกรกพระ จ.นครสวรรค์", "TSK.15": "วัดโคกหม้อ โคกหม้อ ทัพหัน อุทัยธานี", "TSK.13": "อบต.ศาลเจ้าไก่ต่อ ลาดยาว นครสวรรค์", "TSK.10": "สถานีโทรมาตร วัดผาลาดธาราราม ตลุกดู่  อ.ทัพทัน จ.อุทัยธานี", "TSK.3": "สถานีโทรมาตร วัดแม่กะสีวราราม แม่เปิน อ.แม่เปิน จ.นครสวรรค์", "TSK.4": "สถานีโทรมาตร บ้านใหม่คลองเจริญ ชุมตาบง อ.ชุมตาบง จ.นครสวรรค์", "TSK.5": "สถานีโทรมาตร บ้านหนองบำหรุ มาบแก อ.ลาดยาว จ.นครสวรรค์", "TSK.14": "อบต.สว่างแจ้งสบายใจ สว่างอารามณ์ อุทัยธานี", "TSK.7": "สถานีโทรมาตร บ้านท่ามะนาว雷บำ  อ.ลานสัก จ.อุทัยธานี", "TSK.6": "เขื่อนทับเสลา ระบำ  อ.ลานสัก  จ.อุทัยธานี", "TSK.9": "ฝายทับเสลา เขากวางทอง อ.หนองฉาง จ.อุทัยธานี"
+    "TSK.8": "ฝายฆ้องชัย ป่าอ้อ อ.ลานสัก จ.อุทัยธานี", "TCt.5A": "สถานีโทรมาตร อ.ขารนุวรลักษ์บุรี จ.กำแพงเพชร", "TCt.2A": "สถานีโทรมาตร  อ.เมือง จ.อุทัยธานี", "TSK.16": "วัดเวฬุวนาราม ท่าซุง เมือง อุทัยธานี", "TSK.11": "สถานีโทรมาตร บ้านวังม้า วังม้า อ.ลาดยาว จ.นครสวรรค์", "TSK.2": "สถานีโทรมาตร บ้านศาลเจ้าไก่ต่อ ศาลเจ้าไก่ต่อ อ.ลาดยาว  จ.นครสวรรค์", "TSK.1": "สถานีโทรมาตร วัดใหม่แม่เรวา แม่เล่ย์ อ.แม่วงก์ จ.นครสวรรค์", "TSK.12": "เขื่อนวังร่มเกล้า เนินศาลา อ.โกรกพระ จ.นครสวรรค์", "TSK.15": "วัดโคกหม้อ โคกหม้อ ทัพหัน อุทัยธานี", "TSK.13": "อบต.ศาลเจ้าไก่ต่อ ลาดยาว นครสวรรค์", "TSK.10": "สถานีโทรมาตร วัดผลาดธาราราม ตลุกดู่  อ.ทัพทัน จ.อุทัยธานี", "TSK.3": "สถานีโทรมาตร วัดแม่กะสีวราราม แม่เปิน อ.แม่เปิน จ.นครสวรรค์", "TSK.4": "สถานีโทรมาตร บ้านใหม่คลองเจริญ ชุมตาบง อ.ชุมตาบง จ.นครสวรรค์", "TSK.5": "สถานีโทรมาตร บ้านหนองบำหรุ มาบแก อ.ลาดยาว จ.นครสวรรค์", "TSK.14": "อบต.สว่างแจ้งสบายใจ สว่างอารามณ์ อุทัยธานี", "TSK.7": "สถานีโทรมาตร บ้านท่ามะนาว雷บำ  อ.ลานสัก จ.อุทัยธานี", "TSK.6": "เขื่อนทับเสลา ระบำ  อ.ลานสัก  จ.อุทัยธานี", "TSK.9": "ฝายทับเสลา เขากวางทอง อ.หนองฉาง จ.อุทัยธานี"
   },
   "สาละวิน": {
     "TSW01": "อ่างเก็บน้ำห้วยแม่สอด", "TSW02": "เทศบาลนครแม่สอด", "TSW03": "ห้วยแม่สอด", "TSW04": "บ้านโกกไก่", "TSW05": "บ้านแม่กึ๊ดสามท่า", "TSW06": "บ้านวังผา", "TSW14": "ห้วยน้ำของ", "TSW07": "บ้านปางตอง", "TSW08": "บ้านห้วยไก่ป่า", "TSW09": "บ้านทุ่งรวงทอง", "TSW10": "บ้านพะมอลอ", "TSW11": "บ้านแม่ตะควน", "TSW12": "แม่น้ำปาย", "TSW13": "บ้านสบสา", "TSW15": "ปางหมู"
@@ -352,38 +317,39 @@ const stationsData = {
 };
 
 // ==========================================
-// 6. Backend API Endpoints
+// 6. Backend API Endpoints (พร้อมระบบแก้ข้อมูลเก่า)
 // ==========================================
 
-// 🔥 NEW: API สตรีมรูปภาพจาก Google Drive โดยตรง (แก้ไขปัญหาภาพไม่แสดง 100%)
+// ฟังก์ชันช่วยดึงรหัสไฟล์ (File ID) จากลิงก์เก่าทุกรูปแบบ เพื่อนำมาสร้างลิงก์ใหม่
+function extractDriveId(url) {
+  if (!url) return null;
+  const ucMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) return ucMatch[1];
+  const dMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (dMatch) return dMatch[1];
+  const apiMatch = url.match(/\/api\/images\/([a-zA-Z0-9_-]+)/);
+  if (apiMatch) return apiMatch[1];
+  return null;
+}
+
+// API สตรีมรูปภาพจาก Google Drive
 app.get('/api/images/:fileId', async (req, res) => {
   try {
     if (!driveAuthorized) return res.status(403).send('Google Drive not authorized');
-
     const fileId = req.params.fileId;
     const response = await drive.files.get(
       { fileId: fileId, alt: 'media' },
       { responseType: 'stream' }
     );
-
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // เปิดแคชให้แอปโหลดเร็วขึ้น
-
-    response.data
-      .on('end', () => {})
-      .on('error', err => {
-        console.error('❌ Error streaming image:', err.message);
-        if (!res.headersSent) res.status(500).send('Error loading image');
-      })
-      .pipe(res);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    response.data.pipe(res);
   } catch (error) {
     console.error('❌ Fetch image API error:', error.message);
     if (!res.headersSent) res.status(404).send('Image not found');
   }
 });
 
-app.get('/api/stations', (req, res) => {
-  res.status(200).json(stationsData);
-});
+app.get('/api/stations', (req, res) => res.status(200).json(stationsData));
 
 app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
   try {
@@ -400,18 +366,10 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
     }
     formData.geoAddress = geoAddress;
 
-    const folderStructure = [
-      formData.saya || 'ไม่ระบุงวด',
-      formData.code || 'ไม่ระบุลุ่มน้ำ',
-      formData.id_name || 'ไม่ระบุรหัส'
-    ];
-
-    const targetFolderId = await getTargetFolderId(folderStructure);
-
-    // 🔥 ส่ง baseUrl ของเซิร์ฟเวอร์เราเข้าไปตอนอัปโหลด
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const targetFolderId = await getTargetFolderId([formData.saya, formData.code, formData.id_name]);
+    const baseUrl = req.headers.host.includes('localhost') ? `http://${req.headers.host}` : `https://${req.headers.host}`;
+    
     const photos = [];
-
     if (req.files && req.files.length > 0) {
         for (const file of req.files) {
           const uploaded = await uploadFileToFolder(file, targetFolderId, baseUrl);
@@ -422,32 +380,20 @@ app.post('/api/inspection', upload.array('photos', 8), async (req, res) => {
 
     const newInspection = new Inspection(formData);
     await newInspection.save();
-    res.status(201).json({ success: true, message: 'บันทึกข้อมูลและอัปโหลดรูปภาพสำเร็จ', photos });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    res.status(201).json({ success: true, message: 'บันทึกข้อมูลสำเร็จ', photos });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
 app.post('/api/calibration', upload.any(), async (req, res) => {
   try {
     const formData = { ...req.body };
-    
-    const folderStructure = [
-      formData.myDataPeriod || 'ไม่ระบุงวด',
-      formData.myData0 || 'ไม่ระบุลุ่มน้ำ',
-      formData.myData1 || 'ไม่ระบุรหัส'
-    ];
-
-    const targetFolderId = await getTargetFolderId(folderStructure);
-    
-    // 🔥 ส่ง baseUrl ของเซิร์ฟเวอร์เราเข้าไปตอนอัปโหลด
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const targetFolderId = await getTargetFolderId([formData.myDataPeriod, formData.myData0, formData.myData1]);
+    const baseUrl = req.headers.host.includes('localhost') ? `http://${req.headers.host}` : `https://${req.headers.host}`;
 
     if (req.files && req.files.length > 0) {
       await Promise.all(req.files.map(async (file) => {
         const uploaded = await uploadFileToFolder(file, targetFolderId, baseUrl);
         const finalLink = uploaded ? uploaded.thumbnailUrl : null;
-        
         if (finalLink) {
           if (file.fieldname === 'myFile') formData.myFileUrl = finalLink;
           if (file.fieldname === 'myFile2') formData.myFileUrl2 = finalLink;
@@ -460,38 +406,57 @@ app.post('/api/calibration', upload.any(), async (req, res) => {
         }
       }));
     }
-
     const newCalibration = new Calibration(formData);
     await newCalibration.save();
-    res.status(201).json({ success: true, message: 'บันทึกรายงานสอบเทียบและอัปโหลดรูปสำเร็จ' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    res.status(201).json({ success: true, message: 'บันทึกรายงานสำเร็จ' });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
+// 🔥 อัปเดต API ดึงข้อมูลตรวจสถานี (แปลงลิงก์เก่าให้เป็นลิงก์ใหม่ก่อนส่งไปแอป)
 app.get('/api/inspections', async (req, res) => {
   try {
     const inspections = await Inspection.find().sort({ timestamp: -1 });
-    res.status(200).json({ success: true, data: inspections });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    const baseUrl = req.headers.host.includes('localhost') ? `http://${req.headers.host}` : `https://${req.headers.host}`;
+    
+    const modifiedData = inspections.map(doc => {
+      const item = doc.toObject();
+      if (item.photos && item.photos.length > 0) {
+        item.photos = item.photos.map(p => {
+          const fileId = p.fileId || extractDriveId(p.thumbnailUrl) || extractDriveId(p.webViewLink);
+          if (fileId) p.thumbnailUrl = `${baseUrl}/api/images/${fileId}`;
+          return p;
+        });
+      }
+      return item;
+    });
+    res.status(200).json({ success: true, data: modifiedData });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
+// 🔥 อัปเดต API ดึงข้อมูลสอบเทียบ (แปลงลิงก์เก่าให้เป็นลิงก์ใหม่ก่อนส่งไปแอป)
 app.get('/api/calibrations', async (req, res) => {
   try {
     const calibrations = await Calibration.find().sort({ timestamp: -1 });
-    res.status(200).json({ success: true, data: calibrations });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+    const baseUrl = req.headers.host.includes('localhost') ? `http://${req.headers.host}` : `https://${req.headers.host}`;
+
+    const modifiedData = calibrations.map(doc => {
+      const item = doc.toObject();
+      const fields = ['myFileUrl', 'myFileUrl2', 'myFileUrl3', 'myFileUrl4', 'myFileUrl5', 'myFileUrl6', 'myFileUrl7', 'myFileUrl8'];
+      fields.forEach(field => {
+        if (item[field]) {
+          const fileId = extractDriveId(item[field]);
+          if (fileId) item[field] = `${baseUrl}/api/images/${fileId}`;
+        }
+      });
+      return item;
+    });
+    res.status(200).json({ success: true, data: modifiedData });
+  } catch (error) { res.status(500).json({ success: false, message: error.message }); }
 });
 
 app.use((err, req, res, next) => {
   if (!err) return next();
-  const msg = err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์รูปใหญ่เกิน 15 MB'
-    : (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') ? 'แนบรูปเกินจำนวนที่กำหนด'
-    : err.message;
+  const msg = err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์รูปใหญ่เกิน 15 MB' : (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') ? 'แนบรูปเกินจำนวนที่กำหนด' : err.message;
   res.status(400).json({ success: false, message: msg });
 });
 
