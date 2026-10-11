@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบรายงานสรุปผล PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Prompt', sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <div class="max-w-4xl mx-auto bg-slate-800 rounded-xl shadow-2xl p-8 border border-slate-700">
+        <h1 class="text-3xl font-bold mb-6 text-emerald-400">สร้างรายงานสรุป (PDF Generator)</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- เลือกงวด -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">งวดที่ตรวจ</label>
+                <select id="termSelect" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500">
+                    <option value="all">ทั้งหมด (ทุกงวด)</option>
+                    <option value="งวดที่ 1">งวดที่ 1</option>
+                    <option value="งวดที่ 2">งวดที่ 2</option>
+                    <option value="งวดที่ 3">งวดที่ 3</option>
+                    <option value="งวดที่ 4">งวดที่ 4</option>
+                </select>
+            </div>
+            
+            <!-- เลือกลุ่มน้ำ -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">กลุ่มลุ่มน้ำ</label>
+                <select id="basinSelect" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500">
+                    <option value="all" class="font-bold text-emerald-400">สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
+                    <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript -->
+                </select>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button onclick="downloadPDF()" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105">
+                📄 ดาวน์โหลดรายงาน PDF
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const basins = [
+            "เจ้าพระยา", "เพชรบุรี-ประจวบคีรีขันธ์", "แม่กลอง", "โขงเหนือ", "โขงอีสาน",
+            "โตนเลสาป", "ภาคใต้ฝั่งตะวันตก", "ชายทะเลฝั่งตะวันออก", "ชี", "ทะเลสาบสงขลา",
+            "ท่าจีน", "น่าน", "บางปะกง", "ป่าสัก", "ปิง", "ภาคใต้ฝั่งตะวันออกตอนบน",
+            "ภาคใต้ฝั่งตะวันออกตอนล่าง", "มูล", "ยม", "วัง", "สะแกกรัง", "สาละวิน", "KRC"
+        ];
+
+        // เติมข้อมูลลุ่มน้ำเข้า Dropdown
+        const basinSelect = document.getElementById('basinSelect');
+        basins.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b;
+            basinSelect.appendChild(opt);
+        });
+
+        // ฟังก์ชันสั่งดาวน์โหลด PDF
+        function downloadPDF() {
+            const term = document.getElementById('termSelect').value;
+            const basin = document.getElementById('basinSelect').value;
+            
+            // เปิดลิงก์ API พร้อมส่ง Parameters เพื่อให้ Browser ดาวน์โหลดไฟล์
+            const url = `/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}`;
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
