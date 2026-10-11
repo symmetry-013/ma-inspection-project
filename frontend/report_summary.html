@@ -4,21 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรายงานสรุปผล PDF</title>
+    
+    <!-- นำเข้า Tailwind, Fonts และ Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Prompt', sans-serif; }
+        body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            font-family: 'Prompt', sans-serif; 
+        }
     </style>
 </head>
-<body class="min-h-screen p-6">
-    <div class="max-w-4xl mx-auto bg-slate-800 rounded-xl shadow-2xl p-8 border border-slate-700">
-        <h1 class="text-3xl font-bold mb-6 text-emerald-400">สร้างรายงานสรุป (PDF Generator)</h1>
+<body class="min-h-screen p-6 flex items-center justify-center">
+    <div class="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- ส่วนหัว (Header) และปุ่มย้อนกลับ -->
+        <div class="flex items-center justify-between mb-8 border-b border-slate-700 pb-5">
+            <div class="flex items-center space-x-4">
+                <!-- ปุ่มย้อนกลับ -->
+                <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center hover:bg-slate-600 hover:scale-105 transition-all text-slate-300 hover:text-white shadow-lg cursor-pointer">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-2xl md:text-3xl font-bold text-emerald-400">
+                    <i class="fas fa-file-pdf mr-2"></i>สร้างรายงานสรุป PDF
+                </h1>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
             <!-- เลือกงวด -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">งวดที่ตรวจ</label>
-                <select id="termSelect" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500">
-                    <option value="all">ทั้งหมด (ทุกงวด)</option>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-slate-300">📌 งวดที่ตรวจ</label>
+                <select id="termSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+                    <option value="all">รวมทั้งหมด (ทุกงวด)</option>
                     <option value="งวดที่ 1">งวดที่ 1</option>
                     <option value="งวดที่ 2">งวดที่ 2</option>
                     <option value="งวดที่ 3">งวดที่ 3</option>
@@ -27,18 +48,20 @@
             </div>
             
             <!-- เลือกลุ่มน้ำ -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-2">กลุ่มลุ่มน้ำ</label>
-                <select id="basinSelect" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-emerald-500">
-                    <option value="all" class="font-bold text-emerald-400">สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-slate-300">🌊 กลุ่มลุ่มน้ำ</label>
+                <select id="basinSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+                    <option value="all" class="font-bold text-emerald-400">✨ สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
                     <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript -->
                 </select>
             </div>
         </div>
 
-        <div class="flex gap-4">
-            <button onclick="downloadPDF()" class="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105">
-                📄 ดาวน์โหลดรายงาน PDF
+        <div class="flex flex-col sm:flex-row gap-4 justify-end mt-4">
+            <!-- ปุ่มดาวน์โหลด -->
+            <button onclick="downloadPDF()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
+                <i class="fas fa-download text-lg"></i>
+                สร้างและดาวน์โหลด PDF
             </button>
         </div>
     </div>

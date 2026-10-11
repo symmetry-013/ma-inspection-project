@@ -287,6 +287,7 @@ async function uploadFileToFolder(file, targetFolderId, baseUrl) {
 // 5. ข้อมูลสถานี
 // ==========================================
 const stationsData = {
+  // ข้อมูลสถานีเดิมของคุณทั้งหมด คงไว้เหมือนเดิม...
   "เจ้าพระยา": {
     "TC.55": "TC.55", "TC.22": "TC.22", "TC.3": "TC.3", "T.ปตร.ลพบุรี": "T.ปตร.ลพบุรี", "TL.2B": "TL.2B", "T.ปตร.บรมธาตุ": "T.ปตร.บรมธาตุ", "T.ปตร.ผักไห่": "T.ปตร.ผักไห่", "T.ปตร.พลเทพ": "T.ปตร.พลเทพ", "TC.54": "TC.54", "TC.53": "TC.53", "TC.29": "TC.29", "TC.4": "TC.4", "TC.2": "TC.2", "TC.7A": "TC.7A", "TC.60": "TC.60", "TC.12": "TC.12", "T.ปตร.มะขามเฒ่า": "T.ปตร.มะขามเฒ่า", "T.ปตร.มหาราช": "T.ปตร.มหาราช", "T.ปตร.เริงราง": "T.ปตร.เริงราง", "T.ปตร.มโนรมย์": "T.ปตร.มโนรมย์", "T.ปตร.ช่องแค": "T.ปตร.ช่องแค", "T.ปตร.โคกกะเทียม": "T.ปตร.โคกกะเทียม"
   },
@@ -498,7 +499,7 @@ app.get('/api/calibrations', async (req, res) => {
 
 
 // ==========================================
-// 7. API สร้างและดาวน์โหลดเอกสารรายงาน PDF
+// 7. API สร้างและดาวน์โหลดเอกสารรายงาน PDF (ปรับปรุงใหม่ล่าสุด)
 // ==========================================
 app.get('/api/report/pdf', async (req, res) => {
   try {
@@ -507,10 +508,13 @@ app.get('/api/report/pdf', async (req, res) => {
     let queryInspection = {};
     let queryCalibration = {};
     
+    // [อัปเดตใหม่] ลบช่องว่างออกทั้งหมด เช่น แปลง "งวดที่ 1" เป็น "งวดที่1" ให้ตรงกับ Database
     if (term && term !== 'all') {
-      queryInspection.saya = term;
-      queryCalibration.myDataPeriod = term;
+      const normalizedTerm = term.replace(/\s+/g, ''); 
+      queryInspection.saya = normalizedTerm;
+      queryCalibration.myDataPeriod = normalizedTerm;
     }
+    
     if (basin && basin !== 'all') {
       queryInspection.code = basin;
       queryCalibration.myData0 = basin;
@@ -527,7 +531,6 @@ app.get('/api/report/pdf', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=Report_${encodeURIComponent(basin)}_${encodeURIComponent(term)}.pdf`);
     doc.pipe(res);
 
-    // ตรวจสอบไฟล์ฟอนต์ก่อนใช้งาน
     if (fs.existsSync(fontRegular) && fs.existsSync(fontBold)) {
       doc.registerFont('ThaiRegular', fontRegular);
       doc.registerFont('ThaiBold', fontBold);
@@ -556,7 +559,12 @@ app.get('/api/report/pdf', async (req, res) => {
       hardcodedBasins.forEach(b => basinStats[b] = { total: 0, p: 0, o: 0 });
 
       inspections.forEach(item => {
-        const hasIssue = equipmentMap.some(eq => item[eq.field] === 'O' || item[eq.field] === 'ชำรุด');
+        // [อัปเดตใหม่] เช็คชำรุดครอบคลุม 'o', 'O', '0', 'ชำรุด'
+        const hasIssue = equipmentMap.some(eq => {
+          const val = (item[eq.field] || '').toString().trim().toLowerCase();
+          return val === 'o' || val === 'ชำรุด' || val === '0';
+        });
+
         if (hasIssue) totalO++; else totalP++;
 
         if (basinStats[item.code]) {
@@ -565,18 +573,17 @@ app.get('/api/report/pdf', async (req, res) => {
         }
 
         equipmentMap.forEach(eq => {
-          if (item[eq.field] === 'O' || item[eq.field] === 'ชำรุด') equipmentIssues[eq.field]++;
+          const val = (item[eq.field] || '').toString().trim().toLowerCase();
+          if (val === 'o' || val === 'ชำรุด' || val === '0') equipmentIssues[eq.field]++;
         });
       });
 
-      // พิมพ์ KPI
       doc.font('ThaiBold').fontSize(14).text(`สถิติรวมทั้งหมด: ${totalStations} สถานี`);
       doc.font('ThaiRegular').fontSize(12)
          .text(`• พร้อมใช้งานปกติ (P): ${totalP} สถานี`)
          .text(`• พบอุปกรณ์ชำรุด (O): ${totalO} สถานี`);
       doc.moveDown(2);
 
-      // ตารางสรุปลุ่มน้ำ
       doc.font('ThaiBold').fontSize(14).text('สรุปผลการตรวจสอบแยกตามลุ่มน้ำ', { underline: true });
       doc.moveDown(0.5);
       let y = doc.y;
@@ -598,7 +605,6 @@ app.get('/api/report/pdf', async (req, res) => {
       });
       doc.moveDown(2);
 
-      // ตารางอุปกรณ์ที่ชำรุดบ่อย
       y = doc.y + 20;
       if (y > 750) { doc.addPage(); y = 50; }
       doc.font('ThaiBold').fontSize(14).text('สรุปปัญหาอุปกรณ์ที่ชำรุดบ่อยที่สุด', 50, y);
@@ -628,7 +634,13 @@ app.get('/api/report/pdf', async (req, res) => {
 
       inspections.forEach(item => {
         if (y > 750) { doc.addPage(); y = 50; }
-        const hasIssue = equipmentMap.some(eq => item[eq.field] === 'O' || item[eq.field] === 'ชำรุด');
+        
+        // [อัปเดตใหม่] เช็คชำรุดครอบคลุม 'o', 'O', '0', 'ชำรุด'
+        const hasIssue = equipmentMap.some(eq => {
+          const val = (item[eq.field] || '').toString().trim().toLowerCase();
+          return val === 'o' || val === 'ชำรุด' || val === '0';
+        });
+
         const statusText = hasIssue ? 'O (พบชำรุด)' : 'P (ปกติ)';
         const note = item.note || item.note2 || '-';
         
@@ -640,7 +652,6 @@ app.get('/api/report/pdf', async (req, res) => {
         y += 20;
       });
 
-      // Dynamic Calibration Report 
       for (const calib of calibrations) {
         doc.addPage();
         doc.font('ThaiBold').fontSize(16).text(`รายงานการสอบเทียบ: สถานี ${calib.myData1 || 'ไม่ระบุ'}`, { underline: true });
@@ -666,7 +677,6 @@ app.get('/api/report/pdf', async (req, res) => {
           let x = startX[col];
           let blockHeight = 200; 
 
-          // ประมวลผลรูปภาพ
           if (point.imgUrl) {
             const fileId = extractDriveId(point.imgUrl);
             if (fileId) {
@@ -683,7 +693,6 @@ app.get('/api/report/pdf', async (req, res) => {
             }
           }
 
-          // ประมวลผลข้อความใต้รูป
           doc.font('ThaiBold').fontSize(12).text(point.title, x, currentY + 160);
           doc.font('ThaiRegular').fontSize(10).text(`ค่าที่อ่านได้: ${fixThaiVowels(point.text) || '-'}`, x, currentY + 175);
 
