@@ -81,11 +81,11 @@
             const term = document.getElementById('termSelect').value;
             const basin = document.getElementById('basinSelect').value;
             
-            // ลิงก์ไปยังเซิร์ฟเวอร์จริงของคุณ
             const baseUrl = 'https://ma-inspection-project.onrender.com';
-            const url = `${baseUrl}/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}`;
             
-            // ใช้ SweetAlert เพื่อเตือนผู้ใช้ว่าแอปกำลังจะเปิดเบราว์เซอร์
+            // 👇 แก้ไขบรรทัดนี้: เพิ่ม &t=${new Date().getTime()} เพื่อป้องกันเบราว์เซอร์จำไฟล์เก่า
+            const url = `${baseUrl}/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&t=${new Date().getTime()}`;
+            
             Swal.fire({
                 title: 'กำลังเปิดเพื่อดาวน์โหลด',
                 html: '<span style="color: #cbd5e1;">ระบบจะเปิดเบราว์เซอร์ของเครื่องขึ้นมา<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า "Render" <b>ไม่ต้องตกใจ ให้รอประมาณ 30-50 วินาที</b> เพื่อให้เซิร์ฟเวอร์ทำงาน<br><br>เมื่อดาวน์โหลดเสร็จแล้ว <b>ให้กดปุ่มย้อนกลับของมือถือ</b> เพื่อกลับเข้าแอปครับ</span>',
@@ -96,7 +96,6 @@
                 confirmButtonText: 'รับทราบ เปิดเลย'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // คำสั่งดั้งเดิม ปลอดภัย และใช้งานได้ชัวร์
                     window.open(url, '_system');
                 }
             });
