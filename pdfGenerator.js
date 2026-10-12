@@ -210,14 +210,14 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.font('ThaiRegular').fontSize(12);
       doc.text(fixThaiVowels(`วันที่บันทึกค่า ${getThaiDate(calib.timestamp)}`), 40, 60);
       doc.text(fixThaiVowels(`ครั้งที่ 1 เวลา ${getThaiTime(calib.timestamp)} น.`), 40, 80);
-      doc.text(fixThaiVowels(`จำนวนเคาะจากกระบอกน้ำฝน (${calib.myData11 || '-'})`), 40, 100);
+      doc.text(fixThaiVowels(`จำนวนเคาะจากกระบอกน้ำฝน ${calib.myData11 || '-'} ครั้ง`), 40, 100);
 
       let rY = 125;
       doc.font('ThaiBold').fontSize(12);
       
       doc.rect(40, rY, 256, 20).stroke(); doc.rect(296, rY, 256, 20).stroke();
       doc.text(fixThaiVowels('รูปที่ 1 ค่า RTU'), 40, rY + 5, { width: 256, align: 'center' });
-      doc.text(fixThaiVowels('รูปที่ 2 ค่า WEB'), 296, rY + 5, { width: 256, align: 'center' });
+      doc.text(fixThaiVowels('รูปที่ 2 ค่า Website'), 296, rY + 5, { width: 256, align: 'center' });
 
       rY += 20;
       doc.rect(40, rY, 256, 220).stroke(); doc.rect(296, rY, 256, 220).stroke();
