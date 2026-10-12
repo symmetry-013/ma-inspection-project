@@ -216,8 +216,8 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.font('ThaiBold').fontSize(12);
       
       doc.rect(40, rY, 256, 20).stroke(); doc.rect(296, rY, 256, 20).stroke();
-      doc.text(fixThaiVowels('รูปที่ 1 ค่า ค่าน้ำฝนเสาวัด/แผ่นวัด'), 40, rY + 5, { width: 256, align: 'center' });
-      doc.text(fixThaiVowels('รูปที่ 2 ค่า RTU'), 296, rY + 5, { width: 256, align: 'center' });
+      doc.text(fixThaiVowels('รูปที่ 1 ค่า RTU'), 40, rY + 5, { width: 256, align: 'center' });
+      doc.text(fixThaiVowels('รูปที่ 2 ค่า WEB'), 296, rY + 5, { width: 256, align: 'center' });
 
       rY += 20;
       doc.rect(40, rY, 256, 220).stroke(); doc.rect(296, rY, 256, 220).stroke();
