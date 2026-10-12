@@ -9,9 +9,34 @@ cd  MA-Project
 git add .
 git commit -m "Update server.js and remove server_2.js"
 git push
+git add server.js pdfGenerator.js
 
 mongodb+srv://sommartkingwongsa_db_user:ZD7CCIFklVJxsPcy@cluster0.e3h2n5g.mongodb.net/ma_inspection?retryWrites=true&w=majority
 
 git add .
 git commit -m "Fix critical bugs, add constants.js, and update frontend files"
 git push
+
+726388678174-ci6e965mietue0lkdhgstv0nuc1gf8um.apps.googleusercontent.com
+
+inspection
+calibration
+defects
+report_calibration
+report_inspection
+tracking
+npx cap sync
+npx cap open android
+
+git add server.js
+git commit -m "Fix image thumbnail link and add auto create folder"
+git push
+
+
+
+
+
+
+
+
+

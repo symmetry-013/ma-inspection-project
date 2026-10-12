@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- นำเข้า Constants สำหรับ XSS Protection -->
+    
     <script src="constants.js"></script>
     <style>
         :root { --bg-color: #0f172a; --card-bg: #1e293b; --text-main: #f1f5f9; --text-muted: #94a3b8; --accent-color: #cca43b; --input-bg: #334155; --border-color: #475569; }
@@ -80,7 +80,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // ✅ ใช้ Relative Path สำหรับเชื่อมต่อ API ตัวเอง
+        
         const API_URL = ''; 
         const basinSelect = document.getElementById("myData0");
         let globalFetchedData = [];
@@ -102,8 +102,8 @@
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                // ✅ แก้ไข URL ให้ตรงกับ Endpoint ที่ถูกต้อง
-                const response = await fetch(`${API_URL}/api/calibrations`);
+                
+                const response = await fetch('https://ma-inspection-project.onrender.com/api/calibrations');
                 const result = await response.json();
 
                 if (response.ok && result.success) {

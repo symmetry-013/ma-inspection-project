@@ -5,17 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรายงานสรุปผล PDF</title>
     
-    <!-- นำเข้า Tailwind, Fonts และ Icons -->
+    <!-- นำเข้า Tailwind, Fonts, Icons และ SweetAlert2 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     
     <style>
-        body { 
-            background-color: #0f172a; 
-            color: #f8fafc; 
-            font-family: 'Prompt', sans-serif; 
-        }
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Prompt', sans-serif; }
     </style>
 </head>
 <body class="min-h-screen p-6 flex items-center justify-center">
@@ -24,7 +22,6 @@
         <!-- ส่วนหัว (Header) และปุ่มย้อนกลับ -->
         <div class="flex items-center justify-between mb-8 border-b border-slate-700 pb-5">
             <div class="flex items-center space-x-4">
-                <!-- ปุ่มย้อนกลับ -->
                 <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center hover:bg-slate-600 hover:scale-105 transition-all text-slate-300 hover:text-white shadow-lg cursor-pointer">
                     <i class="fas fa-arrow-left"></i>
                 </a>
@@ -35,7 +32,6 @@
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-            <!-- เลือกงวด -->
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-300">📌 งวดที่ตรวจ</label>
                 <select id="termSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
@@ -47,7 +43,6 @@
                 </select>
             </div>
             
-            <!-- เลือกลุ่มน้ำ -->
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-slate-300">🌊 กลุ่มลุ่มน้ำ</label>
                 <select id="basinSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
@@ -58,7 +53,6 @@
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-            <!-- ปุ่มดาวน์โหลด -->
             <button onclick="downloadPDF()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
                 <i class="fas fa-download text-lg"></i>
                 สร้างและดาวน์โหลด PDF
@@ -66,6 +60,7 @@
         </div>
     </div>
 
+    <!-- ลบ type="module" ออก และกลับมาใช้ Script ธรรมดา -->
     <script>
         const basins = [
             "เจ้าพระยา", "เพชรบุรี-ประจวบคีรีขันธ์", "แม่กลอง", "โขงเหนือ", "โขงอีสาน",
@@ -74,7 +69,6 @@
             "ภาคใต้ฝั่งตะวันออกตอนล่าง", "มูล", "ยม", "วัง", "สะแกกรัง", "สาละวิน", "KRC"
         ];
 
-        // เติมข้อมูลลุ่มน้ำเข้า Dropdown
         const basinSelect = document.getElementById('basinSelect');
         basins.forEach(b => {
             const opt = document.createElement('option');
@@ -83,14 +77,29 @@
             basinSelect.appendChild(opt);
         });
 
-        // ฟังก์ชันสั่งดาวน์โหลด PDF
         function downloadPDF() {
             const term = document.getElementById('termSelect').value;
             const basin = document.getElementById('basinSelect').value;
             
-            // เปิดลิงก์ API พร้อมส่ง Parameters เพื่อให้ Browser ดาวน์โหลดไฟล์
-            const url = `/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}`;
-            window.open(url, '_blank');
+            // ลิงก์ไปยังเซิร์ฟเวอร์จริงของคุณ
+            const baseUrl = 'https://ma-inspection-project.onrender.com';
+            const url = `${baseUrl}/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}`;
+            
+            // ใช้ SweetAlert เพื่อเตือนผู้ใช้ว่าแอปกำลังจะเปิดเบราว์เซอร์
+            Swal.fire({
+                title: 'กำลังเปิดเพื่อดาวน์โหลด',
+                html: '<span style="color: #cbd5e1;">ระบบจะเปิดเบราว์เซอร์ของเครื่องขึ้นมา<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า "Render" <b>ไม่ต้องตกใจ ให้รอประมาณ 30-50 วินาที</b> เพื่อให้เซิร์ฟเวอร์ทำงาน<br><br>เมื่อดาวน์โหลดเสร็จแล้ว <b>ให้กดปุ่มย้อนกลับของมือถือ</b> เพื่อกลับเข้าแอปครับ</span>',
+                icon: 'info',
+                background: '#1e293b',
+                color: '#fff',
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'รับทราบ เปิดเลย'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // คำสั่งดั้งเดิม ปลอดภัย และใช้งานได้ชัวร์
+                    window.open(url, '_system');
+                }
+            });
         }
     </script>
 </body>

@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- นำเข้า Constants -->
     <script src="constants.js"></script>
     <style>
         html, body { font-family: 'Prompt', sans-serif; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f8fafc; }
@@ -66,7 +65,8 @@
             if (!map) return;
             document.getElementById('refreshIcon').classList.add('spin');
             try {
-                const response = await fetch('/api/inspections');
+                // แก้ให้เป็น URL เต็ม 100%
+                const response = await fetch('https://ma-inspection-project.onrender.com/api/inspections');
                 const result = await response.json();
                 if (result.success) {
                     const transformedData = [];
@@ -130,7 +130,6 @@
                 let fc = hasO ? '#f43f5e' : (hasP ? '#10b981' : '#ffffff'); let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
 
                 let stationsHtml = group.map((p, i) => {
-                    // ✅ XSS Protection
                     const safeName = escapeHtml(p.name); const safeLoc = escapeHtml(p.location); const safeDefects = escapeHtml(p.defects); const safeRemark = escapeHtml(p.remark); const safeComment = escapeHtml(p.comment);
                     const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-bold">สมบูรณ์</span>' : '<span class="text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded text-[10px] font-bold">มีชำรุด</span>';
                     const cleanText = p.statusClean === 'P' ? '<span class="text-emerald-600 font-bold">ผ่าน</span>' : (p.statusClean === 'O' ? '<span class="text-rose-600 font-bold">ไม่ผ่าน</span>' : '-');
