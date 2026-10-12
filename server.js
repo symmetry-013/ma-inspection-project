@@ -496,7 +496,6 @@ app.get('/api/calibrations', async (req, res) => {
 // ==========================================
 // 7. API สร้างและดาวน์โหลดเอกสารรายงาน PDF (แบบแยกไฟล์แล้ว)
 // ==========================================
-const { generateInspectionPDF } = require('./pdfGenerator');
 
 app.get('/api/report/pdf', async (req, res) => {
   try {
