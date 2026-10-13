@@ -20,21 +20,48 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.registerFont('ThaiBold', 'Helvetica-Bold');
     }
 
+    // --- แก้ไขการจัดการวันที่และเวลาให้บังคับเป็นโซน Asia/Bangkok เสมอ ---
     const getThaiDate = (dateString) => {
       if (!dateString) return '-';
       const d = new Date(dateString);
       if (isNaN(d)) return '-';
+      
+      const parts = new Intl.DateTimeFormat('en-US', { 
+        timeZone: 'Asia/Bangkok', 
+        year: 'numeric', 
+        month: 'numeric', 
+        day: 'numeric' 
+      }).formatToParts(d);
+      
+      let day, month, year;
+      parts.forEach(p => {
+        if (p.type === 'day') day = parseInt(p.value, 10);
+        if (p.type === 'month') month = parseInt(p.value, 10);
+        if (p.type === 'year') year = parseInt(p.value, 10);
+      });
+      
       const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+      return `${day} ${months[month - 1]} ${year + 543}`;
     };
 
     const getThaiTime = (dateString, addMinutes = 0) => {
       if (!dateString) return '-';
       const d = new Date(dateString);
       if (isNaN(d)) return '-';
+      
+      // บวกนาทีเพิ่มก่อนแปลงเป็นเวลาไทย
       d.setMinutes(d.getMinutes() + addMinutes); 
-      return `${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
+      
+      const timeString = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(d);
+      
+      return timeString.replace(':', '.');
     };
+    // -------------------------------------------------------------
 
     const renderCalibImage = async (fileUrl, x, y, w, h) => {
       if (fileUrl) {
@@ -89,18 +116,62 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
 
     inspections.forEach((item, index) => {
       let brokenList = [];
-      let isBroken = false;
       
-      equipmentMap.forEach(eq => {
-        const val = (item[eq.field] || '').toString().trim().toLowerCase();
-        if (val === 'o' || val === 'ชำรุด' || val === '0' || val === 'ไม่ผ่าน' || val === 'ไม่ถูกต้อง') {
-          isBroken = true;
-          brokenList.push(eq.label);
+      const equipNames = {
+        power: "ระบบไฟฟ้าภายนอกภายใน",
+        sta_cpu: "CPU Status",
+        sta_ai: "AI Status",
+        sta_di: "DI Status",
+        sta_do: "DO Status",
+        sta_io: "IO Status",
+        sta_m1: "Modem 1",
+        sta_m2: "Modem 2",
+        plc: "RTU PLC",
+        sta_p1: "Power Supply 1",
+        sta_p2: "Power Supply 2",
+        sta_cctv1: "CCTV1",
+        sta_cctv2: "CCTV2",
+        sta_r: "Rain Gauge",
+        sta_s: "Surge Protection",
+        sta_wl: "Water Level (bubble)",
+        sta_tro: "ท่อลม",
+        sta_gass: "ถังแก๊ส",
+        sta_wl2: "Water Level (float)",
+        sta_saling: "สายสลิง",
+        sta_wl1: "Water Level (Radar)"
+      };
+
+      const isBrokenValue = (val) => {
+        const v = (val || '').toString().trim().toLowerCase();
+        return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง';
+      };
+
+      Object.keys(equipNames).forEach(key => {
+        if (isBrokenValue(item[key])) {
+          brokenList.push(equipNames[key]);
         }
       });
-      
-      // --- แก้ไขเงื่อนไขข้อความตามที่แจ้งมาครับ ---
-      const statusText = isBroken ? 'ใช้ไม่ได้' : 'ใช้ได้';
+
+      let isSystemBroken = false;
+
+      const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
+      if (groupA.some(key => isBrokenValue(item[key]))) {
+        isSystemBroken = true;
+      }
+
+      const m1 = (item.sta_m1 || '').toString().trim().toLowerCase();
+      const m2 = (item.sta_m2 || '').toString().trim().toLowerCase();
+      if (m1 !== 'p' && m2 !== 'p') {
+        isSystemBroken = true;
+      }
+
+      const p1 = (item.sta_p1 || '').toString().trim().toLowerCase();
+      const p2 = (item.sta_p2 || '').toString().trim().toLowerCase();
+      if (p1 !== 'p' && p2 !== 'p') {
+        isSystemBroken = true;
+      }
+
+      const statusText = isSystemBroken ? 'ใช้ไม่ได้' : 'ใช้ได้';
       
       let cleanStatus = item.clean || '-';
       const cleanLower = cleanStatus.toLowerCase();
