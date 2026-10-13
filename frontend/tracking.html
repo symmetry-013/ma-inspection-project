@@ -54,7 +54,7 @@
         let map; let markersLayer; let allStationData = []; let currentStatusSelection = 'ALL'; let isDashboardOpen = true;
         const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลจำลองให้แสดงผล', location: '-', basin: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
 
-        // === นำเข้าเงื่อนไขกลุ่มอุปกรณ์แบบเดียวกับ PDF ===
+        // === ตั้งค่ากลุ่มอุปกรณ์ ===
         const equipNames = {
             power: "ระบบไฟฟ้าภายนอกภายใน", sta_cpu: "CPU Status", sta_ai: "AI Status", sta_di: "DI Status",
             sta_do: "DO Status", sta_io: "IO Status", sta_m1: "Modem 1", sta_m2: "Modem 2", plc: "RTU PLC",
@@ -79,7 +79,6 @@
             if (!map) return;
             document.getElementById('refreshIcon').classList.add('spin');
             try {
-                // แก้ให้เติม timestamp ป้องกัน Cache
                 const response = await fetch(`https://ma-inspection-project.onrender.com/api/inspections?t=${new Date().getTime()}`);
                 const result = await response.json();
                 if (result.success) {
@@ -92,18 +91,23 @@
                             if (isBrokenValue(row[key])) defectsList.push(equipNames[key]);
                         });
                         
-                        // ตรวจสอบสถานะกลุ่ม
                         let isSystemBroken = false;
+                        
+                        // กลุ่ม A
                         const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
-                        if (groupA.some(key => isBrokenValue(row[key]))) isSystemBroken = true;
+                        if (groupA.some(key => isBrokenValue(row[key]))) {
+                            isSystemBroken = true;
+                        }
 
-                        const m1 = (row.sta_m1 || '').toString().trim().toLowerCase();
-                        const m2 = (row.sta_m2 || '').toString().trim().toLowerCase();
-                        if (m1 !== 'p' && m2 !== 'p') isSystemBroken = true;
+                        // กลุ่ม B1: Modem (ต้อง O ทั้งคู่ถึงจะพัง)
+                        if (isBrokenValue(row.sta_m1) && isBrokenValue(row.sta_m2)) {
+                            isSystemBroken = true;
+                        }
 
-                        const p1 = (row.sta_p1 || '').toString().trim().toLowerCase();
-                        const p2 = (row.sta_p2 || '').toString().trim().toLowerCase();
-                        if (p1 !== 'p' && p2 !== 'p') isSystemBroken = true;
+                        // กลุ่ม B2: Power Supply (ต้อง O ทั้งคู่ถึงจะพัง)
+                        if (isBrokenValue(row.sta_p1) && isBrokenValue(row.sta_p2)) {
+                            isSystemBroken = true;
+                        }
 
                         transformedData.push({
                             code: row.id_name || '-', name: row.name_id || 'ไม่ระบุชื่อ', location: row.geoAddress || row.install_status || '-', basin: row.code || '-',

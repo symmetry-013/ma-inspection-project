@@ -20,7 +20,7 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.registerFont('ThaiBold', 'Helvetica-Bold');
     }
 
-    // --- แก้ไขการจัดการวันที่และเวลาให้บังคับเป็นโซน Asia/Bangkok เสมอ ---
+    // ฟังก์ชันจัดการเวลาให้เป็น Asia/Bangkok
     const getThaiDate = (dateString) => {
       if (!dateString) return '-';
       const d = new Date(dateString);
@@ -49,7 +49,6 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       const d = new Date(dateString);
       if (isNaN(d)) return '-';
       
-      // บวกนาทีเพิ่มก่อนแปลงเป็นเวลาไทย
       d.setMinutes(d.getMinutes() + addMinutes); 
       
       const timeString = new Intl.DateTimeFormat('en-GB', {
@@ -61,7 +60,6 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       
       return timeString.replace(':', '.');
     };
-    // -------------------------------------------------------------
 
     const renderCalibImage = async (fileUrl, x, y, w, h) => {
       if (fileUrl) {
@@ -146,28 +144,29 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
         return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง';
       };
 
+      // 1. ตรวจหาอุปกรณ์ทั้งหมดที่ชำรุดและเก็บชื่อ
       Object.keys(equipNames).forEach(key => {
         if (isBrokenValue(item[key])) {
           brokenList.push(equipNames[key]);
         }
       });
 
+      // 2. คำนวณความพร้อมใช้งาน (statusText)
       let isSystemBroken = false;
 
+      // กลุ่ม A: ถ้าตัวใดตัวหนึ่งชำรุด (O) ถือว่าระบบใช้ไม่ได้ทันที
       const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
       if (groupA.some(key => isBrokenValue(item[key]))) {
         isSystemBroken = true;
       }
 
-      const m1 = (item.sta_m1 || '').toString().trim().toLowerCase();
-      const m2 = (item.sta_m2 || '').toString().trim().toLowerCase();
-      if (m1 !== 'p' && m2 !== 'p') {
+      // กลุ่ม B1: Modem (ต้องชำรุด 'O' ทั้งคู่เท่านั้น ระบบถึงจะใช้ไม่ได้)
+      if (isBrokenValue(item.sta_m1) && isBrokenValue(item.sta_m2)) {
         isSystemBroken = true;
       }
 
-      const p1 = (item.sta_p1 || '').toString().trim().toLowerCase();
-      const p2 = (item.sta_p2 || '').toString().trim().toLowerCase();
-      if (p1 !== 'p' && p2 !== 'p') {
+      // กลุ่ม B2: Power Supply (ต้องชำรุด 'O' ทั้งคู่เท่านั้น ระบบถึงจะใช้ไม่ได้)
+      if (isBrokenValue(item.sta_p1) && isBrokenValue(item.sta_p2)) {
         isSystemBroken = true;
       }
 
