@@ -61,9 +61,8 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label class="text-sm font-semibold text-gray-400 block mb-1">ปีงบประมาณ</label>
+                        <!-- เปลี่ยนเป็น Select เปล่าๆ เพื่อให้ JavaScript เติมข้อมูลอัตโนมัติ -->
                         <select id="contractYearSelect" required class="w-full p-3 rounded-md input-neon">
-                            <option value="2567">2567</option>
-                            <option value="2568">2568</option>
                         </select>
                     </div>
                     <div>
@@ -131,6 +130,35 @@
         const btnFetchMam = document.getElementById("btnFetchMam");
         const btnSubmit = document.getElementById("btnSubmit");
         const tasksContainer = document.getElementById("tasksContainer");
+
+        // --- ตั้งค่า Dropdown ปีงบประมาณ (เริ่ม 2568 ถึง +10 ปี) ---
+        const startYear = 2568;
+        const totalYears = 10;
+        const currentDate = new Date();
+        
+        // คำนวณปีงบประมาณปัจจุบัน (ถ้าเดือน ตุลาคม-ธันวาคม ให้ปัดเป็นปีงบประมาณถัดไป)
+        // getMonth() คืนค่า 0-11 (เดือน 9 คือ ตุลาคม)
+        let currentThaiFiscalYear = currentDate.getFullYear() + 543;
+        if (currentDate.getMonth() >= 9) { 
+            currentThaiFiscalYear += 1;
+        }
+
+        // วนลูปสร้าง Option
+        for (let i = 0; i <= totalYears; i++) {
+            const year = startYear + i;
+            const opt = document.createElement("option");
+            opt.value = year;
+            opt.textContent = year;
+            contractYearSelect.appendChild(opt);
+        }
+
+        // ตั้งค่าเริ่มต้นเป็นปีปัจจุบัน (ถ้าอยู่ในช่วง 2568 - 2578)
+        if (currentThaiFiscalYear >= startYear && currentThaiFiscalYear <= startYear + totalYears) {
+            contractYearSelect.value = currentThaiFiscalYear;
+        } else {
+            // ถ้าหลุดช่วง ให้เลือกปีเริ่มต้นหรือปีล่าสุดตามความเหมาะสม
+            contractYearSelect.value = currentThaiFiscalYear > startYear + totalYears ? startYear + totalYears : startYear;
+        }
 
         // --- ตั้งค่า Dropdown จาก constants.js ---
         if (typeof hardcodedBasins !== 'undefined') {
@@ -203,6 +231,7 @@
                 
                 if(response.ok && result.success) {
                     // กรองข้อมูลเฉพาะ งวด และ รหัสสถานี ที่ต้องการ
+                    // หมายเหตุ: หาก Backend มีการแยกปีด้วย สามารถเพิ่มเงื่อนไข && d.year === year ได้
                     const stationData = result.data.find(d => d.saya === period && d.id_name === stationId);
 
                     if (stationData) {
