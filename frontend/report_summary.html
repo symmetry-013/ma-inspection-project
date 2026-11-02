@@ -12,6 +12,9 @@
     <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     
+    <!-- เชื่อมต่อข้อมูลส่วนกลาง (ลุ่มน้ำ, สถานี) -->
+    <script src="constants.js"></script>
+    
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Prompt', sans-serif; }
     </style>
@@ -47,7 +50,7 @@
                 <label class="block text-sm font-semibold text-slate-300">🌊 กลุ่มลุ่มน้ำ</label>
                 <select id="basinSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
                     <option value="all" class="font-bold text-emerald-400">✨ สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
-                    <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript -->
+                    <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript จาก constants.js -->
                 </select>
             </div>
         </div>
@@ -60,22 +63,19 @@
         </div>
     </div>
 
-    <!-- ลบ type="module" ออก และกลับมาใช้ Script ธรรมดา -->
     <script>
-        const basins = [
-            "เจ้าพระยา", "เพชรบุรี-ประจวบคีรีขันธ์", "แม่กลอง", "โขงเหนือ", "โขงอีสาน",
-            "โตนเลสาป", "ภาคใต้ฝั่งตะวันตก", "ชายทะเลฝั่งตะวันออก", "ชี", "ทะเลสาบสงขลา",
-            "ท่าจีน", "น่าน", "บางปะกง", "ป่าสัก", "ปิง", "ภาคใต้ฝั่งตะวันออกตอนบน",
-            "ภาคใต้ฝั่งตะวันออกตอนล่าง", "มูล", "ยม", "วัง", "สะแกกรัง", "สาละวิน", "KRC"
-        ];
-
+        // ดึงรายชื่อลุ่มน้ำจากไฟล์ constants.js มาสร้างเป็น Option อัตโนมัติ
         const basinSelect = document.getElementById('basinSelect');
-        basins.forEach(b => {
-            const opt = document.createElement('option');
-            opt.value = b;
-            opt.textContent = b;
-            basinSelect.appendChild(opt);
-        });
+        if (typeof hardcodedBasins !== 'undefined') {
+            hardcodedBasins.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b;
+                opt.textContent = b;
+                basinSelect.appendChild(opt);
+            });
+        } else {
+            console.error("ไม่พบข้อมูล hardcodedBasins โปรดตรวจสอบไฟล์ constants.js");
+        }
 
         function downloadPDF() {
             const term = document.getElementById('termSelect').value;
@@ -83,12 +83,12 @@
             
             const baseUrl = 'https://ma-inspection-project.onrender.com';
             
-            // 👇 แก้ไขบรรทัดนี้: เพิ่ม &t=${new Date().getTime()} เพื่อป้องกันเบราว์เซอร์จำไฟล์เก่า
+            // เพิ่ม &t=timestamp เพื่อป้องกันเบราว์เซอร์จำไฟล์เก่า (Cache)
             const url = `${baseUrl}/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&t=${new Date().getTime()}`;
             
             Swal.fire({
                 title: 'กำลังเปิดเพื่อดาวน์โหลด',
-                html: '<span style="color: #cbd5e1;">ระบบจะเปิดเบราว์เซอร์ของเครื่องขึ้นมา<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า "Render" <b>ไม่ต้องตกใจ ให้รอประมาณ 30-50 วินาที</b> เพื่อให้เซิร์ฟเวอร์ทำงาน<br><br>เมื่อดาวน์โหลดเสร็จแล้ว <b>ให้กดปุ่มย้อนกลับของมือถือ</b> เพื่อกลับเข้าแอปครับ</span>',
+                html: '<span style="color: #cbd5e1;">ระบบจะเปิดหน้าต่างใหม่ขึ้นมา<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า "Render" <b>ไม่ต้องตกใจ ให้รอประมาณ 30-50 วินาที</b> เพื่อให้เซิร์ฟเวอร์สร้าง PDF<br><br>เมื่อดาวน์โหลดเสร็จแล้ว สามารถกลับมาใช้งานหน้านี้ต่อได้เลยครับ</span>',
                 icon: 'info',
                 background: '#1e293b',
                 color: '#fff',
@@ -96,7 +96,8 @@
                 confirmButtonText: 'รับทราบ เปิดเลย'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.open(url, '_system');
+                    // เปลี่ยนจาก _system เป็น _blank เพื่อให้รองรับเว็บบราวเซอร์มาตรฐานทุกตัว
+                    window.open(url, '_blank');
                 }
             });
         }
