@@ -45,10 +45,9 @@ const upload = multer({ storage: storage });
 // ==========================================
 // 3. เชื่อมต่อ MongoDB และสร้าง Schema
 // ==========================================
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ma_inspection', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log('✅ เชื่อมต่อ MongoDB สำเร็จ'))
+// แก้ไข: นำ Option ที่เลิกใช้งานแล้วออกสำหรับ Mongoose v8+
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ma_inspection')
+  .then(() => console.log('✅ เชื่อมต่อ MongoDB สำเร็จ'))
   .catch(err => console.error('❌ ข้อผิดพลาดในการเชื่อมต่อ MongoDB:', err));
 
 // ใช้ strict: false เพื่อให้รองรับฟิลด์ไดนามิก (ข้อมูลอุปกรณ์) จากฟอร์มได้ทั้งหมด
