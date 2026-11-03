@@ -3,118 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบรายงานผลสอบเทียบ | Calibration Report</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ระบบรายงานผลสอบเทียบ</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- SweetAlert2 (Light Theme) -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+    
     <script src="constants.js"></script>
 
     <script>
         tailwind.config = {
-            theme: { extend: { fontFamily: { sans: ['Prompt', 'sans-serif'] }, colors: { neon: { gold: '#cca43b', darkgold: '#b89334', bg: '#0f1012', card: '#1a1c20', input: '#000000', border: '#333333' } }, boxShadow: { 'neon-gold': '0 0 5px #cca43b, 0 0 10px rgba(204, 164, 59, 0.4)' } } }
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                    colors: { 
+                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' },
+                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
+                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' }
+                    }
+                } 
+            }
         }
     </script>
     <style>
-        body { background-color: #0f1012; color: #ffffff; font-family: 'Prompt', sans-serif; -webkit-overflow-scrolling: touch; }
-        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #0f1012; } ::-webkit-scrollbar-thumb { background: #cca43b; border-radius: 4px; }
-        .input-neon { background-color: #000000; border: 1px solid #333; color: #ffffff; transition: all 0.3s ease; }
-        .input-neon:focus { outline: none; border-color: #cca43b; box-shadow: 0 0 8px rgba(204, 164, 59, 0.6); }
-        .input-neon:disabled, .input-neon[readonly] { background-color: #1a1c20; border-color: #222; color: #666; }
-        input[type="file"] { padding: 8px; font-size: 0.85rem; width: 100%; color: #888; }
-        input[type="file"]::file-selector-button { background-color: #333; color: #fff; border: 1px solid #555; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-right: 15px; transition: all 0.3s; }
-        input[type="file"]::file-selector-button:hover { background-color: #cca43b; border-color: #cca43b; color: #000; }
-        .btn-neon-submit { background: linear-gradient(135deg, #cca43b, #b89334); border: none; color: #000; transition: all 0.3s ease; }
-        .btn-neon-submit:hover { transform: scale(1.02); box-shadow: 0 0 15px rgba(204, 164, 59, 0.6); color: #000; }
-        .btn-neon-submit:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
-        .glass-header { background: rgba(15, 16, 18, 0.95); border-bottom: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .card-container { background-color: #1a1c20; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body {
+            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
+            background-color: #fffbeb; 
+            color: #334155;
+            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
+
+        /* 3D Container Cards */
+        .puffy-container {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+            margin-bottom: 24px;
+        }
+
+        /* 3D Input Fields (ทั่วไป) */
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #fbbf24; /* Amber */
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);
+        }
+        .puffy-input:disabled, .puffy-input[readonly] {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border-color: #e2e8f0;
+        }
+
+        /* 3D Input Fields (แบบตัวเลข มีสีเฉพาะ) */
+        .input-num-sky { background-color: #f0f9ff; border-color: #bae6fd; color: #0284c7; }
+        .input-num-sky:focus { border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
+        
+        .input-num-emerald { background-color: #ecfdf5; border-color: #a7f3d0; color: #059669; }
+        .input-num-emerald:focus { border-color: #34d399; box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2); }
+
+        .input-num-violet { background-color: #f5f3ff; border-color: #ddd6fe; color: #7c3aed; }
+        .input-num-violet:focus { border-color: #a78bfa; box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.2); }
+
+        /* 3D File Input */
+        input[type="file"] { 
+            padding: 8px; font-size: 0.85rem; width: 100%; color: #64748b; 
+            background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+        }
+        input[type="file"]::file-selector-button { 
+            background-color: #ffffff; color: #475569; font-weight: 700;
+            border: 2px solid #cbd5e1; padding: 8px 16px; border-radius: 10px; 
+            cursor: pointer; margin-right: 15px; transition: all 0.2s;
+            box-shadow: 0 2px 0 #cbd5e1;
+        }
+        input[type="file"]::file-selector-button:hover { 
+            background-color: #f1f5f9; border-color: #94a3b8; color: #334155; transform: translateY(1px); box-shadow: 0 1px 0 #94a3b8;
+        }
+
+        /* 3D Submit Button (สีเหลืองทอง น่ารักๆ) */
+        .btn-puffy-submit {
+            background-color: #facc15;
+            color: #713f12; /* น้ำตาลเข้ม */
+            border-radius: 20px;
+            box-shadow: 0 8px 0 #ca8a04;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 4px solid #fef08a;
+        }
+        .btn-puffy-submit:active:not(:disabled) { transform: translateY(8px); box-shadow: 0 0px 0 #ca8a04; }
+        .btn-puffy-submit:disabled { background-color: #fde047; box-shadow: 0 8px 0 #facc15; border-color: #fef08a; cursor: not-allowed; opacity: 0.6; }
+
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
-    <header class="glass-header sticky top-0 z-50 py-4">
-        <div class="container mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <a href="index.html" class="w-10 h-10 rounded-lg bg-gray-800 border border-gray-600 flex items-center justify-center hover:bg-gray-700 transition"><i class="fas fa-arrow-left text-white"></i></a>
-                <div class="w-12 h-12 rounded-lg bg-black border border-neon-gold flex items-center justify-center shadow-neon-gold"><i class="fas fa-satellite-dish text-neon-gold text-xl"></i></div>
-                <div><h1 class="text-xl md:text-2xl font-bold tracking-wide text-white uppercase">Telemetry <span class="text-neon-gold">Calibration</span></h1></div>
+    
+    <!-- Header สไตล์ 3D Cartoon -->
+    <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
+        <div class="container mx-auto px-4 flex justify-between items-center max-w-5xl">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1">
+                    <i class="ph-bold ph-caret-left text-2xl"></i>
+                </a>
+                <div class="hidden md:flex w-12 h-12 rounded-2xl bg-emerald-100 border-2 border-emerald-300 items-center justify-center shadow-sm">
+                    <i class="ph-fill ph-ruler text-emerald-500 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                        สอบเทียบ <span class="text-emerald-500">ระดับน้ำและฝน</span>
+                    </h1>
+                </div>
             </div>
         </div>
     </header>
 
     <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow">
-        <form id="calibrationForm" onsubmit="handleFormSubmit(event)" enctype="multipart/form-data" class="space-y-8">
-            <div class="card-container rounded-xl p-6 relative">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-neon-gold mr-3 shadow-neon-gold"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider flex items-center"><i class="fas fa-map-marker-alt mr-2 text-neon-gold"></i> ข้อมูลสถานี</h2></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="text-sm font-semibold text-gray-300">งวดตรวจงาน MA</label>
-                        <select name="myDataPeriod" id="myDataPeriod" required class="w-full p-3 rounded-md input-neon"><option selected disabled value="">-- เลือกงวดตรวจงาน --</option><option>งวดที่1</option><option>งวดที่2</option><option>งวดที่3</option><option>งวดที่4</option></select>
+        <form id="calibrationForm" onsubmit="handleFormSubmit(event)" enctype="multipart/form-data" class="space-y-6">
+            
+            <!-- ส่วนที่ 1: ข้อมูลสถานี -->
+            <div class="puffy-container p-6 md:p-8">
+                <h2 class="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+                    <i class="ph-fill ph-map-pin text-amber-500 text-2xl"></i> ข้อมูลสถานี
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-bold text-slate-600">งวดตรวจงาน MA</label>
+                        <select name="myDataPeriod" id="myDataPeriod" required class="w-full p-3 rounded-xl puffy-input">
+                            <option selected disabled value="">-- เลือกงวดตรวจงาน --</option>
+                            <option>งวดที่1</option><option>งวดที่2</option><option>งวดที่3</option><option>งวดที่4</option>
+                        </select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">กลุ่มลุ่มน้ำ</label>
-                        <select name="myData0" id="myData0" required class="w-full p-3 rounded-md input-neon"></select>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">กลุ่มลุ่มน้ำ</label>
+                        <select name="myData0" id="myData0" required class="w-full p-3 rounded-xl puffy-input"></select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">รหัสสถานี</label>
-                        <!-- เปลี่ยนเป็น select -->
-                        <select name="myData1" id="myData1" required disabled class="w-full p-3 rounded-md input-neon">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">รหัสสถานี</label>
+                        <select name="myData1" id="myData1" required disabled class="w-full p-3 rounded-xl puffy-input">
                             <option value="" disabled selected>-- เลือกรหัสสถานี --</option>
                         </select>
                     </div>
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="text-sm font-semibold text-gray-300">ชื่อสถานี</label>
-                        <input type="text" name="myData2" id="myData2" readonly placeholder="ชื่อสถานีจะปรากฏอัตโนมัติ" class="w-full p-3 rounded-md bg-black border border-neon-gold text-neon-gold font-bold text-center text-lg">
+                    <div class="space-y-1.5 md:col-span-2 mt-2">
+                        <label class="text-sm font-bold text-slate-600">ชื่อสถานี</label>
+                        <input type="text" name="myData2" id="myData2" readonly placeholder="ชื่อสถานีจะปรากฏอัตโนมัติ" 
+                               class="w-full p-4 rounded-xl bg-amber-50 border-2 border-amber-200 text-amber-600 font-extrabold text-center text-lg focus:outline-none">
                     </div>
-                    <div class="space-y-2 md:col-span-2">
-                        <label class="text-sm font-semibold text-gray-300">ที่ตั้งอาคาร</label>
-                        <select name="myData3" id="myData3" required class="w-full p-3 rounded-md input-neon"><option selected disabled value="">-- เลือกที่ตั้งของอาคาร --</option><option>เหนือน้ำ</option><option>ท้ายน้ำ</option><option>ปกติ</option></select>
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-bold text-slate-600">ที่ตั้งอาคาร</label>
+                        <select name="myData3" id="myData3" required class="w-full p-3 rounded-xl puffy-input">
+                            <option selected disabled value="">-- เลือกที่ตั้งของอาคาร --</option>
+                            <option>เหนือน้ำ</option><option>ท้ายน้ำ</option><option>ปกติ</option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <!-- ส่วนรับข้อมูลภาพและข้อมูลต่างๆ (เหมือนเดิม) -->
-            <div class="card-container rounded-xl p-6">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-blue-500 mr-3 shadow-neon-blue"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider flex items-center"><i class="fas fa-water mr-2 text-blue-500"></i> สอบเทียบระดับน้ำ ครั้งที่ 1</h2></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าระดับน้ำเสาวัด (Staff Gauge)</label><input type="text" name="myData4" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-blue-400">รูปถ่ายเสาวัดระดับน้ำ <i class="fas fa-camera"></i></label><input type="file" name="myFile" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าระดับน้ำจาก RTU</label><input type="text" name="myData5" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-blue-400">รูปถ่ายจาก RTU <i class="fas fa-camera"></i></label><input type="file" name="myFile2" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าระดับน้ำจาก Website</label><input type="text" name="myData6" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-blue-400">รูปถ่ายจาก Website <i class="fas fa-camera"></i></label><input type="file" name="myFile3" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2 md:col-span-2"><label class="text-sm font-semibold text-gray-300">หมายเหตุ (Optional)</label><textarea name="myData7" rows="2" class="w-full p-3 rounded-md input-neon" placeholder="ระบุหมายเหตุเพิ่มเติม..."></textarea></div>
+            <!-- ส่วนที่ 2: สอบเทียบระดับน้ำ ครั้งที่ 1 -->
+            <div class="puffy-container p-6 md:p-8 border-t-8 border-t-sky-400">
+                <h2 class="text-xl font-bold text-sky-600 mb-5 flex items-center gap-2 border-b-2 border-sky-100 pb-3">
+                    <i class="ph-fill ph-waves text-2xl"></i> สอบเทียบระดับน้ำ ครั้งที่ 1
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าระดับน้ำเสาวัด (Staff Gauge)</label>
+                        <input type="text" name="myData4" class="w-full p-3 rounded-xl input-num-sky puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-sky-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายเสาวัดระดับน้ำ</label>
+                        <input type="file" name="myFile" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าระดับน้ำจาก RTU</label>
+                        <input type="text" name="myData5" class="w-full p-3 rounded-xl input-num-sky puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-sky-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายจาก RTU</label>
+                        <input type="file" name="myFile2" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าระดับน้ำจาก Website</label>
+                        <input type="text" name="myData6" class="w-full p-3 rounded-xl input-num-sky puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-sky-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายจาก Website</label>
+                        <input type="file" name="myFile3" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5 md:col-span-2 pt-2 border-t-2 border-sky-50">
+                        <label class="text-sm font-bold text-slate-600">หมายเหตุ (ถ้ามี)</label>
+                        <textarea name="myData7" rows="2" class="w-full p-3 rounded-xl puffy-input" placeholder="พิมพ์ข้อความ..."></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="card-container rounded-xl p-6">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-green-500 mr-3"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider flex items-center"><i class="fas fa-redo mr-2 text-green-500"></i> สอบเทียบระดับน้ำ ครั้งที่ 2</h2></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าระดับน้ำเสาวัด (Staff Gauge)</label><input type="text" name="myData8" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-green-400">รูปถ่ายเสาวัดระดับน้ำ <i class="fas fa-camera"></i></label><input type="file" name="myFile4" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าระดับน้ำจาก RTU</label><input type="text" name="myData9" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-green-400">รูปถ่ายจาก RTU <i class="fas fa-camera"></i></label><input type="file" name="myFile5" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าระดับน้ำจาก Website</label><input type="text" name="myData10" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-green-400">รูปถ่ายจาก Website <i class="fas fa-camera"></i></label><input type="file" name="myFile6" class="w-full input-neon rounded-md" accept="image/*"></div>
+            <!-- ส่วนที่ 3: สอบเทียบระดับน้ำ ครั้งที่ 2 -->
+            <div class="puffy-container p-6 md:p-8 border-t-8 border-t-emerald-400">
+                <h2 class="text-xl font-bold text-emerald-600 mb-5 flex items-center gap-2 border-b-2 border-emerald-100 pb-3">
+                    <i class="ph-fill ph-arrows-clockwise text-2xl"></i> สอบเทียบระดับน้ำ ครั้งที่ 2
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าระดับน้ำเสาวัด (Staff Gauge)</label>
+                        <input type="text" name="myData8" class="w-full p-3 rounded-xl input-num-emerald puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-emerald-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายเสาวัดระดับน้ำ</label>
+                        <input type="file" name="myFile4" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าระดับน้ำจาก RTU</label>
+                        <input type="text" name="myData9" class="w-full p-3 rounded-xl input-num-emerald puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-emerald-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายจาก RTU</label>
+                        <input type="file" name="myFile5" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าระดับน้ำจาก Website</label>
+                        <input type="text" name="myData10" class="w-full p-3 rounded-xl input-num-emerald puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-emerald-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายจาก Website</label>
+                        <input type="file" name="myFile6" class="w-full" accept="image/*">
+                    </div>
                 </div>
             </div>
 
-            <div class="card-container rounded-xl p-6">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-cyan-400 mr-3"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider flex items-center"><i class="fas fa-cloud-rain mr-2 text-cyan-400"></i> สอบเทียบค่าน้ำฝน (Rainfall)</h2></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2 md:col-span-2"><label class="text-sm font-semibold text-gray-300">จำนวนเคาะจากกระบอกน้ำฝน</label><input type="text" name="myData11" class="w-full p-3 rounded-md input-neon text-center font-bold text-xl text-cyan-400" placeholder="จำนวนครั้ง" oninput="this.value = this.value.replace(/[^0-9\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าน้ำฝนจาก RTU</label><input type="text" name="myData12" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-cyan-400">รูปถ่ายจาก RTU <i class="fas fa-camera"></i></label><input type="file" name="myFile7" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ค่าน้ำฝนจาก Website</label><input type="text" name="myData13" class="w-full p-3 rounded-md input-neon" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');"></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300 text-cyan-400">รูปถ่ายจาก Website <i class="fas fa-camera"></i></label><input type="file" name="myFile8" class="w-full input-neon rounded-md" accept="image/*"></div>
-                    <div class="space-y-2 md:col-span-2"><label class="text-sm font-semibold text-gray-300">หมายเหตุค่าน้ำฝน</label><textarea name="myData14" rows="2" class="w-full p-3 rounded-md input-neon" placeholder="ระบุหมายเหตุเพิ่มเติม..."></textarea></div>
+            <!-- ส่วนที่ 4: สอบเทียบค่าน้ำฝน -->
+            <div class="puffy-container p-6 md:p-8 border-t-8 border-t-violet-400">
+                <h2 class="text-xl font-bold text-violet-600 mb-5 flex items-center gap-2 border-b-2 border-violet-100 pb-3">
+                    <i class="ph-fill ph-cloud-rain text-2xl"></i> สอบเทียบค่าน้ำฝน (Rainfall)
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5 md:col-span-2 mb-2">
+                        <label class="text-sm font-bold text-slate-600 text-center block">จำนวนเคาะจากกระบอกน้ำฝน (ครั้ง)</label>
+                        <input type="text" name="myData11" class="w-full md:w-1/2 mx-auto block p-4 rounded-xl input-num-violet puffy-input font-extrabold text-center text-2xl" placeholder="0" oninput="this.value = this.value.replace(/[^0-9\-]/g, '');">
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าน้ำฝนจาก RTU</label>
+                        <input type="text" name="myData12" class="w-full p-3 rounded-xl input-num-violet puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-violet-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายจาก RTU</label>
+                        <input type="file" name="myFile7" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ค่าน้ำฝนจาก Website</label>
+                        <input type="text" name="myData13" class="w-full p-3 rounded-xl input-num-violet puffy-input font-bold text-center text-lg" placeholder="0.00" oninput="this.value = this.value.replace(/[^0-9.\-]/g, '');">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-violet-500 flex items-center gap-1"><i class="ph-bold ph-camera"></i> รูปถ่ายจาก Website</label>
+                        <input type="file" name="myFile8" class="w-full" accept="image/*">
+                    </div>
+                    
+                    <div class="space-y-1.5 md:col-span-2 pt-2 border-t-2 border-violet-50">
+                        <label class="text-sm font-bold text-slate-600">หมายเหตุค่าน้ำฝน (ถ้ามี)</label>
+                        <textarea name="myData14" rows="2" class="w-full p-3 rounded-xl puffy-input" placeholder="พิมพ์ข้อความ..."></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="py-6 flex justify-center">
-                <button type="submit" id="submitBtn" class="btn-neon-submit w-full md:w-2/3 rounded-full py-4 font-bold text-lg shadow-neon-gold flex items-center justify-center gap-3">
-                    <i class="fas fa-paper-plane"></i> ยืนยันการส่งข้อมูลสอบเทียบ
+            <!-- ปุ่มยืนยัน -->
+            <div class="pb-10 pt-2 flex justify-center">
+                <button type="submit" id="submitBtn" class="btn-puffy-submit w-full md:w-3/4 rounded-2xl py-5 font-extrabold text-xl flex items-center justify-center gap-3">
+                    <i class="ph-bold ph-paper-plane-tilt text-2xl"></i> ยืนยันการส่งข้อมูลสอบเทียบ
                 </button>
             </div>
         </form>
@@ -126,19 +308,20 @@
         const stationNameInput = document.getElementById("myData2");
 
         basinSelect.innerHTML = '<option selected disabled value="">-- เลือกกลุ่มลุ่มน้ำ --</option>';
-        hardcodedBasins.forEach(b => { basinSelect.innerHTML += `<option value="${b}">${b}</option>`; });
+        if (typeof hardcodedBasins !== 'undefined') {
+            hardcodedBasins.forEach(b => { basinSelect.innerHTML += `<option value="${b}">${b}</option>`; });
+        }
         basinSelect.innerHTML += '<option value="">ไม่มี</option><option value="ไม่ทราบ">ไม่ทราบ</option>';
 
         basinSelect.addEventListener("change", () => {
             const selectedBasin = basinSelect.value.trim();
             stationInput.innerHTML = '<option value="" disabled selected>-- เลือกรหัสสถานี --</option>';
             stationNameInput.value = "";
-            if (stationsData[selectedBasin]) {
+            if (typeof stationsData !== 'undefined' && stationsData[selectedBasin]) {
                 stationInput.disabled = false;
                 for (let code in stationsData[selectedBasin]) {
                     const opt = document.createElement("option");
-                    opt.value = code;
-                    opt.textContent = code;
+                    opt.value = code; opt.textContent = code;
                     stationInput.appendChild(opt);
                 }
             } else { stationInput.disabled = true; }
@@ -147,7 +330,7 @@
         stationInput.addEventListener("change", () => {
             const selectedBasin = basinSelect.value.trim();
             const code = stationInput.value.trim();
-            if (stationsData[selectedBasin] && stationsData[selectedBasin][code]) {
+            if (typeof stationsData !== 'undefined' && stationsData[selectedBasin] && stationsData[selectedBasin][code]) {
                 stationNameInput.value = stationsData[selectedBasin][code];
             } else { stationNameInput.value = ""; }
         });
@@ -159,23 +342,61 @@
             const form = event.target;
             const formData = new FormData(form);
 
-            Swal.fire({ title: 'กำลังอัปโหลด...', text: 'ระบบกำลังบันทึกข้อมูลและอัปโหลดรูปภาพ', allowOutsideClick: false, background: '#1a1c20', color: '#fff', didOpen: () => Swal.showLoading() });
+            Swal.fire({ 
+                title: 'กำลังอัปโหลด... 🚀', 
+                text: 'ระบบกำลังบันทึกข้อมูลและรูปภาพ กรุณารอสักครู่', 
+                allowOutsideClick: false, 
+                didOpen: () => Swal.showLoading(),
+                customClass: {
+                    popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white',
+                    title: 'font-prompt font-extrabold text-amber-600',
+                    htmlContainer: 'font-prompt font-medium text-slate-500'
+                }
+            });
 
             try {
-                
+                // ปิดปุ่มระหว่างรอ
+                btn.disabled = true;
+                btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังส่งข้อมูล...';
+
                 const response = await fetch('https://ma-inspection-project.onrender.com/api/calibration', {
                     method: 'POST', body: formData 
                 });
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    Swal.fire({ icon: 'success', title: 'สอบเทียบสำเร็จ', text: result.message, background: '#1a1c20', color: '#fff', confirmButtonColor: '#cca43b' });
-                    form.reset(); stationInput.disabled = true;
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: 'สอบเทียบสำเร็จ! 🎉', 
+                        text: result.message || 'บันทึกข้อมูลเรียบร้อยแล้ว',
+                        confirmButtonColor: '#f59e0b',
+                        customClass: {
+                            popup: 'rounded-3xl border-4 border-white shadow-2xl',
+                            title: 'font-prompt font-extrabold text-emerald-600',
+                            confirmButton: 'font-prompt font-bold rounded-xl px-6'
+                        }
+                    });
+                    form.reset(); 
+                    stationInput.disabled = true;
+                    stationNameInput.value = "";
                 } else { throw new Error(result.message || 'การตอบกลับจากเซิร์ฟเวอร์ผิดพลาด'); }
             } catch (error) {
                 console.error('Submit Error:', error);
-                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.message, background: '#1a1c20', color: '#fff', confirmButtonColor: '#cca43b' });
-            } finally { btn.disabled = false; btn.innerHTML = originalText; }
+                Swal.fire({ 
+                    icon: 'error', 
+                    title: 'เกิดข้อผิดพลาด 😥', 
+                    text: error.message,
+                    confirmButtonColor: '#f43f5e',
+                    customClass: {
+                        popup: 'rounded-3xl border-4 border-white shadow-2xl',
+                        title: 'font-prompt font-extrabold text-rose-600',
+                        confirmButton: 'font-prompt font-bold rounded-xl px-6'
+                    } 
+                });
+            } finally { 
+                btn.disabled = false; 
+                btn.innerHTML = originalText; 
+            }
         }
     </script>
 </body>

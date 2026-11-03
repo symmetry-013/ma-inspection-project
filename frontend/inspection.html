@@ -3,106 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>โปรแกรมตรวจสอบอุปกรณ์ในสนามงาน MA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>โปรแกรมตรวจสอบอุปกรณ์ในสนาม</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- SweetAlert2 (Light Theme) -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
    
     <script src="constants.js"></script>
 
     <script>
         tailwind.config = {
-            theme: { extend: { fontFamily: { sans: ['Prompt', 'sans-serif'] }, colors: { neon: { red: '#FF3333', darkred: '#8B0000', blue: '#3388FF', green: '#00FF66', bg: '#0f1012', card: '#1a1c20', input: '#000000' } }, boxShadow: { 'neon-red': '0 0 5px #FF3333, 0 0 10px rgba(255, 51, 51, 0.5)' } } }
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }, 
+                    colors: { 
+                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e', 600: '#e11d48' },
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' }
+                    } 
+                } 
+            }
         }
     </script>
     <style>
-        body { background-color: #0f1012; color: #ffffff; font-family: 'Prompt', sans-serif; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f1012; }
-        ::-webkit-scrollbar-thumb { background: #FF3333; border-radius: 4px; }
-        .input-neon { background-color: #000000; border: 1px solid #444; color: #ffffff; transition: all 0.3s ease; }
-        .input-neon:focus { outline: none; border-color: #FF3333; box-shadow: 0 0 8px rgba(255, 51, 51, 0.6); }
-        .input-neon:disabled { background-color: #1a1c20; border-color: #333; color: #666; }
+        body {
+            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
+            background-color: #fffbeb; 
+            color: #334155;
+            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+        
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
+
+        /* 3D Container Card */
+        .puffy-container {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+            margin-bottom: 24px;
+        }
+        
+        /* 3D Container ย่อย (สำหรับ Radio Groups) */
+        .sub-puffy-container {
+            background-color: #f8fafc;
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .sub-puffy-container:hover {
+            border-color: #bae6fd;
+            background-color: #f0f9ff;
+        }
+
+        /* 3D Input Fields */
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+        }
+        .puffy-input:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border-color: #e2e8f0;
+        }
+
+        /* 3D Number Input แบบมีสีเฉพาะ */
+        .input-number-blue { background-color: #f0f9ff; border-color: #bae6fd; color: #0284c7; }
+        .input-number-blue:focus { border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
+        .input-number-red { background-color: #fff1f2; border-color: #fecaca; color: #e11d48; }
+        .input-number-red:focus { border-color: #fb7185; box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.2); }
+
+        /* 3D Radio Buttons (Claymorphism) */
         .radio-neon-label { cursor: pointer; position: relative; }
-        .radio-neon-content { background: #1a1c20; border: 1px solid #333; color: #888; transition: all 0.3s ease; position: relative; overflow: hidden; }
-        .radio-neon-label:hover .radio-neon-content { border-color: #666; color: #fff; }
-        .radio-none:checked + .radio-neon-content { background: #2a2a2a; border-color: #666; color: #ccc; }
-        .radio-normal:checked + .radio-neon-content { background: rgba(0, 255, 102, 0.1); border-color: #00FF66; color: #00FF66; font-weight: bold; }
-        .radio-broken:checked + .radio-neon-content { background: rgba(255, 51, 51, 0.1); border-color: #FF3333; color: #FF3333; font-weight: bold; }
-        .btn-neon-submit { background: linear-gradient(90deg, #8B0000, #FF3333); border: none; color: white; transition: all 0.3s ease; }
-        .btn-neon-submit:hover { transform: scale(1.02); box-shadow: 0 0 15px #FF3333; }
-        .btn-neon-submit:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
-        .glass-header { background: rgba(15, 16, 18, 0.95); border-bottom: 1px solid #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .card-container { background-color: #1a1c20; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .radio-neon-content { 
+            background: #ffffff; 
+            border: 2px solid #e2e8f0; 
+            color: #64748b; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            font-weight: 600;
+            border-radius: 12px;
+        }
+        .radio-neon-label:hover .radio-neon-content { border-color: #cbd5e1; transform: translateY(-2px); }
+        .radio-neon-label:active .radio-neon-content { transform: translateY(2px); box-shadow: none; }
+        
+        /* State: ไม่มี (เทา) */
+        .radio-none:checked + .radio-neon-content { 
+            background: #f1f5f9; border-color: #cbd5e1; color: #475569; 
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.05); transform: translateY(2px);
+        }
+        /* State: ปกติ (เขียว) */
+        .radio-normal:checked + .radio-neon-content { 
+            background: #d1fae5; border-color: #34d399; color: #059669; 
+            box-shadow: inset 0 -4px 0 rgba(16,185,129,0.2); transform: translateY(2px);
+        }
+        /* State: ชำรุด (แดง) */
+        .radio-broken:checked + .radio-neon-content { 
+            background: #ffe4e6; border-color: #fb7185; color: #e11d48; 
+            box-shadow: inset 0 -4px 0 rgba(244,63,94,0.2); transform: translateY(2px);
+        }
+
+        /* 3D Submit Button (สีฟ้าหลัก) */
+        .btn-puffy-submit {
+            background-color: #38bdf8;
+            color: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 0 #0284c7;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 4px solid #bae6fd;
+        }
+        .btn-puffy-submit:active:not(:disabled) { transform: translateY(8px); box-shadow: 0 0px 0 #0284c7; }
+        .btn-puffy-submit:disabled { background-color: #94a3b8; box-shadow: 0 8px 0 #64748b; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.8; }
+
         @keyframes blink { 50% { opacity: 0.5; } }
         .animate-blink { animation: blink 1.5s infinite; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
-    <header class="glass-header sticky top-0 z-50 py-4">
-        <div class="container mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-                <a href="index.html" class="w-10 h-10 rounded-lg bg-gray-800 border border-gray-600 flex items-center justify-center hover:bg-gray-700 transition"><i class="fas fa-arrow-left text-white"></i></a>
-                <div class="w-12 h-12 rounded-lg bg-black border border-neon-red flex items-center justify-center shadow-neon-red"><i class="fas fa-shield-alt text-neon-red text-xl"></i></div>
-                <div><h1 class="text-xl md:text-2xl font-bold tracking-wide text-white uppercase">MA <span class="text-neon-red">Inspection</span></h1></div>
-            </div>
-            <div class="flex flex-col items-end gap-1">
-                <div id="gpsStatus" onclick="getLocation()" class="cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-gray-600 bg-gray-900 text-yellow-500 animate-blink">
-                    <i class="fas fa-satellite-dish mr-2 animate-pulse"></i><span>กำลังค้นหาพิกัด...</span>
+    
+    <!-- Header สไตล์ 3D Cartoon -->
+    <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
+        <div class="container mx-auto px-4 flex justify-between items-center max-w-5xl">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-sky-500 hover:border-sky-200 transition-all shadow-sm active:translate-y-1">
+                    <i class="ph-bold ph-caret-left text-2xl"></i>
+                </a>
+                <div class="hidden md:flex w-12 h-12 rounded-2xl bg-sky-100 border-2 border-sky-300 items-center justify-center">
+                    <i class="ph-fill ph-wrench text-sky-500 text-2xl"></i>
                 </div>
-                <div class="text-[10px] text-gray-500 font-mono" id="gpsCoords">Lat: -, Lon: -</div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-slate-800">
+                        ตรวจสอบ <span class="text-sky-500">อุปกรณ์สนาม</span>
+                    </h1>
+                </div>
+            </div>
+            <!-- ส่วนของ GPS -->
+            <div class="flex flex-col items-end gap-1">
+                <div id="gpsStatus" onclick="getLocation()" class="cursor-pointer flex items-center text-[10px] md:text-xs px-3 py-1.5 rounded-xl border-2 border-amber-200 bg-amber-50 text-amber-600 font-bold animate-blink shadow-sm active:translate-y-1 transition-all">
+                    <i class="ph-bold ph-crosshair mr-1.5 text-lg"></i><span>กำลังค้นหาพิกัด...</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200" id="gpsCoords">Lat: -, Lon: -</div>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-7xl flex-grow">
-        <form id="mainform" onsubmit="handleFormSubmit(event, this)" class="space-y-8">
-            <div class="card-container rounded-lg p-6 relative">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-neon-red mr-3 shadow-neon-red"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider">ข้อมูลการตรวจสอบ</h2></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">งวดที่ตรวจ</label>
-                        <select name="saya" id="saya" required class="w-full p-3 rounded-md input-neon text-white"><option selected disabled value="">-- เลือกงวดที่ตรวจ --</option><option>งวดที่1</option><option>งวดที่2</option><option>งวดที่3</option><option>งวดที่4</option></select>
+    <main class="container mx-auto px-4 py-8 max-w-5xl flex-grow">
+        <form id="mainform" onsubmit="handleFormSubmit(event, this)" class="space-y-6">
+            
+            <!-- ส่วนที่ 1: ข้อมูลการตรวจสอบ -->
+            <div class="puffy-container p-6 md:p-8">
+                <h2 class="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+                    <i class="ph-fill ph-info text-sky-500 text-2xl"></i> ข้อมูลการตรวจสอบพื้นฐาน
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">งวดที่ตรวจ</label>
+                        <select name="saya" id="saya" required class="w-full p-3 rounded-xl puffy-input">
+                            <option selected disabled value="">-- เลือกงวดที่ตรวจ --</option>
+                            <option>งวดที่1</option><option>งวดที่2</option><option>งวดที่3</option><option>งวดที่4</option>
+                        </select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">กลุ่มลุ่มน้ำ</label>
-                        <select name="code" id="code" required class="w-full p-3 rounded-md input-neon text-white"></select>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">กลุ่มลุ่มน้ำ</label>
+                        <select name="code" id="code" required class="w-full p-3 rounded-xl puffy-input"></select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">รหัสสถานี</label>
-                        <select name="id_name" id="id_name" required disabled class="w-full p-3 rounded-md input-neon text-white">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">รหัสสถานี</label>
+                        <select name="id_name" id="id_name" required disabled class="w-full p-3 rounded-xl puffy-input">
                             <option value="" disabled selected>-- เลือกรหัสสถานี --</option>
                         </select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-semibold text-gray-300">สถานะจุดติดตั้งอาคาร</label>
-                        <select name="install_status" id="install_status" required class="w-full p-3 rounded-md input-neon text-white"><option selected disabled value="">-- เลือกสถานะ --</option><option value="เหนือน้ำ">เหนือน้ำ</option><option value="ท้ายน้ำ">ท้ายน้ำ</option><option value="ปกติ">ปกติ</option></select>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">สถานะจุดติดตั้ง</label>
+                        <select name="install_status" id="install_status" required class="w-full p-3 rounded-xl puffy-input">
+                            <option selected disabled value="">-- เลือกสถานะ --</option>
+                            <option value="เหนือน้ำ">เหนือน้ำ</option><option value="ท้ายน้ำ">ท้ายน้ำ</option><option value="ปกติ">ปกติ</option>
+                        </select>
                     </div>
-                    <div class="space-y-2 md:col-span-2 lg:col-span-4">
-                        <label class="text-sm font-semibold text-gray-300">ชื่อสถานี</label>
-                        <input type="text" name="name_id" id="name_id" readonly class="w-full p-3 rounded-md bg-black border border-neon-blue text-neon-blue font-bold text-center text-lg">
+                    <div class="space-y-1.5 md:col-span-2 lg:col-span-4 mt-2">
+                        <label class="text-sm font-bold text-slate-600">ชื่อสถานี</label>
+                        <input type="text" name="name_id" id="name_id" readonly 
+                               class="w-full p-4 rounded-xl bg-slate-50 border-2 border-slate-200 text-sky-600 font-extrabold text-center text-lg focus:outline-none">
                     </div>
                 </div>
             </div>
 
+            <!-- ฟังก์ชันสร้างปุ่ม Radio 3D -->
             <script>
                 function createNeonRadioGroup(label, name, idPrefix, labelNormal = 'ปกติ', labelBroken = 'ชำรุด') {
                     return `
-                    <div class="card-container p-5 rounded-lg border-t-2 border-t-gray-700 hover:border-t-neon-red transition-colors duration-300">
-                        <span class="block text-sm font-semibold text-gray-300 mb-4">${label}</span>
-                        <div class="flex flex-wrap gap-3">
-                            <label class="radio-neon-label group"><input type="radio" name="${name}" id="${idPrefix}1" value="" checked class="sr-only radio-none"><div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium"><span class="opacity-50 group-hover:opacity-100"><i class="fas fa-minus mr-2"></i> ไม่มี</span></div></label>
-                            <label class="radio-neon-label group"><input type="radio" name="${name}" id="${idPrefix}2" value="P" class="sr-only radio-normal"><div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium"><span class="opacity-80 group-hover:opacity-100"><i class="fas fa-check mr-2"></i> ${labelNormal}</span></div></label>
-                            <label class="radio-neon-label group"><input type="radio" name="${name}" id="${idPrefix}3" value="O" class="sr-only radio-broken"><div class="radio-neon-content px-5 py-2 min-w-[90px] rounded flex items-center justify-center text-sm font-medium"><span class="opacity-80 group-hover:opacity-100"><i class="fas fa-times mr-2"></i> ${labelBroken}</span></div></label>
+                    <div class="sub-puffy-container p-4">
+                        <span class="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+                            <i class="ph-fill ph-caret-right text-sky-400"></i> ${label}
+                        </span>
+                        <div class="flex flex-wrap gap-2">
+                            <label class="radio-neon-label group flex-grow">
+                                <input type="radio" name="${name}" id="${idPrefix}1" value="" checked class="sr-only radio-none">
+                                <div class="radio-neon-content px-2 py-2.5 rounded-xl flex items-center justify-center text-xs md:text-sm">
+                                    <i class="ph-bold ph-minus mr-1.5"></i> ไม่มี
+                                </div>
+                            </label>
+                            <label class="radio-neon-label group flex-grow">
+                                <input type="radio" name="${name}" id="${idPrefix}2" value="P" class="sr-only radio-normal">
+                                <div class="radio-neon-content px-2 py-2.5 rounded-xl flex items-center justify-center text-xs md:text-sm">
+                                    <i class="ph-bold ph-check mr-1.5"></i> ${labelNormal}
+                                </div>
+                            </label>
+                            <label class="radio-neon-label group flex-grow">
+                                <input type="radio" name="${name}" id="${idPrefix}3" value="O" class="sr-only radio-broken">
+                                <div class="radio-neon-content px-2 py-2.5 rounded-xl flex items-center justify-center text-xs md:text-sm">
+                                    <i class="ph-bold ph-x mr-1.5"></i> ${labelBroken}
+                                </div>
+                            </label>
                         </div>
                     </div>`;
                 }
             </script>
 
-            <div>
-                <h2 class="text-lg font-bold mb-4 text-neon-blue uppercase flex items-center"><i class="fas fa-server mr-2"></i> สถานะตรวจสอบทั่วไปและผลสอบเทียบ</h2>
+            <!-- ส่วนที่ 2: สถานะตรวจสอบทั่วไป -->
+            <div class="puffy-container p-6 md:p-8">
+                <h2 class="text-lg md:text-xl font-bold mb-5 text-emerald-500 flex items-center gap-2 border-b-2 border-emerald-100 pb-3">
+                    <i class="ph-fill ph-hard-drives text-2xl"></i> สถานะตรวจสอบทั่วไปและผลสอบเทียบ
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <script>
                         document.write(createNeonRadioGroup('ความสะอาดภายใน/ภายนอกสถานี', 'clean', 'clean', 'ผ่าน', 'ไม่ผ่าน'));
@@ -117,30 +262,47 @@
                 </div>
             </div>
 
-            <div>
-                <h2 class="text-lg font-bold mb-4 text-neon-red uppercase flex items-center"><i class="fas fa-microchip mr-2"></i> อุปกรณ์ RTU</h2>
-                <div class="mb-5">
-                    <label class="text-sm font-semibold text-gray-300 block mb-2">ประเภท RTU</label>
-                    <select id="rtuTypeSelect" onchange="onRtuTypeChange(this.value)" class="w-full md:w-72 p-3 rounded-md input-neon text-white"><option value="">-- เลือกประเภท RTU --</option><option value="rtu">อุปกรณ์ RTU</option><option value="plc">อุปกรณ์ RTU PLC</option></select>
+            <!-- ส่วนที่ 3: อุปกรณ์ RTU -->
+            <div class="puffy-container p-6 md:p-8">
+                <h2 class="text-lg md:text-xl font-bold mb-5 text-rose-500 flex items-center gap-2 border-b-2 border-rose-100 pb-3">
+                    <i class="ph-fill ph-cpu text-2xl"></i> อุปกรณ์ควบคุม (RTU / PLC)
+                </h2>
+                <div class="mb-6 bg-slate-50 p-4 rounded-xl border-2 border-slate-100">
+                    <label class="text-sm font-bold text-slate-700 block mb-2">ระบุประเภทอุปกรณ์ควบคุมหลัก</label>
+                    <select id="rtuTypeSelect" onchange="onRtuTypeChange(this.value)" class="w-full md:w-80 p-3 rounded-xl puffy-input">
+                        <option value="">-- เลือกประเภท RTU --</option>
+                        <option value="rtu">อุปกรณ์ RTU แบบปกติ</option>
+                        <option value="plc">อุปกรณ์ RTU แบบ PLC</option>
+                    </select>
                 </div>
-                <div id="rtuGroup" class="hidden"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rtuFields"></div></div>
-                <div id="plcGroup" class="hidden"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="plcFields"></div></div>
-                <div id="modemGroup" class="hidden mt-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="modemFields"></div></div>
+                <div id="rtuGroup" class="hidden mb-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rtuFields"></div></div>
+                <div id="plcGroup" class="hidden mb-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="plcFields"></div></div>
+                <div id="modemGroup" class="hidden border-t-2 border-dashed border-slate-200 pt-4"><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="modemFields"></div></div>
             </div>
 
-            <div>
-                <h2 class="text-lg font-bold mb-4 text-white uppercase flex items-center"><i class="fas fa-satellite-dish mr-2"></i> อุปกรณ์ภาคสนาม</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" id="fieldStaticEquip"></div>
-                <div class="mb-5">
-                    <label class="text-sm font-semibold text-gray-300 block mb-2">ประเภท Water Level</label>
-                    <select id="wlTypeSelect" onchange="onWlTypeChange(this.value)" class="w-full md:w-80 p-3 rounded-md input-neon text-white"><option value="">-- เลือกประเภท Water Level --</option><option value="bubble">Water Level (bubble)</option><option value="radar">Water Level (Radar)</option><option value="float">Water Level (float)</option></select>
+            <!-- ส่วนที่ 4: อุปกรณ์ภาคสนาม -->
+            <div class="puffy-container p-6 md:p-8">
+                <h2 class="text-lg md:text-xl font-bold mb-5 text-indigo-500 flex items-center gap-2 border-b-2 border-indigo-100 pb-3">
+                    <i class="ph-fill ph-satellite-dish text-2xl"></i> อุปกรณ์ภาคสนามอื่นๆ
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" id="fieldStaticEquip"></div>
+                
+                <div class="bg-indigo-50 p-4 rounded-xl border-2 border-indigo-100 mb-5 mt-6">
+                    <label class="text-sm font-bold text-indigo-700 block mb-2">ระบุประเภทเซนเซอร์วัดระดับน้ำ (Water Level)</label>
+                    <select id="wlTypeSelect" onchange="onWlTypeChange(this.value)" class="w-full md:w-80 p-3 rounded-xl puffy-input">
+                        <option value="">-- เลือกประเภทเซนเซอร์ --</option>
+                        <option value="bubble">แบบเป่าฟอง (Bubble)</option>
+                        <option value="radar">แบบเรดาร์ (Radar)</option>
+                        <option value="float">แบบลูกลอย (Float)</option>
+                    </select>
                 </div>
                 <div id="wlDynamicFields" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </div>
 
+            <!-- Scripts สำหรับฟอร์มแบบ Dynamic -->
             <script>
                 (function() {
-                    const staticEquip = [ { label: 'Power Supply 1', name: 'sta_p1', id: 'p1_' }, { label: 'Power Supply 2', name: 'sta_p2', id: 'p2_' }, { label: 'CCTV1', name: 'sta_cctv1', id: 'cctv1' }, { label: 'CCTV2', name: 'sta_cctv2', id: 'cctv2' }, { label: 'Rain Gauge', name: 'sta_r', id: 'rain' }, { label: 'Surge Protection', name: 'sta_s', id: 'surge' } ];
+                    const staticEquip = [ { label: 'Power Supply 1', name: 'sta_p1', id: 'p1_' }, { label: 'Power Supply 2', name: 'sta_p2', id: 'p2_' }, { label: 'กล้อง CCTV 1', name: 'sta_cctv1', id: 'cctv1' }, { label: 'กล้อง CCTV 2', name: 'sta_cctv2', id: 'cctv2' }, { label: 'เซนเซอร์วัดปริมาณน้ำฝน', name: 'sta_r', id: 'rain' }, { label: 'อุปกรณ์กันฟ้าผ่า (Surge)', name: 'sta_s', id: 'surge' } ];
                     const container = document.getElementById('fieldStaticEquip');
                     staticEquip.forEach(e => container.innerHTML += createNeonRadioGroup(e.label, e.name, e.id));
                 })();
@@ -154,106 +316,97 @@
                         ['CPU Status|sta_cpu|cpu','AI Status|sta_ai|ai','DI Status|sta_di|di','DO Status|sta_do|do','IO Status|sta_io|io'].forEach(s => { const [label, name, id] = s.split('|'); rtuFields.innerHTML += createNeonRadioGroup(label, name, id); });
                         addHidden('plc', ''); rtuGroup.classList.remove('hidden'); modemFields.innerHTML = createNeonRadioGroup('Modem 1', 'sta_m1', 'm1_') + createNeonRadioGroup('Modem 2', 'sta_m2', 'm2_'); modemGroup.classList.remove('hidden');
                     } else if (val === 'plc') {
-                        plcFields.innerHTML = createNeonRadioGroup('RTU PLC', 'plc', 'plc');
+                        plcFields.innerHTML = createNeonRadioGroup('สถานะ RTU PLC', 'plc', 'plc');
                         ['sta_cpu','sta_ai','sta_di','sta_do','sta_io'].forEach(n => addHidden(n, '')); plcGroup.classList.remove('hidden'); modemFields.innerHTML = createNeonRadioGroup('Modem 1', 'sta_m1', 'm1_') + createNeonRadioGroup('Modem 2', 'sta_m2', 'm2_'); modemGroup.classList.remove('hidden');
                     } else { ['sta_cpu','sta_ai','sta_di','sta_do','sta_io','plc'].forEach(n => addHidden(n, '')); }
                 }
                 function addHidden(name, value) { const inp = document.createElement('input'); inp.type = 'hidden'; inp.name = name; inp.value = value; inp.className = 'rtu-hidden-input'; document.getElementById('mainform').appendChild(inp); }
+                
                 function onWlTypeChange(val) {
                     const container = document.getElementById('wlDynamicFields'); container.innerHTML = ''; document.querySelectorAll('.wl-hidden-input').forEach(el => el.remove());
                     if (!val) { ['sta_wl','sta_wl1','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,'')); return; }
-                    if (val === 'bubble') { container.innerHTML += createNeonRadioGroup('Water Level (bubble)', 'sta_wl', 'wlevel') + createNeonRadioGroup('ท่อลม', 'sta_tro', 'tro') + createNeonRadioGroup('ถังแก๊ส', 'sta_gass', 'gass'); ['sta_wl1','sta_wl2','sta_saling'].forEach(n => addHiddenWl(n,'')); }
-                    else if (val === 'radar') { container.innerHTML += createNeonRadioGroup('Water Level (Radar)', 'sta_wl1', 'wlevel1'); ['sta_wl','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,'')); }
-                    else if (val === 'float') { container.innerHTML += createNeonRadioGroup('Water Level (float)', 'sta_wl2', 'wlevel2') + createNeonRadioGroup('สายสลิง', 'sta_saling', 'saling'); ['sta_wl','sta_wl1','sta_tro','sta_gass'].forEach(n => addHiddenWl(n,'')); }
+                    if (val === 'bubble') { container.innerHTML += createNeonRadioGroup('Bubble Sensor', 'sta_wl', 'wlevel') + createNeonRadioGroup('ท่อลม (Bubble)', 'sta_tro', 'tro') + createNeonRadioGroup('ถังแก๊สไนโตรเจน', 'sta_gass', 'gass'); ['sta_wl1','sta_wl2','sta_saling'].forEach(n => addHiddenWl(n,'')); }
+                    else if (val === 'radar') { container.innerHTML += createNeonRadioGroup('Radar Sensor', 'sta_wl1', 'wlevel1'); ['sta_wl','sta_wl2','sta_tro','sta_saling','sta_gass'].forEach(n => addHiddenWl(n,'')); }
+                    else if (val === 'float') { container.innerHTML += createNeonRadioGroup('Float Sensor', 'sta_wl2', 'wlevel2') + createNeonRadioGroup('สายสลิงลูกลอย', 'sta_saling', 'saling'); ['sta_wl','sta_wl1','sta_tro','sta_gass'].forEach(n => addHiddenWl(n,'')); }
                 }
                 function addHiddenWl(name, value) { const inp = document.createElement('input'); inp.type = 'hidden'; inp.name = name; inp.value = value; inp.className = 'wl-hidden-input'; document.getElementById('mainform').appendChild(inp); }
             </script>
 
-            <div class="card-container rounded-lg p-6">
-                <div class="flex items-center mb-6 pb-4 border-b border-gray-800"><span class="w-2 h-8 bg-neon-blue mr-3 shadow-neon-blue"></span><h2 class="text-xl font-bold text-white uppercase tracking-wider">บันทึกจำนวนและหมายเหตุ</h2></div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div class="space-y-2"><label class="text-xs text-gray-400 uppercase font-bold">แบตเตอรี่ (ทั้งหมด)</label><input type="number" name="b1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0"></div>
-                    <div class="space-y-2"><label class="text-xs text-neon-red uppercase font-bold">แบตเตอรี่ (ชำรุด)</label><input type="number" name="b2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0"></div>
-                    <div class="space-y-2"><label class="text-xs text-gray-400 uppercase font-bold">แผ่นวัดน้ำ แบบบวก (ชำรุด)</label><input type="number" name="sta1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0"></div>
-                    <div class="space-y-2"><label class="text-xs text-neon-red uppercase font-bold">แผ่นวัดน้ำ แบบลบ (ชำรุด)</label><input type="number" name="sta2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0"></div>
-                    <div class="space-y-2"><label class="text-xs text-gray-400 uppercase font-bold">เสาวัดน้ำ (ทั้งหมดที่เห็น)</label><input type="number" name="pole1" class="w-full p-3 rounded input-neon text-center text-neon-blue font-bold text-lg" placeholder="0"></div>
-                    <div class="space-y-2"><label class="text-xs text-neon-red uppercase font-bold">เสาวัดน้ำ (ชำรุด)</label><input type="number" name="pole2" class="w-full p-3 rounded input-neon text-center text-neon-red font-bold text-lg" placeholder="0"></div>
+            <!-- ส่วนที่ 5: บันทึกจำนวนและหมายเหตุ -->
+            <div class="puffy-container p-6 md:p-8">
+                <h2 class="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+                    <i class="ph-fill ph-note-pencil text-amber-500 text-2xl"></i> บันทึกจำนวนอุปกรณ์และหมายเหตุ
+                </h2>
+                
+                <div class="bg-amber-50 rounded-2xl p-5 border-2 border-amber-100 mb-6">
+                    <h3 class="text-sm font-bold text-amber-600 mb-4 uppercase"><i class="ph-bold ph-calculator"></i> สรุปจำนวนอุปกรณ์ที่พบ</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        <div class="space-y-1"><label class="text-[10px] text-sky-600 font-bold block">แบตเตอรี่ (พบทั้งหมด)</label><input type="number" name="b1" class="w-full p-2.5 rounded-lg input-number-blue puffy-input font-bold text-center" placeholder="0"></div>
+                        <div class="space-y-1"><label class="text-[10px] text-rose-500 font-bold block">แบตเตอรี่ (ชำรุด)</label><input type="number" name="b2" class="w-full p-2.5 rounded-lg input-number-red puffy-input font-bold text-center" placeholder="0"></div>
+                        <div class="space-y-1"><label class="text-[10px] text-sky-600 font-bold block">แผ่นวัดบวก (ชำรุด)</label><input type="number" name="sta1" class="w-full p-2.5 rounded-lg input-number-blue puffy-input font-bold text-center" placeholder="0"></div>
+                        <div class="space-y-1"><label class="text-[10px] text-rose-500 font-bold block">แผ่นวัดลบ (ชำรุด)</label><input type="number" name="sta2" class="w-full p-2.5 rounded-lg input-number-red puffy-input font-bold text-center" placeholder="0"></div>
+                        <div class="space-y-1"><label class="text-[10px] text-sky-600 font-bold block">เสาวัดน้ำ (พบทั้งหมด)</label><input type="number" name="pole1" class="w-full p-2.5 rounded-lg input-number-blue puffy-input font-bold text-center" placeholder="0"></div>
+                        <div class="space-y-1"><label class="text-[10px] text-rose-500 font-bold block">เสาวัดน้ำ (ชำรุด)</label><input type="number" name="pole2" class="w-full p-2.5 rounded-lg input-number-red puffy-input font-bold text-center" placeholder="0"></div>
+                    </div>
                 </div>
 
-                <div class="space-y-2 mb-6 border-t border-gray-800 pt-6">
-                    <label class="text-sm font-semibold text-neon-gold flex items-center"><i class="fas fa-camera mr-2"></i> ถ่ายรูป/แนบรูปภาพสภาพสถานี (ทางเลือก)</label>
-                    <input type="file" name="photos" id="photos" accept="image/*" multiple capture="environment" 
-                           class="w-full p-2 rounded input-neon text-gray-300 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
-                    <p class="text-[10px] text-gray-500 mt-1">รูปภาพจะถูกอัปโหลดและจัดเก็บใน Google Drive โดยอัตโนมัติ (เลือกได้หลายรูป)</p>
+                <!-- ส่วนอัปโหลดรูปภาพ -->
+                <div class="mb-6">
+                    <label class="text-sm font-bold text-slate-700 flex items-center gap-1.5 mb-2">
+                        <i class="ph-bold ph-camera text-sky-500"></i> ภาพถ่ายสภาพสถานี (เลือกได้หลายรูป)
+                    </label>
+                    <div class="flex items-center justify-center w-full">
+                        <label for="photos" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-sky-300 rounded-2xl cursor-pointer bg-sky-50 hover:bg-sky-100 transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i class="ph-bold ph-upload-simple text-3xl text-sky-400 mb-2"></i>
+                                <p class="text-sm font-bold text-sky-600">คลิกหรือแตะเพื่อเลือกรูปภาพ</p>
+                                <p class="text-xs text-sky-400 mt-1 font-medium">(ระบบจะอัปโหลดอัตโนมัติ)</p>
+                            </div>
+                            <input type="file" name="photos" id="photos" accept="image/*" multiple capture="environment" class="hidden" />
+                        </label>
+                    </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">หมายเหตุเพิ่มเติม</label><textarea name="note" rows="2" class="w-full p-4 rounded input-neon text-white" placeholder="ระบุรายละเอียด..."></textarea></div>
-                    <div class="space-y-2"><label class="text-sm font-semibold text-gray-300">ข้อคิดเห็นจากผู้ตรวจสอบ/คณะกรรมการตรวจรับ</label><textarea name="note2" rows="2" class="w-full p-4 rounded input-neon text-white" placeholder="ระบุรายละเอียด..."></textarea></div>
+                <div class="space-y-4 border-t-2 border-slate-100 pt-5">
+                    <div class="space-y-2">
+                        <label class="text-sm font-bold text-slate-700">หมายเหตุเพิ่มเติม (ช่างสนาม)</label>
+                        <textarea name="note" rows="2" class="w-full p-3 rounded-xl puffy-input" placeholder="พิมพ์ข้อความ..."></textarea>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-bold text-slate-700">ข้อคิดเห็นคณะกรรมการ / ผู้ตรวจรับ</label>
+                        <textarea name="note2" rows="2" class="w-full p-3 rounded-xl puffy-input" placeholder="พิมพ์ข้อความ..."></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="py-6 flex justify-center">
-                <button type="submit" id="btnSubmit" class="btn-neon-submit w-full md:w-2/3 rounded-sm py-5 font-bold text-xl shadow-neon-red flex items-center justify-center gap-4">
-                    <span id="btnText">ยืนยันข้อมูล</span>
-                    <i class="fas fa-chevron-right text-black bg-white rounded-full w-6 h-6 flex items-center justify-center text-xs"></i>
+            <!-- ปุ่มยืนยัน -->
+            <div class="pb-10 pt-2 flex justify-center">
+                <button type="submit" id="btnSubmit" class="btn-puffy-submit w-full md:w-3/4 rounded-2xl py-5 font-extrabold text-xl flex items-center justify-center gap-3">
+                    <i class="ph-bold ph-paper-plane-tilt text-2xl"></i> <span id="btnText">บันทึกส่งข้อมูลการตรวจ</span>
                 </button>
             </div>
         </form>
     </main>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js"></script>
     <script>
+        // --- GPS Logic ---
         let lat = null, lon = null;
         const gpsStatus = document.getElementById('gpsStatus');
         const gpsCoords = document.getElementById('gpsCoords');
-        const btnSubmit = document.getElementById('btnSubmit');
-        const btnText = document.getElementById('btnText');
-
-        const basinSelect = document.getElementById("code");
-        const stationInput = document.getElementById("id_name");
-        const stationNameInput = document.getElementById("name_id");
-
-        basinSelect.innerHTML = '<option selected disabled value="">-- เลือกกลุ่มลุ่มน้ำ --</option>';
-        hardcodedBasins.forEach(b => { basinSelect.innerHTML += `<option value="${b}">${b}</option>`; });
-        basinSelect.innerHTML += '<option value="">ไม่มี</option><option value="ไม่ทราบ">ไม่ทราบ</option>';
-
-        basinSelect.addEventListener("change", () => {
-            const selectedBasin = basinSelect.value.trim();
-            stationInput.innerHTML = '<option value="" disabled selected>-- เลือกรหัสสถานี --</option>'; 
-            stationNameInput.value = "";
-            if (stationsData[selectedBasin]) {
-                stationInput.disabled = false;
-                for (let code in stationsData[selectedBasin]) {
-                    const opt = document.createElement("option");
-                    opt.value = code;
-                    opt.textContent = code;
-                    stationInput.appendChild(opt);
-                }
-            } else { stationInput.disabled = true; }
-        });
-
-        stationInput.addEventListener("change", () => {
-            const selectedBasin = basinSelect.value.trim();
-            const code = stationInput.value.trim();
-            if (stationsData[selectedBasin] && stationsData[selectedBasin][code]) {
-                stationNameInput.value = stationsData[selectedBasin][code];
-            } else { stationNameInput.value = ""; }
-        });
 
         function updateGPSUI(status) {
             if (status === 'searching') {
-                gpsStatus.className = "cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-gray-600 bg-gray-900 text-yellow-500 animate-blink";
-                gpsStatus.innerHTML = '<i class="fas fa-satellite-dish mr-2"></i><span>กำลังค้นหา...</span>';
+                gpsStatus.className = "cursor-pointer flex items-center text-[10px] md:text-xs px-3 py-1.5 rounded-xl border-2 border-amber-200 bg-amber-50 text-amber-600 font-bold animate-blink shadow-sm";
+                gpsStatus.innerHTML = '<i class="ph-bold ph-crosshair mr-1.5 text-lg"></i><span>กำลังค้นหาพิกัด...</span>';
                 gpsCoords.innerText = "Lat: -, Lon: -";
             } else if (status === 'success') {
-                gpsStatus.className = "cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-green-600 bg-green-900/30 text-green-400";
-                gpsStatus.innerHTML = '<i class="fas fa-check-circle mr-2"></i><span>จับพิกัดได้แล้ว</span>';
+                gpsStatus.className = "cursor-pointer flex items-center text-[10px] md:text-xs px-3 py-1.5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-600 font-bold shadow-sm";
+                gpsStatus.innerHTML = '<i class="ph-bold ph-check-circle mr-1.5 text-lg"></i><span>จับพิกัดสำเร็จ</span>';
                 gpsStatus.classList.remove('animate-blink');
                 gpsCoords.innerText = `Lat: ${lat.toFixed(5)}, Lon: ${lon.toFixed(5)}`;
             } else if (status === 'error') {
-                gpsStatus.className = "cursor-pointer flex items-center text-xs px-3 py-1 rounded-full border border-red-600 bg-red-900/30 text-red-400";
-                gpsStatus.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i><span>ไม่พบพิกัด (กดใหม่)</span>';
+                gpsStatus.className = "cursor-pointer flex items-center text-[10px] md:text-xs px-3 py-1.5 rounded-xl border-2 border-rose-200 bg-rose-50 text-rose-600 font-bold shadow-sm";
+                gpsStatus.innerHTML = '<i class="ph-bold ph-warning-circle mr-1.5 text-lg"></i><span>ไม่พบ GPS (แตะใหม่)</span>';
                 gpsStatus.classList.remove('animate-blink');
             }
         }
@@ -271,19 +424,59 @@
 
         window.addEventListener('load', getLocation);
 
+        // --- Select Data Logic ---
+        const basinSelect = document.getElementById("code");
+        const stationInput = document.getElementById("id_name");
+        const stationNameInput = document.getElementById("name_id");
+
+        basinSelect.innerHTML = '<option selected disabled value="">-- เลือกกลุ่มลุ่มน้ำ --</option>';
+        if (typeof hardcodedBasins !== 'undefined') {
+            hardcodedBasins.forEach(b => { basinSelect.innerHTML += `<option value="${b}">${b}</option>`; });
+        }
+        basinSelect.innerHTML += '<option value="">ไม่มี</option><option value="ไม่ทราบ">ไม่ทราบ</option>';
+
+        basinSelect.addEventListener("change", () => {
+            const selectedBasin = basinSelect.value.trim();
+            stationInput.innerHTML = '<option value="" disabled selected>-- เลือกรหัสสถานี --</option>'; 
+            stationNameInput.value = "";
+            if (typeof stationsData !== 'undefined' && stationsData[selectedBasin]) {
+                stationInput.disabled = false;
+                for (let code in stationsData[selectedBasin]) {
+                    const opt = document.createElement("option");
+                    opt.value = code; opt.textContent = code;
+                    stationInput.appendChild(opt);
+                }
+            } else { stationInput.disabled = true; }
+        });
+
+        stationInput.addEventListener("change", () => {
+            const selectedBasin = basinSelect.value.trim();
+            const code = stationInput.value.trim();
+            if (typeof stationsData !== 'undefined' && stationsData[selectedBasin] && stationsData[selectedBasin][code]) {
+                stationNameInput.value = stationsData[selectedBasin][code];
+            } else { stationNameInput.value = ""; }
+        });
+
+        // --- Submit Logic (อัปเดตเป็น SweetAlert 3D น่ารักๆ) ---
         async function handleFormSubmit(event, form) {
             event.preventDefault();
             if (lat === null || lon === null) {
                 const confirmNoGPS = await Swal.fire({
-                    title: 'ไม่พบสัญญาณ GPS',
-                    text: 'คุณต้องการยืนยันส่งข้อมูลการตรวจสอบ "โดยไม่ระบุพิกัด" หรือไม่?',
+                    title: 'ไม่พบสัญญาณ GPS 📍',
+                    text: 'ต้องการส่งข้อมูล "โดยไม่ระบุพิกัด" ใช่หรือไม่?',
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
+                    confirmButtonColor: '#0ea5e9', // Sky 500
+                    cancelButtonColor: '#94a3b8',  // Slate 400
                     confirmButtonText: 'ยืนยันส่งข้อมูล',
                     cancelButtonText: 'ยกเลิก',
-                    background: '#1a1c20', color: '#fff'
+                    customClass: {
+                        popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white',
+                        title: 'font-prompt font-extrabold text-slate-800',
+                        htmlContainer: 'font-prompt font-medium text-slate-600',
+                        confirmButton: 'font-prompt font-bold rounded-xl px-6 py-2.5',
+                        cancelButton: 'font-prompt font-bold rounded-xl px-6 py-2.5'
+                    }
                 });
                 if (!confirmNoGPS.isConfirmed) { return; }
             }
@@ -293,12 +486,18 @@
             if (lon !== null) formData.append('lon', lon);
 
             Swal.fire({
-                title: 'กำลังส่งข้อมูล...', text: 'กำลังบันทึกข้อมูลและอัปโหลดรูปภาพ กรุณารอสักครู่', allowOutsideClick: false,
-                background: '#1a1c20', color: '#fff', didOpen: () => Swal.showLoading()
+                title: 'กำลังส่งข้อมูล... 🚀', 
+                text: 'ระบบกำลังจัดเก็บภาพและข้อมูล กรุณารอสักครู่', 
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                customClass: {
+                    popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white',
+                    title: 'font-prompt font-extrabold text-sky-600',
+                    htmlContainer: 'font-prompt font-medium text-slate-500'
+                }
             });
 
             try {
-                // แก้ให้เป็น URL เต็ม 100%
                 const response = await fetch('https://ma-inspection-project.onrender.com/api/inspection', {
                     method: 'POST',
                     body: formData
@@ -311,13 +510,34 @@
                     document.getElementById('plcGroup').classList.add('hidden');
                     document.getElementById('modemGroup').classList.add('hidden');
                     document.getElementById('wlDynamicFields').innerHTML = '';
-                    Swal.fire({ position: 'center', icon: 'success', title: 'บันทึกข้อมูลสำเร็จ', showConfirmButton: false, timer: 2000, background: '#1a1c20', color: '#fff' });
+                    
+                    Swal.fire({ 
+                        position: 'center', 
+                        icon: 'success', 
+                        title: 'บันทึกสำเร็จ! 🎉', 
+                        showConfirmButton: false, 
+                        timer: 2000,
+                        customClass: {
+                            popup: 'rounded-3xl border-4 border-white shadow-2xl',
+                            title: 'font-prompt font-extrabold text-emerald-600',
+                        } 
+                    });
                 } else {
                     throw new Error(result.message || 'การตอบกลับจากเซิร์ฟเวอร์ผิดพลาด');
                 }
             } catch (error) {
                 console.error('Submit Error:', error);
-                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.message, background: '#1a1c20', color: '#fff' });
+                Swal.fire({ 
+                    icon: 'error', 
+                    title: 'เกิดข้อผิดพลาด 😥', 
+                    text: error.message,
+                    confirmButtonColor: '#f43f5e',
+                    customClass: {
+                        popup: 'rounded-3xl border-4 border-white shadow-2xl',
+                        title: 'font-prompt font-extrabold text-rose-600',
+                        confirmButton: 'font-prompt font-bold rounded-xl px-6'
+                    } 
+                });
             }
         }
     </script>
