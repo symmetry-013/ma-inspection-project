@@ -6,7 +6,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const { generateSummaryPDF } = require('./pdfGenerator');
+// แก้ไข: นำเข้าฟังก์ชันให้ชื่อตรงกับในไฟล์ pdfGenerator.js
+const { generateInspectionPDF } = require('./pdfGenerator');
 const name_sv = require('./name_sv'); 
 
 const app = express();
@@ -142,7 +143,7 @@ app.get('/api/calibrations', async (req, res) => {
 });
 
 // ==========================================
-// 6. API Endpoint - สำหรับสร้าง PDF
+// 6. API Endpoint - สำหรับสร้าง PDF (แก้ไขส่วนนี้แล้ว)
 // ==========================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -150,11 +151,41 @@ app.get('/api/report/pdf', async (req, res) => {
         const basin = req.query.basin || 'all';
 
         let query = {};
-        if (term !== 'all') query.saya = term.replace(/\s+/g, ''); 
+        if (term !== 'all') {
+            // ทำให้รองรับทั้ง "งวดที่1" และ "งวดที่ 1"
+            query.saya = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
+        }
         if (basin !== 'all') query.code = basin;
 
         const inspectionData = await Inspection.find(query).lean();
-        await generateSummaryPDF(inspectionData, term, basin, res);
+
+        // 1. เตรียมข้อมูลตัวแปรป้องกันระบบพัง หาก name_sv ไม่มีข้อมูลให้
+        const equipmentMap = (name_sv && name_sv.equipmentMap) ? name_sv.equipmentMap : {
+            clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
+            online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
+            sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC",
+            sta_m1: "Modem 1", sta_m2: "Modem 2", sta_p1: "Power 1", sta_p2: "Power 2",
+            sta_cctv1: "CCTV1", sta_cctv2: "CCTV2", sta_r: "Rain Gauge", sta_s: "Surge",
+            sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
+            sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
+        };
+        
+        // 2. เตรียมฟังก์ชันแก้สระลอย ป้องกัน Error
+        const fixThaiVowels = (name_sv && name_sv.fixThaiVowels) ? name_sv.fixThaiVowels : (text) => text || '';
+
+        // 3. เรียกฟังก์ชันที่ชื่อตรงกัน
+        await generateInspectionPDF(
+            inspectionData, 
+            [], // calibrations (หากต้องการในอนาคต)
+            term, 
+            basin, 
+            res, 
+            equipmentMap, 
+            [], 
+            null, 
+            null, 
+            fixThaiVowels
+        );
 
     } catch (error) {
         console.error('Error generating PDF:', error);
@@ -163,7 +194,7 @@ app.get('/api/report/pdf', async (req, res) => {
 });
 
 // ==========================================
-// 7. Webhook Endpoint - รับข้อมูลจาก server_mam.js 
+// 7. Webhook Endpoint - รับข้อมูลจากระบบอื่น
 // ==========================================
 app.post('/webhook/update-station', async (req, res) => {
     try {
