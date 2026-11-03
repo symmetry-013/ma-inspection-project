@@ -14,6 +14,7 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
+    <!-- นำเข้า Constants -->
     <script src="constants.js"></script>
     
     <script>
@@ -34,7 +35,6 @@
     </script>
     <style>
         body {
-            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
             background-color: #fffbeb; 
             color: #334155;
             background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
@@ -46,7 +46,6 @@
         ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
 
-        /* 3D Container Cards */
         .puffy-container {
             background-color: #ffffff;
             border-radius: 24px;
@@ -64,7 +63,6 @@
             box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
         }
 
-        /* 3D Input Fields */
         .puffy-input {
             background-color: #f8fafc;
             border: 2px solid #e2e8f0;
@@ -79,7 +77,6 @@
             box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
         }
 
-        /* 3D Submit Button (สีฟ้าหลัก) */
         .btn-puffy-blue {
             background-color: #38bdf8;
             color: white;
@@ -92,7 +89,6 @@
         .btn-puffy-blue:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #0284c7; }
         .btn-puffy-blue:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.8; }
 
-        /* Polaroid Image Grid */
         .polaroid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 16px; }
         .polaroid { 
             background: #ffffff; padding: 10px 10px 16px 10px; 
@@ -104,7 +100,6 @@
         .polaroid-img-wrapper { aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 2px solid #f1f5f9; background: #f8fafc; }
         .polaroid-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 3D Table Custom */
         .table-custom { border-collapse: separate; border-spacing: 0; width: 100%; border-radius: 16px; border: 2px solid #e2e8f0; overflow: hidden; }
         .table-custom th, .table-custom td { padding: 12px 16px; border-bottom: 2px solid #f1f5f9; text-align: center; }
         .table-custom th { background-color: #f8fafc; font-weight: 700; color: #475569; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; }
@@ -159,7 +154,6 @@
                     <label class="text-sm font-bold text-slate-600">กลุ่มลุ่มน้ำ</label>
                     <select id="myData0" class="w-full p-3.5 rounded-xl puffy-input">
                         <option value="">ทั้งหมด (ทุกลุ่มน้ำ)</option>
-                        <!-- จะถูกเติมด้วย Javascript -->
                     </select>
                 </div>
             </div>
@@ -209,12 +203,12 @@
 
     <script>
         let globalFetchedData = [];
-        const basinSelect = document.getElementById("myData0");
         const BASE_URL = 'https://ma-inspection-project.onrender.com';
 
-        // โหลดข้อมูลตัวเลือกลุ่มน้ำเมื่อหน้าเว็บพร้อม
-        window.addEventListener('DOMContentLoaded', () => {
-            if (typeof hardcodedBasins !== 'undefined') {
+        // โหลดข้อมูลตัวเลือกลุ่มน้ำทันทีที่หน้าเว็บโหลดเสร็จ
+        document.addEventListener('DOMContentLoaded', () => {
+            const basinSelect = document.getElementById("myData0");
+            if (typeof hardcodedBasins !== 'undefined' && basinSelect) {
                 hardcodedBasins.forEach(basin => { 
                     let opt = document.createElement("option"); 
                     opt.value = basin; 
@@ -222,14 +216,21 @@
                     basinSelect.appendChild(opt); 
                 });
             } else {
-                console.error("ไม่พบข้อมูล hardcodedBasins จาก constants.js");
+                console.error("ไม่พบตัวแปร hardcodedBasins กรุณาตรวจสอบการนำเข้าไฟล์ constants.js");
             }
         });
 
-        // ฟังก์ชันหลีกเลี่ยง HTML Injection (หาก constants ไม่มีให้)
         const escapeHtml = (unsafe) => {
             return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
+
+        // ฟังก์ชันช่วยจัดการ URL รูปภาพให้ถูกต้อง
+        function getValidImageUrl(imagePath) {
+            if (!imagePath || imagePath.trim() === '') return null;
+            if (/^https?:\/\//i.test(imagePath)) return imagePath;
+            let cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+            return `${BASE_URL}/${cleanPath}`;
+        }
 
         async function fetchData() {
             const emptyState = document.getElementById('emptyState');
@@ -250,31 +251,27 @@
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                // เรียกใช้ API เพื่อดึงข้อมูลสอบเทียบ (ใช้ URL Backend ตัวเต็ม)
+                // เรียกใช้ API เพื่อดึงข้อมูลสอบเทียบ 
                 const response = await fetch(`${BASE_URL}/api/calibrations`);
                 const result = await response.json();
 
                 if (response.ok && result.success) {
                     const textKeys = ['myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
                     
-                    // ป้องกัน HTML Injection โดยใช้ฟังก์ชัน escapeHtml
                     result.data.forEach(it => {
                         textKeys.forEach(k => { 
-                            if (typeof it[k] === 'string' && typeof escapeHtml === 'function') {
+                            if (typeof it[k] === 'string') {
                                 it[k] = escapeHtml(it[k]); 
                             }
                         });
                     });
                     
                     let filteredData = result.data;
-                    
-                    // กรองข้อมูลตามที่ผู้ใช้เลือก (งวด / ลุ่มน้ำ)
                     if (filterPeriod) filteredData = filteredData.filter(item => item.myDataPeriod === filterPeriod);
                     if (filterBasin) filteredData = filteredData.filter(item => item.myData0 === filterBasin);
 
                     globalFetchedData = filteredData;
                     
-                    // แสดงช่องค้นหาย่อย (Local Search) หากมีข้อมูล
                     if (globalFetchedData.length > 0) {
                         document.getElementById('localSearchContainer').classList.remove('hidden');
                     }
@@ -292,11 +289,12 @@
             }
         }
 
-        // ค้นหาข้อมูลในหน้าเว็บ
         function filterLocalData() {
             const searchTerm = document.getElementById('localSearchInput').value.toLowerCase().trim();
-            if (searchTerm === "") return renderCards(globalFetchedData);
-            
+            if (searchTerm === "") {
+                renderCards(globalFetchedData);
+                return;
+            }
             const filteredData = globalFetchedData.filter(item => 
                 (item.myData1 || "").toLowerCase().includes(searchTerm) || 
                 (item.myData2 || "").toLowerCase().includes(searchTerm)
@@ -304,23 +302,6 @@
             renderCards(filteredData);
         }
 
-        // ฟังก์ชันช่วยจัดการ URL รูปภาพให้ถูกต้องเสมอ
-        function getValidImageUrl(imagePath) {
-            if (!imagePath || imagePath.trim() === '') return null;
-            
-            // ถ้าเป็นลิงก์เว็บเต็มๆ อยู่แล้ว (http:// หรือ https://) ให้ใช้ได้เลย
-            if (/^https?:\/\//i.test(imagePath)) {
-                return imagePath;
-            }
-            
-            // ถ้ามี slash นำหน้า ให้ตัดออกก่อน (เช่น /uploads/... กลายเป็น uploads/...)
-            let cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-            
-            // ประกอบร่างกับ BASE_URL (https://ma-inspection-project.onrender.com)
-            return `${BASE_URL}/${cleanPath}`;
-        }
-
-        // แสดงผลการ์ด
         function renderCards(dataItems) {
             const container = document.getElementById('resultsContainer');
             if (dataItems.length === 0) {
@@ -349,10 +330,8 @@
                 
                 let imagesHtml = ''; let hasImage = false;
                 
-                // ดึงรูปภาพโดยใช้ฟังก์ชัน getValidImageUrl เพื่อป้องกัน URL ผิดพลาด
                 imageColsMap.forEach(col => {
                     const fullImgUrl = getValidImageUrl(item[col.field]);
-                    
                     if (fullImgUrl) {
                         hasImage = true;
                         imagesHtml += `
@@ -446,7 +425,6 @@
             container.innerHTML = html;
         }
 
-        // แสดงกล่องแจ้งเตือนข้อผิดพลาด
         function showError(errorMsg) {
             const errorDiv = document.getElementById('errorMessage');
             document.getElementById('errorText').innerText = errorMsg;
