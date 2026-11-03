@@ -201,12 +201,9 @@
 
     </main>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        const BASE_URL = 'https://ma-inspection-project.onrender.com'; 
         let globalFetchedData = [];
         
-        // ข้อมูลสำรองเผื่อ constants.js หาย
         const fallbackBasins = [
             "โขงเหนือ", "โขงอีสาน", "ชี", "มูล", "ปิง", "วัง", "ยม", "น่าน", "เจ้าพระยา",
             "ป่าสัก", "สะแกกรัง", "ท่าจีน", "แม่กลอง", "บางปะกง", "ชายทะเลฝั่งตะวันออก",
@@ -214,56 +211,26 @@
             "ภาคใต้ฝั่งตะวันออกตอนล่าง", "ทะเลสาบสงขลา", "สาละวิน", "โตนเลสาป", "KRC"
         ];
 
-        // เติมข้อมูลลุ่มน้ำเมื่อหน้าเว็บพร้อม
-        document.addEventListener('DOMContentLoaded', () => {
-            const basinSelect = document.getElementById("myData0");
-            const basinsToUse = (typeof hardcodedBasins !== 'undefined') ? hardcodedBasins : fallbackBasins;
-            if (basinSelect) {
-                basinsToUse.forEach(basin => { 
-                    let opt = document.createElement("option"); 
-                    opt.value = basin; 
-                    opt.textContent = basin; 
-                    basinSelect.appendChild(opt); 
-                });
-            }
-        });
-
-        // ฟังก์ชันป้องกัน HTML Injection
         const safeEscapeHtml = (unsafe) => {
             if (typeof escapeHtml === 'function') return escapeHtml(unsafe);
             return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        // ฟังก์ชันจัดการ URL รูปภาพ ให้เหมือนโค้ดเก่าของคุณ แต่รองรับ Google Drive ด้วย
-        function getValidImageUrl(imagePath) {
-            if (!imagePath || imagePath.trim() === '') return null;
-            let path = imagePath.trim();
-            
-            // 1. ดักจับและแปลงลิงก์ Google Drive
-            if (path.includes('drive.google.com')) {
-                let fileId = null;
-                const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                if (matchFileD) {
-                    fileId = matchFileD[1];
-                } else {
-                    const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                    if (matchId) fileId = matchId[1];
-                }
-                
-                if (fileId) {
-                    return `https://drive.google.com/uc?export=view&id=${fileId}`;
-                }
-                if (!/^https?:\/\//i.test(path)) return `https://${path}`;
-                return path;
-            }
-            
-            // 2. ถ้าเป็นลิงก์ http/https ปกติ
-            if (/^https?:\/\//i.test(path)) {
-                return path;
-            }
-            
-            // 3. ใช้ Logic การดึงรูปภาพแบบเดียวกับโค้ดเก่าที่คุณเคยส่งให้
-            return `/${path}`;
+        function initBasins() {
+            const basinSelect = document.getElementById("myData0");
+            const basinsToUse = (typeof hardcodedBasins !== 'undefined') ? hardcodedBasins : fallbackBasins;
+            basinsToUse.forEach(basin => { 
+                let opt = document.createElement("option"); 
+                opt.value = basin; 
+                opt.textContent = basin; 
+                basinSelect.appendChild(opt); 
+            });
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBasins);
+        } else {
+            initBasins();
         }
 
         async function fetchData() {
@@ -285,7 +252,8 @@
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                const response = await fetch(`${BASE_URL}/api/calibrations`);
+                // เรียกใช้ API เพื่อดึงข้อมูล 
+                const response = await fetch('https://ma-inspection-project.onrender.com/api/calibrations');
                 const result = await response.json();
 
                 if (response.ok && result.success) {
@@ -304,7 +272,10 @@
                     if (filterBasin) filteredData = filteredData.filter(item => item.myData0 === filterBasin);
 
                     globalFetchedData = filteredData;
-                    if (globalFetchedData.length > 0) document.getElementById('localSearchContainer').classList.remove('hidden');
+                    
+                    if (globalFetchedData.length > 0) {
+                        document.getElementById('localSearchContainer').classList.remove('hidden');
+                    }
                     
                     renderCards(globalFetchedData);
                 } else {
@@ -322,8 +293,10 @@
 
         function filterLocalData() {
             const searchTerm = document.getElementById('localSearchInput').value.toLowerCase().trim();
-            if (searchTerm === "") return renderCards(globalFetchedData);
-            
+            if (searchTerm === "") {
+                renderCards(globalFetchedData);
+                return;
+            }
             const filteredData = globalFetchedData.filter(item => 
                 (item.myData1 || "").toLowerCase().includes(searchTerm) || 
                 (item.myData2 || "").toLowerCase().includes(searchTerm)
@@ -345,8 +318,6 @@
             }
 
             let html = '';
-            
-            // ปรับชื่อตัวแปร field ให้ตรงกับโค้ดเก่าของคุณ
             const imageColsMap = [
                 { field: 'myFileUrl', label: "เสาวัดระดับ 1" }, { field: 'myFileUrl2', label: "RTU 1" }, { field: 'myFileUrl3', label: "Website 1" },
                 { field: 'myFileUrl4', label: "เสาวัดระดับ 2" }, { field: 'myFileUrl5', label: "RTU 2" }, { field: 'myFileUrl6', label: "Website 2" },
@@ -362,14 +333,47 @@
                 let imagesHtml = ''; let hasImage = false;
                 
                 imageColsMap.forEach(col => {
-                    if (item[col.field] && item[col.field].trim() !== '') {
+                    let rawPath = item[col.field];
+                    
+                    if (rawPath && rawPath.trim() !== '') {
                         hasImage = true;
-                        const fullImgUrl = getValidImageUrl(item[col.field]);
-                        
+                        let path = rawPath.trim();
+                        let linkUrl = '';
+                        let imgSrc = '';
+
+                        // กรณี 1: ลิงก์จาก Google Drive
+                        if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
+                            let fileId = null;
+                            const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/) || path.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                            if (matchId) fileId = matchId[1];
+                            
+                            if (fileId) {
+                                linkUrl = `https://drive.google.com/file/d/${fileId}/view`; // ลิงก์สำหรับกดดู
+                                imgSrc = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`; // ลิงก์สำหรับแสดงรูปภาพ
+                            } else {
+                                linkUrl = /^https?:\/\//i.test(path) ? path : `https://${path}`;
+                                imgSrc = linkUrl;
+                            }
+                        } 
+                        // กรณี 2: ลิงก์เว็บทั่วไป (http/https)
+                        else if (/^https?:\/\//i.test(path)) {
+                            linkUrl = path;
+                            imgSrc = path;
+                        } 
+                        // กรณี 3: อัปโหลดไว้บน Server (เช่น โฟลเดอร์ภาษาไทยแยกตามงวด)
+                        else {
+                            path = path.replace(/\\/g, '/'); // ป้องกัน Backslash
+                            let localPath = path.startsWith('/') ? path : `/${path}`; // ทำแบบโค้ดเก่า
+                            
+                            // เข้ารหัสภาษาไทยให้ Browser เข้าใจ แต่เก็บเครื่องหมาย '/' ไว้
+                            linkUrl = encodeURI(localPath);
+                            imgSrc = encodeURI(localPath);
+                        }
+
                         imagesHtml += `
                         <div class="polaroid">
-                            <a href="${fullImgUrl}" target="_blank" class="polaroid-img-wrapper block mb-2">
-                                <img src="${fullImgUrl}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/f1f5f9/64748b?text=Image+Error';">
+                            <a href="${linkUrl}" target="_blank" class="polaroid-img-wrapper block mb-2">
+                                <img src="${imgSrc}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/f1f5f9/64748b?text=Image+Error';">
                             </a>
                             <p class="text-center text-[10px] font-bold text-slate-600 mb-0 uppercase">${col.label}</p>
                         </div>`;
@@ -408,9 +412,7 @@
                                 <tbody>
                                     <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center shrink-0">1</div> ระดับน้ำ ครั้งที่ 1</div></td><td>${item.myData4 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData5 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData6 || '-'}</td></tr>
                                     ${item.myData7 ? `<tr><td colspan="4" class="text-left text-sky-700 bg-sky-50/30 text-xs py-2 px-4"><span class="font-bold mr-1">หมายเหตุ (1):</span> ${item.myData7}</td></tr>` : ''}
-                                    
                                     <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">2</div> ระดับน้ำ ครั้งที่ 2</div></td><td>${item.myData8 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData9 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData10 || '-'}</td></tr>
-                                    
                                     <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-cloud-rain"></i></div> ค่าน้ำฝน</div></td><td class="font-extrabold text-amber-600 bg-amber-50/30">${item.myData11 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData12 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData13 || '-'}</td></tr>
                                     ${item.myData14 ? `<tr><td colspan="4" class="text-left text-amber-700 bg-amber-50/30 text-xs py-2 px-4 rounded-b-xl"><span class="font-bold mr-1">หมายเหตุฝน:</span> ${item.myData14}</td></tr>` : ''}
                                 </tbody>
