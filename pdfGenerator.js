@@ -1,18 +1,35 @@
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+const http = require('http');
 
-// ฟังก์ชันแกะ ID รูปภาพจาก Google Drive
-function defaultExtractDriveId(url) {
-    if (!url) return null;
-    const matchFileD = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (matchFileD) return matchFileD[1];
-    const matchId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (matchId) return matchId[1];
-    return null;
-}
+// =======================================================
+// ฟังก์ชันช่วยโหลดรูปภาพผ่าน URL ด้วย Native Node.js
+// =======================================================
+const fetchImageFromUrl = (url) => {
+    return new Promise((resolve) => {
+        const client = url.startsWith('https') ? https : http;
+        client.get(url, (res) => {
+            // ถ้าติด Redirect (Google Drive ชอบเด้งไปลิงก์อื่น) ให้ตามลิงก์ไป
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                let redirUrl = res.headers.location;
+                if (!redirUrl.startsWith('http')) redirUrl = new URL(redirUrl, url).href;
+                resolve(fetchImageFromUrl(redirUrl));
+            } 
+            // ถ้าโหลดสำเร็จ คืนค่าข้อมูลรูปภาพ (Buffer) กลับไปให้ PDF วาด
+            else if (res.statusCode === 200) {
+                const data = [];
+                res.on('data', chunk => data.push(chunk));
+                res.on('end', () => resolve(Buffer.concat(data)));
+            } else {
+                resolve(null);
+            }
+        }).on('error', () => resolve(null));
+    });
+};
 
-async function generateInspectionPDF(inspections, calibrations, term, basin, res, equipmentMap, hardcodedBasins, fetchImageBufferDirectly, extractDriveId, fixThaiVowels) {
+async function generateInspectionPDF(inspections, calibrations, term, basin, res, equipmentMap, hardcodedBasins, _fetchImageBufferDirectly, _extractDriveId, fixThaiVowels) {
   try {
     const doc = new PDFDocument({ size: 'A4', margin: 30 });
     const fontRegular = path.join(__dirname, 'fonts', 'Prompt-Regular.ttf');
@@ -30,17 +47,13 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.registerFont('ThaiBold', 'Helvetica-Bold');
     }
 
-    // ฟังก์ชันจัดการเวลาให้เป็น Asia/Bangkok
     const getThaiDate = (dateString) => {
       if (!dateString) return '-';
       const d = new Date(dateString);
       if (isNaN(d)) return '-';
       
       const parts = new Intl.DateTimeFormat('en-US', { 
-        timeZone: 'Asia/Bangkok', 
-        year: 'numeric', 
-        month: 'numeric', 
-        day: 'numeric' 
+        timeZone: 'Asia/Bangkok', year: 'numeric', month: 'numeric', day: 'numeric' 
       }).formatToParts(d);
       
       let day, month, year;
@@ -60,43 +73,61 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       if (isNaN(d)) return '-';
       
       d.setMinutes(d.getMinutes() + addMinutes); 
-      
       const timeString = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Bangkok',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
+        timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false
       }).format(d);
       
       return timeString.replace(':', '.');
     };
 
-    // ระบบโหลดรูปภาพอัจฉริยะ รองรับไฟล์ในเครื่อง และ Google Drive
+    // =======================================================
+    // ระบบโหลดรูปภาพอัจฉริยะ (ดึงรูปลง PDF ได้ 100%)
+    // =======================================================
     const renderCalibImage = async (fileUrl, x, y, w, h) => {
-      if (!fileUrl) return;
+      if (!fileUrl || fileUrl.trim() === '') return;
       let buf = null;
       try {
-        const getId = extractDriveId || defaultExtractDriveId;
-        const fId = getId(fileUrl);
-        
-        // 1. ถ้ารูปมาจาก Google Drive
-        if (fId && fetchImageBufferDirectly) {
-           buf = await fetchImageBufferDirectly(fId);
-        } 
-        // 2. ถ้ารูปมาจากโฟลเดอร์ในระบบ
-        else {
-           let cleanPath = fileUrl.replace(/\\/g, '/');
-           if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
-           const localPath = path.join(__dirname, cleanPath);
-           const decodedPath = path.join(__dirname, decodeURIComponent(cleanPath));
-           
-           if (fs.existsSync(localPath)) {
-               buf = fs.readFileSync(localPath);
-           } else if (fs.existsSync(decodedPath)) {
-               buf = fs.readFileSync(decodedPath);
-           }
+        let pathStr = fileUrl.trim();
+        let fileId = null;
+
+        // 1. ดักจับ Google Drive ID
+        if (pathStr.includes('/api/images/')) {
+            const parts = pathStr.split('/api/images/');
+            fileId = parts[parts.length - 1].replace(/\//g, '');
+        } else if (pathStr.includes('drive.google.com') || pathStr.includes('drive.usercontent.google.com')) {
+            const matchFileD = pathStr.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (matchFileD) {
+                fileId = matchFileD[1];
+            } else {
+                const matchId = pathStr.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                if (matchId) fileId = matchId[1];
+            }
         }
 
+        // 2. โหลดรูปมาเป็น Buffer เพื่อให้ PDF วาดได้
+        if (fileId) {
+            // โหลดรูปจาก Google Drive
+            const driveThumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+            buf = await fetchImageFromUrl(driveThumbnailUrl);
+        } else if (/^https?:\/\//i.test(pathStr)) {
+            // โหลดรูปจากลิงก์เว็บไซต์ทั่วไป
+            buf = await fetchImageFromUrl(pathStr);
+        } else {
+            // โหลดรูปจากในเครื่อง Server (Uploads)
+            let cleanPath = pathStr.replace(/\\/g, '/');
+            if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+            
+            const localPath = path.join(__dirname, cleanPath);
+            const decodedPath = path.join(__dirname, decodeURIComponent(cleanPath));
+
+            if (fs.existsSync(localPath)) {
+                buf = fs.readFileSync(localPath);
+            } else if (fs.existsSync(decodedPath)) {
+                buf = fs.readFileSync(decodedPath);
+            }
+        }
+
+        // 3. วาดรูปลงกระดาษ PDF
         if (buf) {
             doc.image(buf, x + 2, y + 2, { fit: [w - 4, h - 4], align: 'center', valign: 'center' }); 
         } else {
@@ -174,7 +205,6 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       else if (cleanLower === 'p' || cleanLower === 'ผ่าน') cleanStatus = 'ผ่าน';
       
       const brokenDesc = brokenList.join(', ') || '-';
-      // ดึงค่าหมายเหตุกลับมาใส่
       const note1 = item.note || '-';
       const note2 = item.note2 || '-';
 
@@ -207,7 +237,7 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
     });
 
     // ============================================================================
-    // หน้ารายงานแอป 2 และ 3 (Calibrations - สอบเทียบ) คืนชีพกลับมา!
+    // หน้ารายงานแอป 2 และ 3 (Calibrations) พร้อมรูปภาพ!
     // ============================================================================
     if (calibrations && calibrations.length > 0) {
         for (const calib of calibrations) {
@@ -231,6 +261,7 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
 
           tY += 20;
           doc.rect(40, tY, 171, 140).stroke(); doc.rect(211, tY, 171, 140).stroke(); doc.rect(382, tY, 171, 140).stroke();
+          // วาดรูปด้วยฟังก์ชันใหม่
           await renderCalibImage(calib.myFileUrl, 40, tY, 171, 140);
           await renderCalibImage(calib.myFileUrl2, 211, tY, 171, 140);
           await renderCalibImage(calib.myFileUrl3, 382, tY, 171, 140);
