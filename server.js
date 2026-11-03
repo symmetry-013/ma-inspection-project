@@ -6,42 +6,25 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// แก้ไข: นำเข้าฟังก์ชันให้ชื่อตรงกับในไฟล์ pdfGenerator.js
+// เรียกใช้ไฟล์ pdfGenerator.js (ตรวจสอบชื่อฟังก์ชันในไฟล์ของคุณด้วยว่าชื่อ generateInspectionPDF หรือไม่)
 const { generateInspectionPDF } = require('./pdfGenerator');
-const name_sv = require('./name_sv'); 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ==========================================
-// 1. ตั้งค่า Middleware และเชื่อมต่อหน้าเว็บ (Frontend)
-// ==========================================
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// สั่งให้ระบบเปิดโฟลเดอร์ frontend ให้คนภายนอกเข้าถึงไฟล์ HTML/JS ได้
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// เมื่อผู้ใช้เข้า URL หน้าแรก (/) ให้แสดงไฟล์ index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
-});
-
-// สร้างโฟลเดอร์ uploads หากยังไม่มี เพื่อเก็บรูปภาพ
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
 app.use('/uploads', express.static(uploadDir));
 
-// ==========================================
-// 2. ตั้งค่า Multer สำหรับอัปโหลดไฟล์รูปภาพ
-// ==========================================
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
+    destination: function (req, file, cb) { cb(null, 'uploads/'); },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));
@@ -49,12 +32,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// ==========================================
-// 3. เชื่อมต่อ MongoDB และสร้าง Schema
-// ==========================================
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ma_inspection')
-  .then(() => console.log('✅ เชื่อมต่อ MongoDB สำเร็จ'))
-  .catch(err => console.error('❌ ข้อผิดพลาดในการเชื่อมต่อ MongoDB:', err));
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 const InspectionSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 const Inspection = mongoose.model('Inspection', InspectionSchema);
@@ -62,29 +42,20 @@ const Inspection = mongoose.model('Inspection', InspectionSchema);
 const CalibrationSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
-// ==========================================
-// 4. API Endpoints - สำหรับ Inspection (ตรวจงาน MA)
-// ==========================================
 app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     try {
         const formData = req.body;
         const photos = [];
         if (req.files && req.files.length > 0) {
             req.files.forEach(file => {
-                photos.push({
-                    thumbnailUrl: `/uploads/${file.filename}`,
-                    webViewLink: `/uploads/${file.filename}`
-                });
+                photos.push({ thumbnailUrl: `/uploads/${file.filename}`, webViewLink: `/uploads/${file.filename}` });
             });
         }
         formData.photos = photos;
-
         const newInspection = new Inspection(formData);
         await newInspection.save();
-        
-        res.status(200).json({ success: true, message: 'บันทึกข้อมูลการตรวจสอบสำเร็จ' });
+        res.status(200).json({ success: true, message: 'Saved successfully' });
     } catch (error) {
-        console.error('Error saving inspection:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -94,14 +65,10 @@ app.get('/api/inspections', async (req, res) => {
         const data = await Inspection.find().sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: data });
     } catch (error) {
-        console.error('Error fetching inspections:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// ==========================================
-// 5. API Endpoints - สำหรับ Calibration (สอบเทียบ)
-// ==========================================
 const calibrationUploadFields = [
     { name: 'myFile', maxCount: 1 }, { name: 'myFile2', maxCount: 1 },
     { name: 'myFile3', maxCount: 1 }, { name: 'myFile4', maxCount: 1 },
@@ -121,13 +88,10 @@ app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req,
                 formData[urlField] = ''; 
             }
         });
-
         const newCalibration = new Calibration(formData);
         await newCalibration.save();
-        
-        res.status(200).json({ success: true, message: 'บันทึกข้อมูลสอบเทียบสำเร็จ' });
+        res.status(200).json({ success: true, message: 'Saved successfully' });
     } catch (error) {
-        console.error('Error saving calibration:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
@@ -137,14 +101,13 @@ app.get('/api/calibrations', async (req, res) => {
         const data = await Calibration.find().sort({ createdAt: -1 });
         res.status(200).json({ success: true, data: data });
     } catch (error) {
-        console.error('Error fetching calibrations:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// ==========================================
-// 6. API Endpoint - สำหรับสร้าง PDF (แก้ไขส่วนนี้แล้ว)
-// ==========================================
+// ===============================================
+// การสร้าง PDF - แก้ไขชื่อฟังก์ชันและส่งตัวแปรสำรอง
+// ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
         const term = req.query.term || 'all';
@@ -152,15 +115,14 @@ app.get('/api/report/pdf', async (req, res) => {
 
         let query = {};
         if (term !== 'all') {
-            // ทำให้รองรับทั้ง "งวดที่1" และ "งวดที่ 1"
             query.saya = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
         }
         if (basin !== 'all') query.code = basin;
 
         const inspectionData = await Inspection.find(query).lean();
 
-        // 1. เตรียมข้อมูลตัวแปรป้องกันระบบพัง หาก name_sv ไม่มีข้อมูลให้
-        const equipmentMap = (name_sv && name_sv.equipmentMap) ? name_sv.equipmentMap : {
+        // ฝังตัวแปรสำรองไว้ใน Backend เลย ป้องกันไฟล์อื่นสูญหาย
+        const fallbackEquipmentMap = {
             clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
             online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
             sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC",
@@ -169,18 +131,16 @@ app.get('/api/report/pdf', async (req, res) => {
             sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
             sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
         };
-        
-        // 2. เตรียมฟังก์ชันแก้สระลอย ป้องกัน Error
-        const fixThaiVowels = (name_sv && name_sv.fixThaiVowels) ? name_sv.fixThaiVowels : (text) => text || '';
+        const fixThaiVowels = (text) => text || '';
 
-        // 3. เรียกฟังก์ชันที่ชื่อตรงกัน
+        // ถ้าโค้ดเก่าใน pdfGenerator.js ของคุณชื่อว่า generateInspectionPDF
         await generateInspectionPDF(
             inspectionData, 
-            [], // calibrations (หากต้องการในอนาคต)
+            [], 
             term, 
             basin, 
             res, 
-            equipmentMap, 
+            fallbackEquipmentMap, 
             [], 
             null, 
             null, 
@@ -193,31 +153,6 @@ app.get('/api/report/pdf', async (req, res) => {
     }
 });
 
-// ==========================================
-// 7. Webhook Endpoint - รับข้อมูลจากระบบอื่น
-// ==========================================
-app.post('/webhook/update-station', async (req, res) => {
-    try {
-        const apiKey = req.headers['x-api-key'];
-        if (apiKey !== process.env.WEBHOOK_SECRET) {
-            return res.status(401).json({ success: false, message: 'Unauthorized: Invalid API Key' });
-        }
-
-        const payload = req.body;
-        const newRecord = new Inspection(payload);
-        await newRecord.save();
-
-        res.status(200).json({ success: true, message: 'Webhook received and processed' });
-    } catch (error) {
-        console.error('Webhook processing error:', error);
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-// ==========================================
-// เริ่มต้นการทำงาน Server
-// ==========================================
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
-    console.log(`📁 Upload directory is ready at: ${uploadDir}`);
 });

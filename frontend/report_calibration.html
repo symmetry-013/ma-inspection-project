@@ -5,16 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard แสดงผลสอบเทียบ | 3D Cartoon Edition</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- นำเข้า Constants -->
+    <!-- พยายามเรียก constants.js (ถ้าหาไม่เจอ ระบบจะใช้ข้อมูลสำรองแทน) -->
     <script src="constants.js"></script>
     
     <script>
@@ -34,86 +29,33 @@
         }
     </script>
     <style>
-        body {
-            background-color: #fffbeb; 
-            color: #334155;
-            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
-            background-size: 24px 24px;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
-        ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
-
-        .puffy-container {
-            background-color: #ffffff;
-            border-radius: 24px;
-            border: 4px solid #f8fafc;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
-            margin-bottom: 24px;
-        }
-
-        .result-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-top-width: 8px;
-        }
-        .result-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
-        }
-
-        .puffy-input {
-            background-color: #f8fafc;
-            border: 2px solid #e2e8f0;
-            color: #334155;
-            transition: all 0.2s ease;
-            font-weight: 600;
-        }
-        .puffy-input:focus {
-            outline: none;
-            border-color: #38bdf8;
-            background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
-        }
-
-        .btn-puffy-blue {
-            background-color: #38bdf8;
-            color: white;
-            border-radius: 16px;
-            box-shadow: 0 6px 0 #0284c7;
-            transition: all 0.15s ease;
-            font-weight: 700;
-            border: 4px solid #bae6fd;
-        }
+        body { background-color: #fffbeb; color: #334155; background-image: radial-gradient(#fde047 1.5px, transparent 1.5px); background-size: 24px 24px; -webkit-overflow-scrolling: touch; }
+        ::-webkit-scrollbar { width: 10px; } ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; } ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
+        .puffy-container { background-color: #ffffff; border-radius: 24px; border: 4px solid #f8fafc; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01); margin-bottom: 24px; }
+        .result-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-top-width: 8px; }
+        .result-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05); }
+        .puffy-input { background-color: #f8fafc; border: 2px solid #e2e8f0; color: #334155; transition: all 0.2s ease; font-weight: 600; }
+        .puffy-input:focus { outline: none; border-color: #38bdf8; background-color: #ffffff; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
+        .btn-puffy-blue { background-color: #38bdf8; color: white; border-radius: 16px; box-shadow: 0 6px 0 #0284c7; transition: all 0.15s ease; font-weight: 700; border: 4px solid #bae6fd; }
         .btn-puffy-blue:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #0284c7; }
         .btn-puffy-blue:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.8; }
-
         .polaroid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 16px; }
-        .polaroid { 
-            background: #ffffff; padding: 10px 10px 16px 10px; 
-            border: 2px solid #e2e8f0; border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
+        .polaroid { background: #ffffff; padding: 10px 10px 16px 10px; border: 2px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .polaroid:hover { transform: scale(1.05) rotate(-2deg); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #cbd5e1; z-index: 10; position: relative; }
         .polaroid-img-wrapper { aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 2px solid #f1f5f9; background: #f8fafc; }
         .polaroid-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-        
         .table-custom { border-collapse: separate; border-spacing: 0; width: 100%; border-radius: 16px; border: 2px solid #e2e8f0; overflow: hidden; }
         .table-custom th, .table-custom td { padding: 12px 16px; border-bottom: 2px solid #f1f5f9; text-align: center; }
         .table-custom th { background-color: #f8fafc; font-weight: 700; color: #475569; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; }
         .table-custom td { font-size: 0.95rem; font-weight: 600; color: #334155; }
         .table-custom tr:last-child td { border-bottom: none; }
         .table-custom tr:hover td { background-color: #f8fafc; }
-
         .fade-in { animation: fadeIn 0.4s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col font-sans">
     
-    <!-- Header สไตล์ 3D Cartoon -->
     <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
         <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center space-x-3 md:space-x-4">
@@ -134,7 +76,6 @@
 
     <main class="flex-grow max-w-5xl mx-auto w-full px-4 py-8">
         
-        <!-- ตัวกรองการค้นหา -->
         <div class="puffy-container p-6 border-t-8 border-t-sky-400 fade-in">
             <h2 class="text-lg font-bold text-sky-600 mb-4 flex items-center gap-2 border-b-2 border-sky-100 pb-3">
                 <i class="ph-fill ph-magnifying-glass text-2xl"></i> ค้นหาข้อมูลผลสอบเทียบ
@@ -164,7 +105,6 @@
             </div>
         </div>
 
-        <!-- สถานะ Loading / แจ้งเตือน -->
         <div id="loadingIndicator" class="hidden flex flex-col items-center justify-center py-12 fade-in">
             <i class="ph-bold ph-spinner animate-spin text-5xl text-sky-500 mb-4"></i>
             <p class="text-slate-500 font-bold text-sm" id="loadingText">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>
@@ -178,7 +118,6 @@
             </div>
         </div>
 
-        <!-- ช่องค้นหาภายในเครื่อง (Local Search) -->
         <div id="localSearchContainer" class="hidden puffy-container p-4 md:p-5 mb-6 border-t-8 border-t-emerald-400 fade-in flex items-center gap-3">
             <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0 border-2 border-emerald-200">
                 <i class="ph-bold ph-magnifying-glass text-emerald-500 text-xl"></i>
@@ -188,7 +127,6 @@
             </div>
         </div>
 
-        <!-- พื้นที่แสดงผลการ์ด -->
         <div id="resultsContainer" class="fade-in space-y-6">
             <div class="puffy-container py-16 text-center border-dashed border-slate-300" id="emptyState">
                 <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
@@ -204,27 +142,39 @@
     <script>
         let globalFetchedData = [];
         const BASE_URL = 'https://ma-inspection-project.onrender.com';
+        
+        // ข้อมูลสำรอง (Fallback) หากหาไฟล์ constants.js ไม่เจอ ลุ่มน้ำก็ยังจะขึ้นปกติ
+        const fallbackBasins = [
+            "โขงเหนือ", "โขงอีสาน", "ชี", "มูล", "ปิง", "วัง", "ยม", "น่าน", "เจ้าพระยา",
+            "ป่าสัก", "สะแกกรัง", "ท่าจีน", "แม่กลอง", "บางปะกง", "ชายทะเลฝั่งตะวันออก",
+            "เพชรบุรี-ประจวบคีรีขันธ์", "ภาคใต้ฝั่งตะวันตก", "ภาคใต้ฝั่งตะวันออกตอนบน",
+            "ภาคใต้ฝั่งตะวันออกตอนล่าง", "ทะเลสาบสงขลา", "สาละวิน", "โตนเลสาป", "KRC"
+        ];
 
-        // โหลดข้อมูลตัวเลือกลุ่มน้ำทันทีที่หน้าเว็บโหลดเสร็จ
-        document.addEventListener('DOMContentLoaded', () => {
-            const basinSelect = document.getElementById("myData0");
-            if (typeof hardcodedBasins !== 'undefined' && basinSelect) {
-                hardcodedBasins.forEach(basin => { 
-                    let opt = document.createElement("option"); 
-                    opt.value = basin; 
-                    opt.textContent = basin; 
-                    basinSelect.appendChild(opt); 
-                });
-            } else {
-                console.error("ไม่พบตัวแปร hardcodedBasins กรุณาตรวจสอบการนำเข้าไฟล์ constants.js");
-            }
-        });
-
-        const escapeHtml = (unsafe) => {
+        // ฟังก์ชันปลอดภัยสำหรับหลีกเลี่ยง HTML Injection
+        const safeEscapeHtml = (unsafe) => {
+            if (typeof escapeHtml === 'function') return escapeHtml(unsafe);
             return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        // ฟังก์ชันช่วยจัดการ URL รูปภาพให้ถูกต้อง
+        // เติมรายชื่อลุ่มน้ำทันที
+        function initBasins() {
+            const basinSelect = document.getElementById("myData0");
+            const basinsToUse = (typeof hardcodedBasins !== 'undefined') ? hardcodedBasins : fallbackBasins;
+            basinsToUse.forEach(basin => { 
+                let opt = document.createElement("option"); 
+                opt.value = basin; 
+                opt.textContent = basin; 
+                basinSelect.appendChild(opt); 
+            });
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initBasins);
+        } else {
+            initBasins();
+        }
+
         function getValidImageUrl(imagePath) {
             if (!imagePath || imagePath.trim() === '') return null;
             if (/^https?:\/\//i.test(imagePath)) return imagePath;
@@ -251,7 +201,6 @@
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                // เรียกใช้ API เพื่อดึงข้อมูลสอบเทียบ 
                 const response = await fetch(`${BASE_URL}/api/calibrations`);
                 const result = await response.json();
 
@@ -261,7 +210,7 @@
                     result.data.forEach(it => {
                         textKeys.forEach(k => { 
                             if (typeof it[k] === 'string') {
-                                it[k] = escapeHtml(it[k]); 
+                                it[k] = safeEscapeHtml(it[k]); 
                             }
                         });
                     });
@@ -281,7 +230,8 @@
                     throw new Error(result.message || 'ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้');
                 }
             } catch (error) {
-                showError(error.message);
+                document.getElementById('errorText').innerText = error.message;
+                document.getElementById('errorMessage').classList.remove('hidden');
             } finally {
                 document.getElementById('loadingIndicator').classList.add('hidden');
                 btn.disabled = false;
@@ -352,8 +302,6 @@
 
                 html += `
                     <div class="puffy-container result-card ${cardColor} p-5 md:p-6 fade-in" style="animation-delay: ${0.05 * (index % 5)}s;">
-                        
-                        <!-- Header การ์ด -->
                         <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5 border-b-2 border-slate-100 pb-4">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -369,66 +317,26 @@
                             </div>
                         </div>
                         
-                        <!-- ตารางข้อมูล -->
                         <div class="overflow-x-auto mb-5">
                             <table class="table-custom min-w-full">
                                 <thead>
-                                    <tr>
-                                        <th colspan="4" class="text-center bg-slate-100/50 text-slate-700 text-sm py-3">
-                                            <i class="ph-bold ph-map-pin text-rose-500 mr-1"></i> ที่ตั้งอาคาร: <span class="font-extrabold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg ml-1">${item.myData3 || '-'}</span>
-                                        </th>
-                                    </tr>
-                                    <tr>
-                                        <th width="31%" class="text-left"><i class="ph-bold ph-list-bullets mr-1 text-slate-400"></i> หัวข้อ</th>
-                                        <th width="23%">เสาวัด/จำนวนเคาะ</th>
-                                        <th width="23%" class="text-sky-600 bg-sky-50/50">RTU</th>
-                                        <th width="23%" class="text-violet-600 bg-violet-50/50">Website</th>
-                                    </tr>
+                                    <tr><th colspan="4" class="text-center bg-slate-100/50 text-slate-700 text-sm py-3"><i class="ph-bold ph-map-pin text-rose-500 mr-1"></i> ที่ตั้งอาคาร: <span class="font-extrabold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg ml-1">${item.myData3 || '-'}</span></th></tr>
+                                    <tr><th width="31%" class="text-left"><i class="ph-bold ph-list-bullets mr-1 text-slate-400"></i> หัวข้อ</th><th width="23%">เสาวัด/จำนวนเคาะ</th><th width="23%" class="text-sky-600 bg-sky-50/50">RTU</th><th width="23%" class="text-violet-600 bg-violet-50/50">Website</th></tr>
                                 </thead>
                                 <tbody>
-                                    <!-- ครั้งที่ 1 -->
-                                    <tr>
-                                        <td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center shrink-0">1</div> ระดับน้ำ ครั้งที่ 1</div></td>
-                                        <td>${item.myData4 || '-'}</td>
-                                        <td class="text-sky-600 bg-sky-50/50">${item.myData5 || '-'}</td>
-                                        <td class="text-violet-600 bg-violet-50/50">${item.myData6 || '-'}</td>
-                                    </tr>
+                                    <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center shrink-0">1</div> ระดับน้ำ ครั้งที่ 1</div></td><td>${item.myData4 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData5 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData6 || '-'}</td></tr>
                                     ${item.myData7 ? `<tr><td colspan="4" class="text-left text-sky-700 bg-sky-50/30 text-xs py-2 px-4"><span class="font-bold mr-1">หมายเหตุ (1):</span> ${item.myData7}</td></tr>` : ''}
-                                    
-                                    <!-- ครั้งที่ 2 -->
-                                    <tr>
-                                        <td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">2</div> ระดับน้ำ ครั้งที่ 2</div></td>
-                                        <td>${item.myData8 || '-'}</td>
-                                        <td class="text-sky-600 bg-sky-50/50">${item.myData9 || '-'}</td>
-                                        <td class="text-violet-600 bg-violet-50/50">${item.myData10 || '-'}</td>
-                                    </tr>
-                                    
-                                    <!-- น้ำฝน -->
-                                    <tr>
-                                        <td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-cloud-rain"></i></div> ค่าน้ำฝน</div></td>
-                                        <td class="font-extrabold text-amber-600 bg-amber-50/30">${item.myData11 || '-'}</td>
-                                        <td class="text-sky-600 bg-sky-50/50">${item.myData12 || '-'}</td>
-                                        <td class="text-violet-600 bg-violet-50/50">${item.myData13 || '-'}</td>
-                                    </tr>
+                                    <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">2</div> ระดับน้ำ ครั้งที่ 2</div></td><td>${item.myData8 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData9 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData10 || '-'}</td></tr>
+                                    <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-cloud-rain"></i></div> ค่าน้ำฝน</div></td><td class="font-extrabold text-amber-600 bg-amber-50/30">${item.myData11 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData12 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData13 || '-'}</td></tr>
                                     ${item.myData14 ? `<tr><td colspan="4" class="text-left text-amber-700 bg-amber-50/30 text-xs py-2 px-4 rounded-b-xl"><span class="font-bold mr-1">หมายเหตุฝน:</span> ${item.myData14}</td></tr>` : ''}
                                 </tbody>
                             </table>
                         </div>
                         
-                        <!-- รูปภาพ -->
-                        <div>
-                            <p class="mb-1 text-slate-700 font-bold text-sm flex items-center gap-1.5"><i class="ph-fill ph-image text-sky-500 text-lg"></i> ภาพประกอบการสอบเทียบ</p>
-                            <div class="polaroid-grid">${imagesHtml}</div>
-                        </div>
+                        <div><p class="mb-1 text-slate-700 font-bold text-sm flex items-center gap-1.5"><i class="ph-fill ph-image text-sky-500 text-lg"></i> ภาพประกอบการสอบเทียบ</p><div class="polaroid-grid">${imagesHtml}</div></div>
                     </div>`;
             });
             container.innerHTML = html;
-        }
-
-        function showError(errorMsg) {
-            const errorDiv = document.getElementById('errorMessage');
-            document.getElementById('errorText').innerText = errorMsg;
-            errorDiv.classList.remove('hidden');
         }
     </script>
 </body>
