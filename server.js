@@ -16,12 +16,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
+// สร้างโฟลเดอร์หลัก uploads 
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadDir));
 
+// ตั้งค่า Multer ให้บันทึกรูปลง uploads/ ก่อนชั่วคราว
 const storage = multer.diskStorage({
     destination: function (req, file, cb) { cb(null, 'uploads/'); },
     filename: function (req, file, cb) {
@@ -41,16 +43,47 @@ const Inspection = mongoose.model('Inspection', InspectionSchema);
 const CalibrationSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
+// ==========================================
+// 1. API: รับข้อมูลตรวจสอบสถานี (Inspection)
+// ==========================================
 app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     try {
         const formData = req.body;
         const photos = [];
+        
+        // ดึงค่างวด ลุ่มน้ำ และรหัสสถานี เพื่อมาสร้างโฟลเดอร์
+        const term = formData.saya || 'ไม่ระบุงวด';
+        const basin = formData.code || 'ไม่ระบุลุ่มน้ำ';
+        const station = formData.id_name || 'ไม่ระบุสถานี';
+        
+        // สร้าง Path สำหรับโฟลเดอร์แยก (uploads/งวดที่/ลุ่มน้ำ/รหัสสถานี)
+        const targetRelativeDir = path.join(term, basin, station);
+        const targetAbsoluteDir = path.join(__dirname, 'uploads', targetRelativeDir);
+
+        // ถ้ายังไม่มีโฟลเดอร์นี้ ให้สร้างขึ้นมาใหม่
+        if (!fs.existsSync(targetAbsoluteDir)) {
+            fs.mkdirSync(targetAbsoluteDir, { recursive: true });
+        }
+
         if (req.files && req.files.length > 0) {
             req.files.forEach(file => {
-                photos.push({ thumbnailUrl: `/uploads/${file.filename}`, webViewLink: `/uploads/${file.filename}` });
+                const oldPath = file.path; // ไฟล์ที่ Multer โหลดไว้ชั่วคราว
+                const newPath = path.join(targetAbsoluteDir, file.filename); // โฟลเดอร์ปลายทาง
+                
+                // ย้ายไฟล์เข้าโฟลเดอร์แยก
+                fs.renameSync(oldPath, newPath);
+
+                // แปลง Path เป็นแบบเว็บ (ใช้ / เสมอ) เพื่อเก็บลงฐานข้อมูล
+                const dbPath = `uploads/${term}/${basin}/${station}/${file.filename}`.replace(/\\/g, '/');
+
+                photos.push({ 
+                    thumbnailUrl: `/${dbPath}`, 
+                    webViewLink: `/${dbPath}` 
+                });
             });
         }
         formData.photos = photos;
+        
         const newInspection = new Inspection(formData);
         await newInspection.save();
         res.status(200).json({ success: true, message: 'Saved successfully' });
@@ -68,6 +101,9 @@ app.get('/api/inspections', async (req, res) => {
     }
 });
 
+// ==========================================
+// 2. API: รับข้อมูลสอบเทียบ (Calibration)
+// ==========================================
 const calibrationUploadFields = [
     { name: 'myFile', maxCount: 1 }, { name: 'myFile2', maxCount: 1 },
     { name: 'myFile3', maxCount: 1 }, { name: 'myFile4', maxCount: 1 },
@@ -78,15 +114,42 @@ const calibrationUploadFields = [
 app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req, res) => {
     try {
         const formData = req.body;
+        
+        // ดึงค่างวด ลุ่มน้ำ และรหัสสถานี เพื่อมาสร้างโฟลเดอร์
+        const term = formData.myDataPeriod || 'ไม่ระบุงวด';
+        const basin = formData.myData0 || 'ไม่ระบุลุ่มน้ำ';
+        const station = formData.myData1 || 'ไม่ระบุสถานี';
+        
+        // สร้าง Path สำหรับโฟลเดอร์แยก
+        const targetRelativeDir = path.join(term, basin, station);
+        const targetAbsoluteDir = path.join(__dirname, 'uploads', targetRelativeDir);
+
+        // ถ้ายังไม่มีโฟลเดอร์นี้ ให้สร้างขึ้นมาใหม่
+        if (!fs.existsSync(targetAbsoluteDir)) {
+            fs.mkdirSync(targetAbsoluteDir, { recursive: true });
+        }
+
         const fileFields = ['myFile', 'myFile2', 'myFile3', 'myFile4', 'myFile5', 'myFile6', 'myFile7', 'myFile8'];
+        
         fileFields.forEach((field, index) => {
             const urlField = index === 0 ? 'myFileUrl' : `myFileUrl${index + 1}`;
+            
             if (req.files[field] && req.files[field].length > 0) {
-                formData[urlField] = `uploads/${req.files[field][0].filename}`;
+                const file = req.files[field][0];
+                const oldPath = file.path;
+                const newPath = path.join(targetAbsoluteDir, file.filename);
+                
+                // ย้ายไฟล์เข้าโฟลเดอร์แยก
+                fs.renameSync(oldPath, newPath);
+
+                // บันทึก Path แบบจัดระเบียบแล้วลงฐานข้อมูล
+                const dbPath = `uploads/${term}/${basin}/${station}/${file.filename}`.replace(/\\/g, '/');
+                formData[urlField] = dbPath;
             } else {
                 formData[urlField] = ''; 
             }
         });
+
         const newCalibration = new Calibration(formData);
         await newCalibration.save();
         res.status(200).json({ success: true, message: 'Saved successfully' });
@@ -105,7 +168,7 @@ app.get('/api/calibrations', async (req, res) => {
 });
 
 // ===============================================
-// การสร้าง PDF - เพิ่มการดึง Calibration จากฐานข้อมูล
+// 3. การสร้าง PDF 
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -118,10 +181,8 @@ app.get('/api/report/pdf', async (req, res) => {
         }
         if (basin !== 'all') query.code = basin;
 
-        // ดึงข้อมูลการตรวจรับงาน (Inspection)
         const inspectionData = await Inspection.find(query).lean();
 
-        // 🌟 เพิ่ม: ดึงข้อมูลการสอบเทียบ (Calibration) โดยใช้เงื่อนไขของตารางสอบเทียบ
         let calibQuery = {};
         if (term !== 'all') {
             calibQuery.myDataPeriod = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
@@ -130,7 +191,6 @@ app.get('/api/report/pdf', async (req, res) => {
         
         const calibrationData = await Calibration.find(calibQuery).lean();
 
-        // ฝังตัวแปรสำรองไว้ใน Backend
         const fallbackEquipmentMap = {
             clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
             online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
@@ -142,7 +202,6 @@ app.get('/api/report/pdf', async (req, res) => {
         };
         const fixThaiVowels = (text) => text || '';
 
-        // ส่งตัวแปร calibrationData เข้าไปด้วย ไม่ใช่ []
         await generateInspectionPDF(
             inspectionData, 
             calibrationData, 
@@ -162,6 +221,9 @@ app.get('/api/report/pdf', async (req, res) => {
     }
 });
 
+// ==========================================
+// 4. Webhook 
+// ==========================================
 app.post('/webhook/update-station', async (req, res) => {
     try {
         const apiKey = req.headers['x-api-key'];
