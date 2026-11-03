@@ -2,7 +2,6 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบบริหารจัดการอุปกรณ์สนาม | Field Operations</title>
     
@@ -10,31 +9,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts: Prompt -->
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Phosphor Icons (Minimal Line Icons) -->
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Prompt', 'sans-serif'],
-                    },
-                    colors: {
-                        // Tech-Luxury Palette
-                        navy: {
-                            900: '#0A0F1C',
-                            800: '#111827',
-                            700: '#1A2235'
-                        },
-                        accent: {
-                            blue: '#00E5FF',  // Electric Blue
-                            mint: '#00FFA3',  // Mint Green
-                            coral: '#FF4D6D'  // Soft Red for defects
-                        }
-                    }
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
                 }
             }
         }
@@ -42,161 +26,194 @@
 
     <style>
         body {
-            /* Deep Navy Gradient Background */
-            background: radial-gradient(circle at top right, #111827 0%, #0A0F1C 100%);
-            min-height: 100vh;
-            color: #E2E8F0;
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc;
+            overflow-x: hidden;
         }
         
-        /* Glassmorphism Card Style */
-        .glass-card {
-            background: rgba(26, 34, 53, 0.4);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Micro-interactions */
-        .glass-card:hover {
-            background: rgba(26, 34, 53, 0.7);
-            transform: translateY(-4px);
-            border-color: rgba(0, 229, 255, 0.3); /* Electric Blue subtle border */
-            box-shadow: 0 12px 32px -10px rgba(0, 229, 255, 0.15);
+        /* พื้นหลังแสงสีออร่าแบบ Gen Z */
+        .glow-bg {
+            position: fixed;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle at 50% 30%, rgba(139, 92, 246, 0.15), transparent 40%),
+                        radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1), transparent 40%),
+                        radial-gradient(circle at 20% 80%, rgba(6, 182, 212, 0.1), transparent 40%);
+            z-index: -1;
         }
 
-        .icon-box {
-            transition: all 0.4s ease;
+        /* การ์ดสไตล์ Bouncy & Glassmorphism */
+        .genz-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* เอฟเฟกต์เด้งสู้มือ */
         }
-        
-        .glass-card:hover .icon-box {
-            background: rgba(0, 229, 255, 0.1);
-            color: #00E5FF;
-            transform: scale(1.05);
+        .genz-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            background: rgba(255, 255, 255, 0.08);
         }
 
-        /* Specific Hover Colors for different card types */
-        .card-mint:hover { border-color: rgba(0, 255, 163, 0.3); box-shadow: 0 12px 32px -10px rgba(0, 255, 163, 0.15); }
-        .card-mint:hover .icon-box { background: rgba(0, 255, 163, 0.1); color: #00FFA3; }
+        /* การ์ด TOR แบบพิเศษ (Gradient) */
+        .tor-card {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+            background-size: 200% 200%;
+            animation: gradientMove 5s ease infinite;
+            border: none;
+            box-shadow: 0 20px 40px -15px rgba(168, 85, 247, 0.5);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .tor-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 30px 50px -15px rgba(236, 72, 153, 0.6);
+        }
 
-        .card-coral:hover { border-color: rgba(255, 77, 109, 0.3); box-shadow: 0 12px 32px -10px rgba(255, 77, 109, 0.15); }
-        .card-coral:hover .icon-box { background: rgba(255, 77, 109, 0.1); color: #FF4D6D; }
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .icon-wrapper {
+            transition: all 0.3s ease;
+        }
+        .genz-card:hover .icon-wrapper {
+            transform: rotate(-10deg) scale(1.1);
+        }
     </style>
 </head>
-<body class="flex items-center justify-center p-6 md:p-10">
+<body class="min-h-screen p-6 md:p-8 flex items-center justify-center">
 
-    <div class="w-full max-w-5xl">
+    <!-- พื้นหลังออร่า -->
+    <div class="glow-bg"></div>
+
+    <div class="w-full max-w-5xl relative z-10">
         
-        <!-- Header Section -->
+        <!-- Header -->
         <header class="mb-12 flex flex-col items-center text-center">
-            <span class="text-xs font-semibold tracking-[0.2em] text-accent-blue uppercase mb-3 opacity-80">
-                Field Operations System
-            </span>
-            <h1 class="text-3xl md:text-4xl font-semibold text-white mb-3 tracking-wide flex items-center gap-3">
-                <i class="ph-light ph-layers text-accent-blue"></i>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-6 backdrop-blur-sm">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                </span>
+                <span class="text-xs font-bold tracking-widest text-cyan-400 uppercase">Field Ops V3</span>
+            </div>
+            
+            <!-- ตัวหนังสือไล่สี -->
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-400">
                 ศูนย์ปฏิบัติการสนาม
             </h1>
-            <p class="text-gray-400 text-sm md:text-base font-light max-w-lg">
-                ระบบจัดการ ตรวจสอบ และวิเคราะห์มาตรฐานอุปกรณ์โทรมาตร
+            <p class="text-slate-400 text-sm md:text-base font-medium max-w-lg">
+                ระบบจัดการและตรวจสอบมาตรฐานน้ำและฝนแบบเรียลไทม์
             </p>
         </header>
 
-        <!-- Navigation Grid (Sleek Horizontal Cards) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+        <!-- Grid Menu -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
 
-            <!-- 1. ตรวจรับงานตาม TOR (ย้ายมาอันดับ 1) -->
-            <a href="tor_inspection.html" class="group glass-card rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-file-signature text-3xl"></i>
+            <!-- 1. ตรวจรับงานตาม TOR (Hero Button กว้างเต็ม 2 คอลัมน์) -->
+            <a href="tor_inspection.html" class="tor-card md:col-span-2 rounded-[2rem] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between cursor-pointer no-underline group">
+                <div class="flex items-center gap-6 mb-4 md:mb-0 w-full">
+                    <!-- โลโก้ TOR (เปลี่ยน src เป็นไฟล์รูปโลโก้ของคุณได้เลย เช่น src="logo-tor.png") -->
+                    <div class="w-20 h-20 shrink-0 bg-white rounded-2xl flex items-center justify-center shadow-inner overflow-hidden">
+                        <!-- หากยังไม่มีไฟล์รูป ระบบจะแสดงไอคอนนี้แทน -->
+                        <i class="ph-fill ph-seal-check text-5xl text-purple-600"></i>
+                        <!-- <img src="URL_หรือที่อยู่รูปโลโก้" alt="TOR Logo" class="w-full h-full object-cover"> -->
+                    </div>
+                    <div>
+                        <h2 class="text-2xl md:text-3xl font-bold text-white mb-2 tracking-wide">ตรวจรับงานตาม TOR</h2>
+                        <p class="text-white/80 text-sm md:text-base font-medium">เข้าสู่ระบบตรวจรับงานร่วมกับข้อมูล MAM</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-blue transition-colors">ตรวจรับงานตาม TOR</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">ตรวจรับงานร่วมกับข้อมูลระบบ MAM</p>
+                <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md group-hover:bg-white group-hover:text-pink-500 transition-colors shrink-0">
+                    <i class="ph-bold ph-arrow-right text-2xl"></i>
                 </div>
             </a>
 
             <!-- 2. ตรวจสอบอุปกรณ์สนาม -->
-            <a href="inspection.html" class="group glass-card rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-wrench text-3xl"></i>
+            <a href="inspection.html" class="genz-card rounded-3xl p-6 flex items-start cursor-pointer no-underline group hover:border-cyan-500/50">
+                <div class="icon-wrapper w-16 h-16 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mr-5">
+                    <i class="ph-duotone ph-wrench text-4xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-blue transition-colors">ตรวจสอบอุปกรณ์สนาม</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">เข้าสู่ระบบบันทึกการตรวจสอบ</p>
+                    <h2 class="text-lg font-bold text-slate-100 mb-1 group-hover:text-cyan-400 transition-colors">ตรวจสอบอุปกรณ์สนาม</h2>
+                    <p class="text-sm text-slate-400 line-clamp-2">บันทึกการตรวจสอบอุปกรณ์หน้างาน</p>
                 </div>
             </a>
 
             <!-- 3. สอบเทียบค่าระดับน้ำและฝน -->
-            <a href="calibration.html" class="group glass-card rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-ruler text-3xl"></i>
+            <a href="calibration.html" class="genz-card rounded-3xl p-6 flex items-start cursor-pointer no-underline group hover:border-emerald-500/50">
+                <div class="icon-wrapper w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mr-5">
+                    <i class="ph-duotone ph-ruler text-4xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-blue transition-colors">สอบเทียบค่าระดับน้ำและฝน</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">บันทึกค่าการสอบเทียบมาตรฐาน</p>
+                    <h2 class="text-lg font-bold text-slate-100 mb-1 group-hover:text-emerald-400 transition-colors">สอบเทียบค่าระดับน้ำและฝน</h2>
+                    <p class="text-sm text-slate-400 line-clamp-2">บันทึกค่าการสอบเทียบมาตรฐาน</p>
                 </div>
             </a>
 
             <!-- 4. ติดตามการตรวจงาน -->
-            <a href="tracking.html" class="group glass-card rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-crosshair text-3xl"></i>
+            <a href="tracking.html" class="genz-card rounded-3xl p-6 flex items-start cursor-pointer no-underline group hover:border-violet-500/50">
+                <div class="icon-wrapper w-16 h-16 rounded-2xl bg-violet-500/20 text-violet-400 flex items-center justify-center shrink-0 mr-5">
+                    <i class="ph-duotone ph-radar text-4xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-blue transition-colors">ติดตามการตรวจงาน</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">ตรวจสอบสถานะและความคืบหน้าภาพรวม</p>
+                    <h2 class="text-lg font-bold text-slate-100 mb-1 group-hover:text-violet-400 transition-colors">ติดตามการตรวจงาน</h2>
+                    <p class="text-sm text-slate-400 line-clamp-2">ตรวจสอบสถานะความคืบหน้าภาพรวม</p>
                 </div>
             </a>
 
             <!-- 5. ผลตรวจสอบอุปกรณ์สนาม -->
-            <a href="report_inspection.html" class="group glass-card rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-clipboard-text text-3xl"></i>
+            <a href="report_inspection.html" class="genz-card rounded-3xl p-6 flex items-start cursor-pointer no-underline group hover:border-blue-500/50">
+                <div class="icon-wrapper w-16 h-16 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mr-5">
+                    <i class="ph-duotone ph-files text-4xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-blue transition-colors">ผลตรวจสอบอุปกรณ์สนาม</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">ดูรายงานข้อมูลย้อนหลัง</p>
+                    <h2 class="text-lg font-bold text-slate-100 mb-1 group-hover:text-blue-400 transition-colors">ผลตรวจสอบอุปกรณ์สนาม</h2>
+                    <p class="text-sm text-slate-400 line-clamp-2">ดูรายงานข้อมูลย้อนหลัง</p>
                 </div>
             </a>
 
             <!-- 6. ผลสอบเทียบค่าระดับน้ำและฝน -->
-            <a href="report_calibration.html" class="group glass-card rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-chart-line-up text-3xl"></i>
+            <a href="report_calibration.html" class="genz-card rounded-3xl p-6 flex items-start cursor-pointer no-underline group hover:border-yellow-500/50">
+                <div class="icon-wrapper w-16 h-16 rounded-2xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0 mr-5">
+                    <i class="ph-duotone ph-chart-bar text-4xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-blue transition-colors">ผลสอบเทียบค่าระดับน้ำและฝน</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">ดูรายงานการสอบเทียบทางสถิติ</p>
+                    <h2 class="text-lg font-bold text-slate-100 mb-1 group-hover:text-yellow-400 transition-colors">ผลสอบเทียบระดับน้ำ/ฝน</h2>
+                    <p class="text-sm text-slate-400 line-clamp-2">ดูรายงานการสอบเทียบทางสถิติ</p>
                 </div>
             </a>
 
-            <!-- 7. สรุปผลอุปกรณ์ที่ชำรุด (เน้นโทน Coral/Red เบาๆ) -->
-            <a href="defects.html" class="group glass-card card-coral rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-warning-circle text-3xl"></i>
+            <!-- 7. สรุปผลอุปกรณ์ที่ชำรุด -->
+            <a href="defects.html" class="genz-card rounded-3xl p-6 flex items-start cursor-pointer no-underline group hover:border-rose-500/50">
+                <div class="icon-wrapper w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mr-5">
+                    <i class="ph-duotone ph-warning-octagon text-4xl"></i>
                 </div>
                 <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-coral transition-colors">สรุปผลอุปกรณ์ที่ชำรุด</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">ดูรายงานอุปกรณ์ที่ต้องดำเนินการซ่อมแซม</p>
+                    <h2 class="text-lg font-bold text-slate-100 mb-1 group-hover:text-rose-400 transition-colors">สรุปผลอุปกรณ์ที่ชำรุด</h2>
+                    <p class="text-sm text-slate-400 line-clamp-2">รายการอุปกรณ์ที่ต้องดำเนินการซ่อมแซม</p>
                 </div>
             </a>
 
-            <!-- 8. ออกรายงานสรุป PDF (เน้นโทน Mint Green) -->
-            <a href="report_summary.html" class="group glass-card card-mint rounded-2xl p-5 flex items-center cursor-pointer no-underline">
-                <div class="icon-box w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center mr-5 text-gray-400 shrink-0">
-                    <i class="ph-light ph-file-pdf text-3xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-base font-medium text-white mb-1 group-hover:text-accent-mint transition-colors">ออกรายงานสรุป PDF</h2>
-                    <p class="text-xs font-light text-gray-400 line-clamp-1">สร้างและดาวน์โหลดรายงานแบบอัตโนมัติ</p>
+            <!-- 8. ออกรายงานสรุป PDF -->
+            <a href="report_summary.html" class="genz-card md:col-span-2 rounded-3xl p-6 flex items-center justify-center cursor-pointer no-underline group hover:border-fuchsia-500/50 hover:bg-fuchsia-500/5">
+                <div class="flex items-center gap-4">
+                    <div class="icon-wrapper w-14 h-14 rounded-2xl bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center shrink-0">
+                        <i class="ph-duotone ph-file-pdf text-3xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100 group-hover:text-fuchsia-400 transition-colors">ออกรายงานสรุป PDF</h2>
+                        <p class="text-sm text-slate-400">สร้างและดาวน์โหลดรายงานอัตโนมัติ</p>
+                    </div>
                 </div>
             </a>
 
         </div>
 
         <footer class="text-center mt-16 mb-4">
-            <p class="text-[#475569] text-xs font-light tracking-wider uppercase">
-                &copy; 2026 Field Operations System. All rights reserved.
+            <p class="text-slate-600 text-xs font-bold tracking-[0.2em] uppercase">
+                &copy; 2026 Field Ops System
             </p>
         </footer>
 
