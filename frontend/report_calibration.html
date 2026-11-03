@@ -203,6 +203,7 @@
 
     <script>
         let globalFetchedData = [];
+        const BASE_URL = 'https://ma-inspection-project.onrender.com';
         
         const fallbackBasins = [
             "โขงเหนือ", "โขงอีสาน", "ชี", "มูล", "ปิง", "วัง", "ยม", "น่าน", "เจ้าพระยา",
@@ -233,6 +234,53 @@
             initBasins();
         }
 
+        // 🔥 อัปเกรดฟังก์ชันแก้ไข URL ให้รองรับประวัติเก่าที่เป็น /api/images/... 
+        function getValidImageUrl(imagePath) {
+            if (!imagePath || imagePath.trim() === '') return null;
+            let path = imagePath.trim();
+            
+            // 1. ดักจับและแปลงลิงก์เก่าที่เป็นรูปแบบ /api/images/ID
+            if (path.includes('/api/images/')) {
+                const parts = path.split('/api/images/');
+                // เอาส่วนท้ายที่เป็น ID มาลบ slash ทิ้งเผื่อติดมา
+                const fileId = parts[parts.length - 1].replace(/\//g, ''); 
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+
+            // 2. ดักจับและแปลงลิงก์ Google Drive โดยตรง
+            if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
+                let fileId = null;
+                const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (matchFileD) {
+                    fileId = matchFileD[1];
+                } else {
+                    const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                    if (matchId) fileId = matchId[1];
+                }
+                
+                if (fileId) {
+                    return `https://drive.google.com/uc?export=view&id=${fileId}`;
+                }
+                if (!/^https?:\/\//i.test(path)) return `https://${path}`;
+                return path;
+            }
+            
+            // 3. ถ้าเป็นลิงก์ http/https ปกติ (เว็บไซต์นอก)
+            if (/^https?:\/\//i.test(path)) {
+                return path;
+            }
+            
+            // 4. กรณีไฟล์ถูกเก็บในเครื่อง Server / โฟลเดอร์ภาษาไทย
+            // เปลี่ยน \ ให้เป็น /
+            let normalizedPath = path.replace(/\\/g, '/');
+            let cleanPath = normalizedPath.startsWith('/') ? normalizedPath.substring(1) : normalizedPath;
+            
+            // เข้ารหัส URL สำหรับชื่อโฟลเดอร์ภาษาไทยและช่องว่าง เพื่อให้บราว์เซอร์อ่านได้ 100%
+            let encodedPath = cleanPath.split('/').map(part => encodeURIComponent(part)).join('/');
+            
+            return `${BASE_URL}/${encodedPath}`;
+        }
+
         async function fetchData() {
             const emptyState = document.getElementById('emptyState');
             if (emptyState) emptyState.classList.add('hidden');
@@ -252,8 +300,7 @@
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                // เรียกใช้ API เพื่อดึงข้อมูล 
-                const response = await fetch('https://ma-inspection-project.onrender.com/api/calibrations');
+                const response = await fetch(`${BASE_URL}/api/calibrations`);
                 const result = await response.json();
 
                 if (response.ok && result.success) {
@@ -333,47 +380,13 @@
                 let imagesHtml = ''; let hasImage = false;
                 
                 imageColsMap.forEach(col => {
-                    let rawPath = item[col.field];
-                    
-                    if (rawPath && rawPath.trim() !== '') {
+                    const fullImgUrl = getValidImageUrl(item[col.field]);
+                    if (fullImgUrl) {
                         hasImage = true;
-                        let path = rawPath.trim();
-                        let linkUrl = '';
-                        let imgSrc = '';
-
-                        // กรณี 1: ลิงก์จาก Google Drive
-                        if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
-                            let fileId = null;
-                            const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/) || path.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                            if (matchId) fileId = matchId[1];
-                            
-                            if (fileId) {
-                                linkUrl = `https://drive.google.com/file/d/${fileId}/view`; // ลิงก์สำหรับกดดู
-                                imgSrc = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`; // ลิงก์สำหรับแสดงรูปภาพ
-                            } else {
-                                linkUrl = /^https?:\/\//i.test(path) ? path : `https://${path}`;
-                                imgSrc = linkUrl;
-                            }
-                        } 
-                        // กรณี 2: ลิงก์เว็บทั่วไป (http/https)
-                        else if (/^https?:\/\//i.test(path)) {
-                            linkUrl = path;
-                            imgSrc = path;
-                        } 
-                        // กรณี 3: อัปโหลดไว้บน Server (เช่น โฟลเดอร์ภาษาไทยแยกตามงวด)
-                        else {
-                            path = path.replace(/\\/g, '/'); // ป้องกัน Backslash
-                            let localPath = path.startsWith('/') ? path : `/${path}`; // ทำแบบโค้ดเก่า
-                            
-                            // เข้ารหัสภาษาไทยให้ Browser เข้าใจ แต่เก็บเครื่องหมาย '/' ไว้
-                            linkUrl = encodeURI(localPath);
-                            imgSrc = encodeURI(localPath);
-                        }
-
                         imagesHtml += `
                         <div class="polaroid">
-                            <a href="${linkUrl}" target="_blank" class="polaroid-img-wrapper block mb-2">
-                                <img src="${imgSrc}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/f1f5f9/64748b?text=Image+Error';">
+                            <a href="${fullImgUrl}" target="_blank" class="polaroid-img-wrapper block mb-2">
+                                <img src="${fullImgUrl}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/f1f5f9/64748b?text=Image+Error';">
                             </a>
                             <p class="text-center text-[10px] font-bold text-slate-600 mb-0 uppercase">${col.label}</p>
                         </div>`;
@@ -412,7 +425,9 @@
                                 <tbody>
                                     <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center shrink-0">1</div> ระดับน้ำ ครั้งที่ 1</div></td><td>${item.myData4 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData5 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData6 || '-'}</td></tr>
                                     ${item.myData7 ? `<tr><td colspan="4" class="text-left text-sky-700 bg-sky-50/30 text-xs py-2 px-4"><span class="font-bold mr-1">หมายเหตุ (1):</span> ${item.myData7}</td></tr>` : ''}
+                                    
                                     <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">2</div> ระดับน้ำ ครั้งที่ 2</div></td><td>${item.myData8 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData9 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData10 || '-'}</td></tr>
+                                    
                                     <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-cloud-rain"></i></div> ค่าน้ำฝน</div></td><td class="font-extrabold text-amber-600 bg-amber-50/30">${item.myData11 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData12 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData13 || '-'}</td></tr>
                                     ${item.myData14 ? `<tr><td colspan="4" class="text-left text-amber-700 bg-amber-50/30 text-xs py-2 px-4 rounded-b-xl"><span class="font-bold mr-1">หมายเหตุฝน:</span> ${item.myData14}</td></tr>` : ''}
                                 </tbody>
