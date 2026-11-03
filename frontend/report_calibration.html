@@ -3,112 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard แสดงผลสอบเทียบ | Calibration Report</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Dashboard แสดงผลสอบเทียบ | 3D Cartoon Edition</title>
+    
+    <!-- Tailwind CSS (ใช้แทน Bootstrap เดิมเพื่อให้เข้ากับโปรเจกต์ใหม่) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     <script src="constants.js"></script>
+    
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                    colors: { 
+                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' },
+                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
+                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e' }
+                    }
+                } 
+            }
+        }
+    </script>
     <style>
-        :root { --bg-color: #0f172a; --card-bg: #1e293b; --text-main: #f1f5f9; --text-muted: #94a3b8; --accent-color: #cca43b; --input-bg: #334155; --border-color: #475569; }
-        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Prompt', sans-serif; font-weight: 300; min-height: 100vh; padding-bottom: 50px; }
-        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-color); } ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-        .main-container { max-width: 1000px; margin: 0 auto; padding-top: 20px; padding-left: 15px; padding-right: 15px; }
-        .header-title { text-align: center; margin-bottom: 30px; }
-        .header-title h1 { font-weight: 600; color: var(--accent-color); letter-spacing: 1px; text-transform: uppercase; font-size: clamp(1.5rem, 4vw, 2.2rem); }
-        .glass-card { background: var(--card-bg); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 25px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); transition: transform 0.2s ease; }
-        .result-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); border-color: rgba(204, 164, 59, 0.3); }
-        .section-header { border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; }
-        .section-header h5 { margin: 0; color: var(--accent-color); font-weight: 500; font-size: 1.1rem; }
-        .form-label { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
-        .form-control, .form-select { background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 10px; padding: 10px 15px; }
-        .form-control:focus, .form-select:focus { background-color: #3b4d66; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(204, 164, 59, 0.2); color: white; outline: none; }
-        .btn-submit { background: linear-gradient(135deg, var(--accent-color), #b89334); color: #0f172a; border: none; padding: 12px 30px; border-radius: 50px; font-weight: 600; }
-        .loader-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; }
-        .loader { border: 4px solid var(--border-color); border-top: 4px solid var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; margin-top: 15px; }
-        .image-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .image-wrapper { aspect-ratio: 1; width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
-        .image-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        body {
+            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
+            background-color: #fffbeb; 
+            color: #334155;
+            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
+
+        /* 3D Container Cards */
+        .puffy-container {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+            margin-bottom: 24px;
+        }
+
+        .result-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-top-width: 8px;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
+        }
+
+        /* 3D Input Fields */
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+        }
+
+        /* 3D Submit Button (สีฟ้าหลัก) */
+        .btn-puffy-blue {
+            background-color: #38bdf8;
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 6px 0 #0284c7;
+            transition: all 0.15s ease;
+            font-weight: 700;
+            border: 4px solid #bae6fd;
+        }
+        .btn-puffy-blue:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #0284c7; }
+        .btn-puffy-blue:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.8; }
+
+        /* Polaroid Image Grid */
+        .polaroid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 16px; }
+        .polaroid { 
+            background: #ffffff; padding: 10px 10px 16px 10px; 
+            border: 2px solid #e2e8f0; border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .polaroid:hover { transform: scale(1.05) rotate(-2deg); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #cbd5e1; z-index: 10; position: relative; }
+        .polaroid-img-wrapper { aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 2px solid #f1f5f9; background: #f8fafc; }
+        .polaroid-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 3D Table Custom */
+        .table-custom { border-collapse: separate; border-spacing: 0; width: 100%; border-radius: 16px; border: 2px solid #e2e8f0; overflow: hidden; }
+        .table-custom th, .table-custom td { padding: 12px 16px; border-bottom: 2px solid #f1f5f9; text-align: center; }
+        .table-custom th { background-color: #f8fafc; font-weight: 700; color: #475569; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; }
+        .table-custom td { font-size: 0.95rem; font-weight: 600; color: #334155; }
+        .table-custom tr:last-child td { border-bottom: none; }
+        .table-custom tr:hover td { background-color: #f8fafc; }
+
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .table-dark-custom { border-color: var(--border-color); color: var(--text-main); font-size: 0.9rem; }
-        .table-dark-custom th, .table-dark-custom td { border-color: var(--border-color); vertical-align: middle; }
-        .table-dark-custom thead { background-color: var(--input-bg); }
-        .text-accent { color: var(--accent-color) !important; }
-        .local-search-input { background-color: rgba(0,0,0,0.2) !important; color: var(--text-main) !important; }
-        .btn-back-menu { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); text-decoration: none; padding: 8px 16px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); }
     </style>
 </head>
-<body>
-    <div class="container main-container">
-        <div class="mb-4 fade-in"><a href="index.html" class="btn-back-menu"><i class="fas fa-arrow-left"></i> กลับเมนูหลัก</a></div>
-        <div class="header-title fade-in"><h1><i class="fas fa-chart-line me-2"></i> Calibration Dashboard</h1><p>ระบบตรวจสอบและแสดงผลการสอบเทียบสถานีโทรมาตร</p></div>
+<body class="antialiased min-h-screen flex flex-col font-sans">
+    
+    <!-- Header สไตล์ 3D Cartoon -->
+    <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1">
+                    <i class="ph-bold ph-caret-left text-2xl"></i>
+                </a>
+                <div class="hidden md:flex w-12 h-12 rounded-2xl bg-emerald-100 border-2 border-emerald-300 items-center justify-center shadow-sm">
+                    <i class="ph-fill ph-chart-bar text-emerald-500 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                        รายงาน <span class="text-emerald-500">ผลสอบเทียบ</span>
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </header>
 
-        <div class="glass-card fade-in" style="animation-delay: 0.1s;">
-            <div class="section-header"><i class="fas fa-filter"></i><h5>ค้นหาข้อมูลจากฐานข้อมูล</h5></div>
-            <div class="row g-3">
-                <div class="col-md-6 col-12">
-                    <label for="myDataPeriod" class="form-label">งวดตรวจงาน MA</label>
-                    <select class="form-select" id="myDataPeriod">
-                        <option value="">ทั้งหมด (ทุกงวด)</option><option value="งวดที่1">งวดที่ 1</option><option value="งวดที่2">งวดที่ 2</option><option value="งวดที่3">งวดที่ 3</option><option value="งวดที่4">งวดที่ 4</option>
+    <main class="flex-grow max-w-5xl mx-auto w-full px-4 py-8">
+        
+        <!-- ตัวกรองการค้นหา -->
+        <div class="puffy-container p-6 border-t-8 border-t-sky-400 fade-in">
+            <h2 class="text-lg font-bold text-sky-600 mb-4 flex items-center gap-2 border-b-2 border-sky-100 pb-3">
+                <i class="ph-fill ph-magnifying-glass text-2xl"></i> ค้นหาข้อมูลผลสอบเทียบ
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="space-y-1.5">
+                    <label class="text-sm font-bold text-slate-600">งวดตรวจงาน MA</label>
+                    <select id="myDataPeriod" class="w-full p-3.5 rounded-xl puffy-input">
+                        <option value="">ทั้งหมด (ทุกงวด)</option>
+                        <option value="งวดที่1">งวดที่ 1</option>
+                        <option value="งวดที่2">งวดที่ 2</option>
+                        <option value="งวดที่3">งวดที่ 3</option>
+                        <option value="งวดที่4">งวดที่ 4</option>
                     </select>
                 </div>
-                <div class="col-md-6 col-12">
-                    <label for="myData0" class="form-label">กลุ่มลุ่มน้ำ</label>
-                    <select class="form-select" id="myData0"><option value="">ทั้งหมด (ทุกลุ่มน้ำ)</option></select>
+                <div class="space-y-1.5">
+                    <label class="text-sm font-bold text-slate-600">กลุ่มลุ่มน้ำ</label>
+                    <select id="myData0" class="w-full p-3.5 rounded-xl puffy-input">
+                        <option value="">ทั้งหมด (ทุกลุ่มน้ำ)</option>
+                    </select>
                 </div>
             </div>
-            <div class="text-end mt-4"><button onclick="fetchData()" id="searchBtn" class="btn btn-submit"><i class="fas fa-cloud-download-alt me-2"></i> ดึงข้อมูล</button></div>
-        </div>
-
-        <div id="loadingIndicator" class="loader-wrapper d-none fade-in"><div class="loader mb-3"></div><p class="text-muted" id="loadingText">กำลังโหลดข้อมูลจากเซิร์ฟเวอร์...</p></div>
-        <div id="errorMessage" class="alert alert-danger d-none fade-in text-center" role="alert"></div>
-
-        <div id="localSearchContainer" class="glass-card fade-in d-none mb-4" style="padding: 15px 25px; border-color: var(--accent-color);">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-search text-accent me-3" style="font-size: 1.5rem;"></i>
-                <input type="text" id="localSearchInput" class="form-control local-search-input rounded-pill" placeholder="พิมพ์เพื่อค้นหา 'รหัส/ชื่อสถานี' จากรายการด้านล่าง..." onkeyup="filterLocalData()">
+            <div class="mt-6 flex justify-end">
+                <button onclick="fetchData()" id="searchBtn" class="btn-puffy-blue px-8 py-3.5 flex items-center justify-center gap-2 w-full md:w-auto text-lg">
+                    <i class="ph-bold ph-cloud-arrow-down text-2xl"></i> ดึงข้อมูล
+                </button>
             </div>
         </div>
 
-        <div id="resultsContainer" class="fade-in">
-            <div class="text-center py-5" id="emptyState" style="color: var(--border-color);"><i class="fas fa-folder-open fa-4x mb-3"></i><p class="fs-5 mt-2">กรุณาเลือกเงื่อนไขและกดดึงข้อมูล</p></div>
+        <!-- สถานะ Loading / แจ้งเตือน -->
+        <div id="loadingIndicator" class="hidden flex flex-col items-center justify-center py-12 fade-in">
+            <i class="ph-bold ph-spinner animate-spin text-5xl text-sky-500 mb-4"></i>
+            <p class="text-slate-500 font-bold text-sm" id="loadingText">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>
         </div>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
         
+        <div id="errorMessage" class="hidden bg-rose-50 border-2 border-rose-200 text-rose-700 p-5 rounded-2xl mb-6 flex gap-3 items-start fade-in">
+            <i class="ph-fill ph-warning-circle text-3xl mt-0.5"></i>
+            <div>
+                <h3 class="font-extrabold text-lg">แจ้งเตือน</h3>
+                <p class="text-sm mt-1 font-medium" id="errorText"></p>
+            </div>
+        </div>
+
+        <!-- ช่องค้นหาภายในเครื่อง (Local Search) -->
+        <div id="localSearchContainer" class="hidden puffy-container p-4 md:p-5 mb-6 border-t-8 border-t-emerald-400 fade-in flex items-center gap-3">
+            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0 border-2 border-emerald-200">
+                <i class="ph-bold ph-magnifying-glass text-emerald-500 text-xl"></i>
+            </div>
+            <div class="flex-grow">
+                <input type="text" id="localSearchInput" class="w-full p-3 rounded-xl puffy-input text-sm" placeholder="พิมพ์ชื่อหรือรหัสสถานีเพื่อกรองรายการด้านล่าง..." onkeyup="filterLocalData()">
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงผลการ์ด -->
+        <div id="resultsContainer" class="fade-in space-y-6">
+            <div class="puffy-container py-16 text-center border-dashed border-slate-300" id="emptyState">
+                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
+                    <i class="ph-fill ph-folder-open text-4xl text-slate-300"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-600">กรุณาเลือกเงื่อนไข</h3>
+                <p class="text-slate-400 font-medium text-sm mt-1">แล้วกดปุ่ม "ดึงข้อมูล" เพื่อดูรายงาน</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
         const API_URL = ''; 
         const basinSelect = document.getElementById("myData0");
         let globalFetchedData = [];
 
-        for (let basin of hardcodedBasins) {
-            let opt = document.createElement("option"); opt.value = basin; opt.textContent = basin; basinSelect.appendChild(opt);
+        // เติมตัวเลือกลุ่มน้ำ
+        if (typeof hardcodedBasins !== 'undefined') {
+            for (let basin of hardcodedBasins) {
+                let opt = document.createElement("option"); opt.value = basin; opt.textContent = basin; basinSelect.appendChild(opt);
+            }
         }
 
+        // ฟังก์ชันหลีกเลี่ยง HTML Injection (หาก constants ไม่มีให้)
+        const escapeHtml = (unsafe) => {
+            return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        };
+
         async function fetchData() {
-            document.getElementById('emptyState')?.classList.add('d-none');
-            document.getElementById('errorMessage').classList.add('d-none');
+            document.getElementById('emptyState')?.classList.add('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
             document.getElementById('resultsContainer').innerHTML = '';
-            document.getElementById('localSearchContainer').classList.add('d-none');
+            document.getElementById('localSearchContainer').classList.add('hidden');
             document.getElementById('localSearchInput').value = ''; 
-            document.getElementById('loadingIndicator').classList.remove('d-none');
-            document.getElementById('searchBtn').disabled = true;
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            
+            const btn = document.getElementById('searchBtn');
+            const originalBtnHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังดึงข้อมูล';
 
             const filterPeriod = document.getElementById('myDataPeriod').value;
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                
                 const response = await fetch('https://ma-inspection-project.onrender.com/api/calibrations');
                 const result = await response.json();
 
                 if (response.ok && result.success) {
                     const textKeys = ['myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
-                    // ✅ ใช้ escapeHtml ที่ดึงมาจาก constants.js
+                    
                     result.data.forEach(it => textKeys.forEach(k => { if (typeof it[k] === 'string') it[k] = escapeHtml(it[k]); }));
                     
                     let filteredData = result.data;
@@ -116,7 +253,7 @@
                     if (filterBasin) filteredData = filteredData.filter(item => item.myData0 === filterBasin);
 
                     globalFetchedData = filteredData;
-                    if (globalFetchedData.length > 0) document.getElementById('localSearchContainer').classList.remove('d-none');
+                    if (globalFetchedData.length > 0) document.getElementById('localSearchContainer').classList.remove('hidden');
                     renderCards(globalFetchedData);
                 } else {
                     throw new Error(result.message || 'ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้');
@@ -124,8 +261,9 @@
             } catch (error) {
                 showError(error.message);
             } finally {
-                document.getElementById('loadingIndicator').classList.add('d-none');
-                document.getElementById('searchBtn').disabled = false;
+                document.getElementById('loadingIndicator').classList.add('hidden');
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
             }
         }
 
@@ -139,16 +277,24 @@
         function renderCards(dataItems) {
             const container = document.getElementById('resultsContainer');
             if (dataItems.length === 0) {
-                container.innerHTML = `<div class="text-center py-5 glass-card fade-in" style="color: var(--text-muted);"><i class="fas fa-search-minus fa-3x mb-3"></i><h5>ไม่พบข้อมูล</h5></div>`;
+                container.innerHTML = `
+                <div class="puffy-container py-16 text-center border-dashed border-slate-300 fade-in">
+                    <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
+                        <i class="ph-fill ph-magnifying-glass text-4xl text-rose-300"></i>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-600">ไม่พบข้อมูลที่ค้นหา</h3>
+                </div>`;
                 return;
             }
 
             let html = '';
             const imageColsMap = [
-                { field: 'myFileUrl', label: "เสาวัดระดับน้ำ (1)" }, { field: 'myFileUrl2', label: "RTU (1)" }, { field: 'myFileUrl3', label: "Website (1)" },
-                { field: 'myFileUrl4', label: "เสาวัดระดับน้ำ (2)" }, { field: 'myFileUrl5', label: "RTU (2)" }, { field: 'myFileUrl6', label: "Website (2)" },
-                { field: 'myFileUrl7', label: "ค่าน้ำฝน RTU" }, { field: 'myFileUrl8', label: "ค่าน้ำฝน Website" }
+                { field: 'myFileUrl', label: "เสาวัดระดับ 1" }, { field: 'myFileUrl2', label: "RTU 1" }, { field: 'myFileUrl3', label: "Website 1" },
+                { field: 'myFileUrl4', label: "เสาวัดระดับ 2" }, { field: 'myFileUrl5', label: "RTU 2" }, { field: 'myFileUrl6', label: "Website 2" },
+                { field: 'myFileUrl7', label: "น้ำฝน RTU" }, { field: 'myFileUrl8', label: "น้ำฝน Website" }
             ];
+
+            const colors = ['border-t-sky-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400'];
 
             dataItems.forEach((item, index) => {
                 const dateObj = new Date(item.timestamp);
@@ -158,44 +304,90 @@
                 imageColsMap.forEach(col => {
                     if (item[col.field] && item[col.field].trim() !== '') {
                         hasImage = true;
-                        const fullImgUrl = /^https?:\/\//i.test(item[col.field]) ? item[col.field] : `/${item[col.field]}`;
-                        imagesHtml += `<div class="image-item"><a href="${fullImgUrl}" target="_blank" class="image-wrapper"><img src="${fullImgUrl}" alt="${col.label}" loading="lazy"></a><span class="badge bg-secondary" style="font-size: 0.75rem; font-weight: normal;">${col.label}</span></div>`;
+                        const fullImgUrl = /^https?:\/\//i.test(item[col.field]) ? item[col.field] : `https://ma-inspection-project.onrender.com/${item[col.field]}`;
+                        imagesHtml += `
+                        <div class="polaroid">
+                            <a href="${fullImgUrl}" target="_blank" class="polaroid-img-wrapper block mb-2">
+                                <img src="${fullImgUrl}" alt="${col.label}" loading="lazy">
+                            </a>
+                            <p class="text-center text-[10px] font-bold text-slate-600 mb-0 uppercase">${col.label}</p>
+                        </div>`;
                     }
                 });
-                if (!hasImage) imagesHtml = `<p class="text-muted fst-italic w-100 mb-0" style="font-size: 0.85rem;"><i class="fas fa-image me-1"></i>ไม่มีรูปภาพแนบสำหรับรายงานนี้</p>`;
+                if (!hasImage) imagesHtml = `<div class="bg-slate-50 w-full p-4 rounded-xl text-center border-2 border-dashed border-slate-200 text-slate-400 font-bold text-sm"><i class="ph-fill ph-image-slash text-2xl block mb-1 text-slate-300"></i>ไม่มีรูปภาพแนบสำหรับรายงานนี้</div>`;
+
+                const cardColor = colors[index % colors.length];
 
                 html += `
-                    <div class="glass-card result-card fade-in" style="animation-delay: ${0.05 * (index % 5)}s;">
-                        <div class="row align-items-start">
-                            <div class="col-md-8">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="badge badge-accent px-2 py-1 rounded-pill"><i class="fas fa-water me-1"></i>ลุ่มน้ำ ${item.myData0 || '-'}</span>
-                                    <span class="badge" style="background-color: var(--input-bg); border: 1px solid var(--border-color);">งวด: ${item.myDataPeriod || '-'}</span>
+                    <div class="puffy-container result-card ${cardColor} p-5 md:p-6 fade-in" style="animation-delay: ${0.05 * (index % 5)}s;">
+                        
+                        <!-- Header การ์ด -->
+                        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5 border-b-2 border-slate-100 pb-4">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2 mb-2">
+                                    <span class="bg-emerald-100 text-emerald-700 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase flex items-center gap-1"><i class="ph-bold ph-map-trifold"></i> ลุ่มน้ำ ${item.myData0 || '-'}</span>
+                                    <span class="bg-slate-100 text-slate-600 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase border border-slate-200">งวด ${item.myDataPeriod || '-'}</span>
                                 </div>
-                                <h4 style="color: var(--text-main); font-weight: 500; margin-bottom: 5px;">${item.myData2 || item.myData1 || 'ไม่ระบุชื่อสถานี'}</h4>
-                                <p style="color: var(--accent-color); font-size: 0.95rem;">รหัสสถานี: ${item.myData1 || '-'}</p>
+                                <h3 class="text-xl md:text-2xl font-extrabold text-slate-800">${item.myData2 || item.myData1 || 'ไม่ระบุชื่อสถานี'}</h3>
+                                <p class="text-sky-500 font-bold text-sm mt-0.5"><i class="ph-bold ph-tag"></i> รหัส: ${item.myData1 || '-'}</p>
                             </div>
-                            <div class="col-md-4 text-md-end text-start mt-3 mt-md-0">
-                                <p class="mb-0 text-muted" style="font-size: 0.8rem;">วันที่บันทึก</p><p class="mb-0"><i class="far fa-calendar-alt me-1 text-muted"></i> ${dateStr}</p>
+                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-right md:text-center w-full md:w-auto">
+                                <p class="mb-0 text-slate-400 font-bold text-[10px] uppercase">วันที่บันทึก</p>
+                                <p class="mb-0 font-bold text-slate-700 text-sm flex items-center justify-end md:justify-center gap-1"><i class="ph-bold ph-calendar-blank text-slate-400"></i> ${dateStr}</p>
                             </div>
                         </div>
                         
-                        <div class="table-responsive mt-3 mb-4">
-                            <table class="table table-bordered table-dark-custom">
+                        <!-- ตารางข้อมูล -->
+                        <div class="overflow-x-auto mb-5">
+                            <table class="table-custom min-w-full">
                                 <thead>
-                                    <tr><th colspan="4" class="text-center text-accent bg-transparent"><i class="fas fa-map-marker-alt me-1"></i> ที่ตั้งอาคาร: <span class="text-white fw-normal">${item.myData3 || '-'}</span></th></tr>
-                                    <tr><th width="25%" class="text-center">หัวข้อการสอบเทียบ</th><th width="25%" class="text-center">เสาวัดระดับ/จำนวนเคาะ</th><th width="25%" class="text-center">RTU</th><th width="25%" class="text-center">Website</th></tr>
+                                    <tr>
+                                        <th colspan="4" class="text-center bg-slate-100/50 text-slate-700 text-sm py-3">
+                                            <i class="ph-bold ph-map-pin text-rose-500 mr-1"></i> ที่ตั้งอาคาร: <span class="font-extrabold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg ml-1">${item.myData3 || '-'}</span>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <th width="31%" class="text-left"><i class="ph-bold ph-list-bullets mr-1 text-slate-400"></i> หัวข้อ</th>
+                                        <th width="23%">เสาวัด/จำนวนเคาะ</th>
+                                        <th width="23%" class="text-sky-600 bg-sky-50/50">RTU</th>
+                                        <th width="23%" class="text-violet-600 bg-violet-50/50">Website</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                    <tr><td><i class="fas fa-water me-2 text-muted"></i>ระดับน้ำ ครั้งที่ 1</td><td class="text-center">${item.myData4 || '-'}</td><td class="text-center">${item.myData5 || '-'}</td><td class="text-center">${item.myData6 || '-'}</td></tr>
-                                    ${item.myData7 ? `<tr><td colspan="4" class="text-muted fst-italic py-1" style="font-size: 0.8rem; border-top: none;">หมายเหตุ 1: ${item.myData7}</td></tr>` : ''}
-                                    <tr><td><i class="fas fa-water me-2 text-muted"></i>ระดับน้ำ ครั้งที่ 2</td><td class="text-center">${item.myData8 || '-'}</td><td class="text-center">${item.myData9 || '-'}</td><td class="text-center">${item.myData10 || '-'}</td></tr>
-                                    <tr><td><i class="fas fa-cloud-rain me-2 text-muted"></i>ค่าน้ำฝน</td><td class="text-center">${item.myData11 || '-'}</td><td class="text-center">${item.myData12 || '-'}</td><td class="text-center">${item.myData13 || '-'}</td></tr>
-                                    ${item.myData14 ? `<tr><td colspan="4" class="text-muted fst-italic py-1" style="font-size: 0.8rem; border-top: none;">หมายเหตุฝน: ${item.myData14}</td></tr>` : ''}
+                                    <!-- ครั้งที่ 1 -->
+                                    <tr>
+                                        <td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center shrink-0">1</div> ระดับน้ำ ครั้งที่ 1</div></td>
+                                        <td>${item.myData4 || '-'}</td>
+                                        <td class="text-sky-600 bg-sky-50/50">${item.myData5 || '-'}</td>
+                                        <td class="text-violet-600 bg-violet-50/50">${item.myData6 || '-'}</td>
+                                    </tr>
+                                    ${item.myData7 ? `<tr><td colspan="4" class="text-left text-sky-700 bg-sky-50/30 text-xs py-2 px-4"><span class="font-bold mr-1">หมายเหตุ (1):</span> ${item.myData7}</td></tr>` : ''}
+                                    
+                                    <!-- ครั้งที่ 2 -->
+                                    <tr>
+                                        <td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">2</div> ระดับน้ำ ครั้งที่ 2</div></td>
+                                        <td>${item.myData8 || '-'}</td>
+                                        <td class="text-sky-600 bg-sky-50/50">${item.myData9 || '-'}</td>
+                                        <td class="text-violet-600 bg-violet-50/50">${item.myData10 || '-'}</td>
+                                    </tr>
+                                    
+                                    <!-- น้ำฝน -->
+                                    <tr>
+                                        <td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-cloud-rain"></i></div> ค่าน้ำฝน</div></td>
+                                        <td class="font-extrabold text-amber-600 bg-amber-50/30">${item.myData11 || '-'}</td>
+                                        <td class="text-sky-600 bg-sky-50/50">${item.myData12 || '-'}</td>
+                                        <td class="text-violet-600 bg-violet-50/50">${item.myData13 || '-'}</td>
+                                    </tr>
+                                    ${item.myData14 ? `<tr><td colspan="4" class="text-left text-amber-700 bg-amber-50/30 text-xs py-2 px-4 rounded-b-xl"><span class="font-bold mr-1">หมายเหตุฝน:</span> ${item.myData14}</td></tr>` : ''}
                                 </tbody>
                             </table>
                         </div>
-                        <div><p class="mb-2 text-muted" style="font-size: 0.9rem;"><i class="fas fa-camera me-1"></i> ภาพประกอบ</p><div class="image-grid">${imagesHtml}</div></div>
+                        
+                        <!-- รูปภาพ -->
+                        <div>
+                            <p class="mb-1 text-slate-700 font-bold text-sm flex items-center gap-1.5"><i class="ph-fill ph-image text-sky-500 text-lg"></i> ภาพประกอบการสอบเทียบ</p>
+                            <div class="polaroid-grid">${imagesHtml}</div>
+                        </div>
                     </div>`;
             });
             container.innerHTML = html;
@@ -203,8 +395,8 @@
 
         function showError(errorMsg) {
             const errorDiv = document.getElementById('errorMessage');
-            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i> <strong>เกิดข้อผิดพลาด:</strong> ${errorMsg}`;
-            errorDiv.classList.remove('d-none');
+            document.getElementById('errorText').innerText = errorMsg;
+            errorDiv.classList.remove('hidden');
         }
     </script>
 </body>

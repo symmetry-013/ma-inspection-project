@@ -4,84 +4,217 @@
     <base target="_top">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบสรุปอุปกรณ์ชำรุด</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ระบบสรุปอุปกรณ์ชำรุด | 3D Cartoon Edition</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- SweetAlert2 (Light Theme) -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
+
     <script src="constants.js"></script>
-    <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['Prompt', 'sans-serif'] } } } }</script>
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                    colors: { 
+                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9' },
+                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e', 600: '#e11d48' },
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981' },
+                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b' }
+                    }
+                } 
+            } 
+        }
+    </script>
     <style>
-        body { font-family: 'Prompt', sans-serif; -webkit-overflow-scrolling: touch; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.5); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.8); border-radius: 4px; }
+        body {
+            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
+            background-color: #fffbeb; 
+            color: #334155;
+            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #ffe4e6; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #fb7185; border-radius: 8px; border: 2px solid #fff1f2; }
+
+        /* 3D Container Header */
+        .header-puffy {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 4px solid #f8fafc;
+            box-shadow: 0 4px 15px -3px rgba(0,0,0,0.05);
+        }
+
+        /* 3D Container Cards */
+        .puffy-card {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .defect-card {
+            border-top-width: 8px;
+            border-top-color: #fb7185; /* Rose 400 */
+        }
+        .defect-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 15px 30px -5px rgba(244, 63, 94, 0.15), 0 8px 10px -6px rgba(244, 63, 94, 0.1);
+        }
+
+        /* 3D Input Fields */
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 700;
+        }
+        .puffy-input:focus { outline: none; border-color: #fb7185; background-color: #ffffff; box-shadow: 0 0 0 4px rgba(251, 113, 133, 0.2); }
+        .puffy-input:disabled { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; opacity: 0.7; border-color: #e2e8f0; }
+
+        /* 3D Refresh Button (สีแดงชมพู) */
+        .btn-refresh {
+            background-color: #f43f5e;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 0 #e11d48;
+            transition: all 0.1s ease;
+            border: 2px solid #fda4af;
+        }
+        .btn-refresh:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0px 0 #e11d48; }
+        .btn-refresh:disabled { background-color: #fda4af; box-shadow: 0 4px 0 #fecdd3; border-color: #ffe4e6; cursor: not-allowed; }
+
+        /* Animation เด้งดึ๋งๆ */
+        .bounce-soft { animation: bounceSoft 2s infinite; }
+        @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500/30">
+<body class="min-h-screen font-sans">
 
-    <header class="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <!-- Header สไตล์ 3D Cartoon -->
+    <header class="header-puffy sticky top-0 z-50 py-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center hover:bg-slate-700 transition shrink-0"><i class="fas fa-arrow-left text-white"></i></a>
-                    <div class="p-2.5 bg-rose-500/10 rounded-xl border border-rose-500/20"><i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i></div>
-                    <div><h1 class="text-xl md:text-2xl font-bold text-white">ระบบสรุปอุปกรณ์ชำรุด</h1><p class="text-xs text-slate-400">วิเคราะห์ข้อมูลการตรวจงาน MA อัตโนมัติ</p></div>
+                <div class="flex items-center gap-3">
+                    <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm active:translate-y-1 shrink-0">
+                        <i class="ph-bold ph-caret-left text-2xl"></i>
+                    </a>
+                    <div class="w-12 h-12 rounded-2xl bg-rose-100 border-2 border-rose-300 flex items-center justify-center shadow-sm shrink-0">
+                        <i class="ph-fill ph-warning-octagon text-rose-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">ระบบสรุป <span class="text-rose-500">อุปกรณ์ชำรุด</span></h1>
+                        <p class="text-xs font-bold text-slate-400">วิเคราะห์ข้อมูลการตรวจงาน MA อัตโนมัติ</p>
+                    </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-3">
-                    <div class="relative group w-full md:w-auto"><div class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-calendar-alt text-slate-400"></i></div>
-                        <select id="period-filter" onchange="renderData()" disabled class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-10 pr-8 py-2.5 w-full">
-                            <option value="All">ทุกงวดการตรวจ (ทั้งหมด)</option><option value="งวดที่1">งวดที่ 1</option><option value="งวดที่2">งวดที่ 2</option><option value="งวดที่3">งวดที่ 3</option><option value="งวดที่4">งวดที่ 4</option>
+                
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <div class="w-full md:w-auto">
+                        <select id="period-filter" onchange="renderData()" disabled class="puffy-input rounded-xl pl-4 pr-8 py-3 w-full text-sm">
+                            <option value="All">ทุกงวดการตรวจ (ทั้งหมด)</option>
+                            <option value="งวดที่1">งวดที่ 1</option><option value="งวดที่2">งวดที่ 2</option>
+                            <option value="งวดที่3">งวดที่ 3</option><option value="งวดที่4">งวดที่ 4</option>
                         </select>
                     </div>
-                    <div class="relative group w-full md:w-auto"><div class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-water text-slate-400"></i></div>
-                        <select id="basin-filter" onchange="renderData()" disabled class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg pl-10 pr-8 py-2.5 w-full"><option value="All">กำลังเตรียมข้อมูล...</option></select>
+                    <div class="w-full md:w-auto">
+                        <select id="basin-filter" onchange="renderData()" disabled class="puffy-input rounded-xl pl-4 pr-8 py-3 w-full text-sm">
+                            <option value="All">กำลังเตรียมข้อมูล...</option>
+                        </select>
                     </div>
-                    <button id="refresh-btn" onclick="fetchDataFromServer()" disabled class="p-2.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 w-full md:w-auto"><i id="refresh-icon" class="fas fa-sync-alt"></i></button>
+                    <button id="refresh-btn" onclick="fetchDataFromServer()" disabled class="btn-refresh w-full md:w-auto px-4 py-3 flex items-center justify-center h-full">
+                        <i id="refresh-icon" class="ph-bold ph-arrows-clockwise text-xl"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-8" id="content-area">
-        <div class="flex flex-col items-center justify-center py-24 space-y-5">
-            <div class="w-14 h-14 border-4 border-slate-700 border-t-emerald-500 rounded-full animate-spin"></div>
-            <p class="text-emerald-400 font-medium animate-pulse">กำลังโหลดข้อมูลระบบ...</p>
+        <!-- สถานะตอนกำลังโหลด -->
+        <div class="flex flex-col items-center justify-center py-20 space-y-5 fade-in">
+            <div class="w-20 h-20 bg-white rounded-full border-4 border-white shadow-md flex items-center justify-center bounce-soft">
+                <i class="ph-fill ph-magnifying-glass text-rose-400 text-4xl"></i>
+            </div>
+            <p class="text-rose-500 font-extrabold text-lg">กำลังค้นหาอุปกรณ์ที่งอแง...</p>
         </div>
     </main>
 
     <script>
         let globalAppData = [];
 
+        // ฟังก์ชันหลีกเลี่ยง HTML Injection
+        const escapeHtml = (unsafe) => {
+            return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        };
+
         function showError(errorMessage) {
-            document.getElementById('content-area').innerHTML = `<div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 flex items-start gap-4 max-w-3xl mx-auto mt-8"><i class="fas fa-exclamation-circle text-rose-500 text-3xl mt-1"></i><div><h3 class="text-lg font-semibold text-rose-400 mb-2">เกิดข้อผิดพลาด</h3><p class="text-slate-300">${errorMessage}</p></div></div>`;
-            toggleControls(true); document.getElementById('refresh-icon').classList.remove('fa-spin');
+            document.getElementById('content-area').innerHTML = `
+                <div class="puffy-card border-t-8 border-t-rose-400 p-8 flex flex-col md:flex-row items-center md:items-start gap-5 max-w-2xl mx-auto mt-8 text-center md:text-left fade-in">
+                    <div class="w-16 h-16 bg-rose-100 rounded-2xl flex items-center justify-center shrink-0 border-2 border-rose-200">
+                        <i class="ph-fill ph-warning-circle text-rose-500 text-4xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-extrabold text-rose-600 mb-2">เกิดข้อผิดพลาด</h3>
+                        <p class="text-slate-500 font-medium">${errorMessage}</p>
+                    </div>
+                </div>`;
+            toggleControls(true); 
+            document.getElementById('refresh-icon').classList.remove('animate-spin');
         }
 
         function toggleControls(enable) {
-            document.getElementById('period-filter').disabled = !enable; document.getElementById('basin-filter').disabled = !enable; document.getElementById('refresh-btn').disabled = !enable;
+            document.getElementById('period-filter').disabled = !enable; 
+            document.getElementById('basin-filter').disabled = !enable; 
+            document.getElementById('refresh-btn').disabled = !enable;
         }
 
         function setupBasinDropdown() {
             const basinSelect = document.getElementById('basin-filter');
             basinSelect.innerHTML = '<option value="All">ทุกลุ่มน้ำ (ทั้งหมด)</option>';
-            hardcodedBasins.forEach(basin => basinSelect.innerHTML += `<option value="${basin}">ลุ่มน้ำ ${basin}</option>`);
+            if (typeof hardcodedBasins !== 'undefined') {
+                hardcodedBasins.forEach(basin => basinSelect.innerHTML += `<option value="${basin}">ลุ่มน้ำ ${basin}</option>`);
+            }
         }
 
         async function fetchDataFromServer() {
-            toggleControls(false); document.getElementById('refresh-icon').classList.add('fa-spin');
+            toggleControls(false); 
+            document.getElementById('refresh-icon').classList.add('animate-spin');
             try {
-                
                 const response = await fetch('https://ma-inspection-project.onrender.com/api/inspections');
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    globalAppData = result.data; setupBasinDropdown(); toggleControls(true); renderData();
-                } else throw new Error(result.message);
-            } catch (err) { showError(err.message); }
+                    globalAppData = result.data; 
+                    setupBasinDropdown(); 
+                    toggleControls(true); 
+                    renderData();
+                } else {
+                    throw new Error(result.message || 'ไม่สามารถดึงข้อมูลได้');
+                }
+            } catch (err) { 
+                showError(err.message); 
+            }
         }
 
         function renderData() {
             if (!globalAppData) return;
-            document.getElementById('refresh-icon').classList.remove('fa-spin');
+            document.getElementById('refresh-icon').classList.remove('animate-spin');
             const selectedBasin = document.getElementById('basin-filter').value;
             const selectedPeriod = document.getElementById('period-filter').value;
 
@@ -94,41 +227,98 @@
             const summaryMap = {};
             filteredRows.forEach(row => {
                 const stationName = row.name_id || row.id_name || 'ไม่ทราบสถานี';
-                Object.keys(equipmentMap).forEach(key => {
-                    const eqTitle = equipmentMap[key];
-                    let val = row[key]; let addCount = 0;
-                    if (typeof val === 'string' && val.trim().toUpperCase() === "O") addCount = 1;
-                    else if (['b2', 'sta2', 'pole2'].includes(key)) { let n = Number(val); if (!isNaN(n) && n > 0) addCount = n; }
-                    if (addCount > 0) {
-                        if (!summaryMap[eqTitle]) summaryMap[eqTitle] = { name: eqTitle, count: 0, stationsMap: new Map() };
-                        summaryMap[eqTitle].count += addCount;
-                        summaryMap[eqTitle].stationsMap.set(stationName, (summaryMap[eqTitle].stationsMap.get(stationName) || 0) + addCount);
-                    }
-                });
+                if(typeof equipmentMap !== 'undefined') {
+                    Object.keys(equipmentMap).forEach(key => {
+                        const eqTitle = equipmentMap[key];
+                        let val = row[key]; 
+                        let addCount = 0;
+                        if (typeof val === 'string' && (val.trim().toUpperCase() === "O" || val.trim() === "ชำรุด" || val.trim() === "ไม่ผ่าน")) {
+                            addCount = 1;
+                        } else if (['b2', 'sta2', 'pole2'].includes(key)) { 
+                            let n = Number(val); 
+                            if (!isNaN(n) && n > 0) addCount = n; 
+                        }
+                        
+                        if (addCount > 0) {
+                            if (!summaryMap[eqTitle]) summaryMap[eqTitle] = { name: eqTitle, count: 0, stationsMap: new Map() };
+                            summaryMap[eqTitle].count += addCount;
+                            summaryMap[eqTitle].stationsMap.set(stationName, (summaryMap[eqTitle].stationsMap.get(stationName) || 0) + addCount);
+                        }
+                    });
+                }
             });
 
             const finalData = Object.values(summaryMap).map(item => {
-                let stArr = []; item.stationsMap.forEach((c, n) => stArr.push({ name: n, count: c }));
+                let stArr = []; 
+                item.stationsMap.forEach((c, n) => stArr.push({ name: n, count: c }));
                 return { ...item, stations: stArr };
             }).sort((a, b) => b.count - a.count);
 
             const content = document.getElementById('content-area');
+            
+            // กรณีไม่มีอะไรพังเลย (หน้าตาแบบ Happy)
             if (finalData.length === 0) {
-                content.innerHTML = `<div class="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-12 text-center max-w-2xl mx-auto mt-10"><i class="fas fa-check-circle text-5xl text-emerald-400 mb-6"></i><h2 class="text-2xl font-bold text-white mb-3">สถานการณ์ปกติ</h2><p class="text-slate-400">ไม่พบรายงานอุปกรณ์ชำรุด</p></div>`; return;
+                content.innerHTML = `
+                <div class="puffy-card border-t-8 border-t-emerald-400 p-12 text-center max-w-2xl mx-auto mt-6 fade-in">
+                    <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-sm bounce-soft">
+                        <i class="ph-fill ph-check-circle text-6xl text-emerald-500"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-slate-700 mb-2">เย้! สถานการณ์ปกติ 100%</h2>
+                    <p class="text-slate-500 font-bold">ไม่พบรายงานอุปกรณ์ชำรุดในเงื่อนไขที่คุณเลือก</p>
+                </div>`; 
+                return;
             }
 
+            // กรณีมีของพัง
             let cardsHtml = '';
-            finalData.forEach(item => {
+            finalData.forEach((item, index) => {
                 let stationBadges = '';
                 item.stations.forEach(st => {
                     const safeName = escapeHtml(st.name);
-                    if (st.count > 1) stationBadges += `<span class="px-2.5 py-1.5 text-xs font-medium bg-slate-900 border border-slate-700 text-slate-300 rounded-md inline-flex items-center gap-1">${safeName} <span class="text-rose-500 font-bold">(${st.count})</span></span>`;
-                    else stationBadges += `<span class="px-2.5 py-1.5 text-xs font-medium bg-slate-900 border border-slate-700 text-slate-300 rounded-md">${safeName}</span>`;
+                    if (st.count > 1) {
+                        stationBadges += `<span class="px-3 py-1.5 text-xs font-bold bg-white border-2 border-rose-200 text-slate-600 rounded-xl inline-flex items-center gap-1.5 shadow-sm">${safeName} <span class="bg-rose-100 text-rose-600 px-1.5 py-0.5 rounded-md">(${st.count} จุด)</span></span>`;
+                    } else {
+                        stationBadges += `<span class="px-3 py-1.5 text-xs font-bold bg-white border-2 border-slate-200 text-slate-600 rounded-xl shadow-sm">${safeName}</span>`;
+                    }
                 });
-                cardsHtml += `<div class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 shadow-lg"><div class="flex items-start justify-between mb-4"><h3 class="text-lg font-bold text-white pr-4">${item.name}</h3><div class="flex flex-col items-end"><span class="text-3xl font-black text-rose-500">${item.count}</span><span class="text-xs text-rose-500/80 mt-1">รายการ</span></div></div><div class="pt-4 border-t border-slate-700/50"><p class="text-xs text-slate-400 mb-3"><i class="fas fa-map-marker-alt"></i> สถานีที่มีปัญหา:</p><div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">${stationBadges}</div></div></div>`;
+                
+                cardsHtml += `
+                <div class="puffy-card defect-card p-6 fade-in" style="animation-delay: ${0.05 * (index % 5)}s;">
+                    <div class="flex items-start justify-between mb-4 pb-4 border-b-2 border-slate-100">
+                        <div class="flex items-center gap-2 pr-2">
+                            <i class="ph-fill ph-warning-octagon text-rose-400 text-xl"></i>
+                            <h3 class="text-lg font-extrabold text-slate-700">${item.name}</h3>
+                        </div>
+                        <div class="bg-rose-50 px-3 py-1.5 rounded-xl border-2 border-rose-100 text-center flex flex-col items-center">
+                            <span class="text-2xl font-black text-rose-600 leading-none">${item.count}</span>
+                            <span class="text-[9px] font-bold text-rose-400 uppercase mt-1 tracking-wide">รายการ</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <p class="text-xs font-bold text-sky-500 mb-3 flex items-center gap-1.5 uppercase">
+                            <i class="ph-fill ph-map-pin"></i> สถานีที่พบปัญหา
+                        </p>
+                        <div class="flex flex-wrap gap-2 max-h-36 overflow-y-auto custom-scrollbar pr-1 bg-slate-50 p-3 rounded-2xl border-2 border-slate-100 inset-shadow">
+                            ${stationBadges}
+                        </div>
+                    </div>
+                </div>`;
             });
-            content.innerHTML = `<div class="space-y-6"><div class="flex items-center justify-between mb-2"><h2 class="text-xl font-semibold text-white">รายการอุปกรณ์ที่พบปัญหา</h2></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${cardsHtml}</div></div>`;
+            
+            content.innerHTML = `
+            <div class="space-y-6 fade-in">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                        <i class="ph-fill ph-wrench text-rose-500 text-2xl"></i> รายการอุปกรณ์ที่พบปัญหา
+                    </h2>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    ${cardsHtml}
+                </div>
+            </div>`;
         }
+        
         window.addEventListener('load', fetchDataFromServer);
     </script>
 </body>
