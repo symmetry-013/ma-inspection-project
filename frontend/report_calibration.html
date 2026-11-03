@@ -14,6 +14,7 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
+    <!-- นำเข้า Constants -->
     <script src="constants.js"></script>
     
     <script>
@@ -34,7 +35,6 @@
     </script>
     <style>
         body {
-            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
             background-color: #fffbeb; 
             color: #334155;
             background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
@@ -46,7 +46,6 @@
         ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
 
-        /* 3D Container Cards */
         .puffy-container {
             background-color: #ffffff;
             border-radius: 24px;
@@ -64,7 +63,6 @@
             box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
         }
 
-        /* 3D Input Fields */
         .puffy-input {
             background-color: #f8fafc;
             border: 2px solid #e2e8f0;
@@ -79,7 +77,6 @@
             box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
         }
 
-        /* 3D Submit Button (สีฟ้าหลัก) */
         .btn-puffy-blue {
             background-color: #38bdf8;
             color: white;
@@ -92,7 +89,6 @@
         .btn-puffy-blue:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #0284c7; }
         .btn-puffy-blue:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.8; }
 
-        /* Polaroid Image Grid */
         .polaroid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 16px; }
         .polaroid { 
             background: #ffffff; padding: 10px 10px 16px 10px; 
@@ -104,7 +100,6 @@
         .polaroid-img-wrapper { aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 2px solid #f1f5f9; background: #f8fafc; }
         .polaroid-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 3D Table Custom */
         .table-custom { border-collapse: separate; border-spacing: 0; width: 100%; border-radius: 16px; border: 2px solid #e2e8f0; overflow: hidden; }
         .table-custom th, .table-custom td { padding: 12px 16px; border-bottom: 2px solid #f1f5f9; text-align: center; }
         .table-custom th { background-color: #f8fafc; font-weight: 700; color: #475569; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; }
@@ -239,22 +234,31 @@
             initBasins();
         }
 
-        // 🌟 อัปเกรดฟังก์ชันจัดเรียง URL รูปภาพให้รองรับภาษาไทยและการแยกโฟลเดอร์
+        // 🌟 อัปเกรดฟังก์ชันจัดการ URL รูปภาพ ให้รองรับ Google Drive และการแยกโฟลเดอร์ภาษาไทย
         function getValidImageUrl(imagePath) {
             if (!imagePath || imagePath.trim() === '') return null;
+            let path = imagePath.trim();
             
-            // 1. แปลง Backslash (\) ให้เป็น Slash (/) กรณีมาจาก Windows
-            let normalizedPath = imagePath.replace(/\\/g, '/');
-            
-            // 2. ถ้าเป็นลิงก์เว็บเต็มอยู่แล้ว ให้เข้ารหัส URL ตรงๆ
-            if (/^https?:\/\//i.test(normalizedPath)) {
-                return encodeURI(normalizedPath);
+            // 1. ดักจับกรณีเป็นลิงก์ Google Drive (เช่น drive.google.com/uc?...)
+            if (path.includes('drive.google.com')) {
+                // ถ้าไม่มี http นำหน้า ให้ใส่เข้าไปเพื่อความถูกต้อง
+                if (!/^https?:\/\//i.test(path)) {
+                    return `https://${path}`;
+                }
+                return path;
             }
             
-            // 3. ป้องกัน slash ซ้อนกันที่หน้าคำว่า uploads
+            // 2. ถ้าเป็นลิงก์เว็บอื่นๆ (เริ่มด้วย http/https) ใช้ได้เลย
+            if (/^https?:\/\//i.test(path)) {
+                return path;
+            }
+            
+            // 3. ถ้าเป็นไฟล์ในโฟลเดอร์เซิร์ฟเวอร์ (เช่น uploads/งวดที่ 1/...)
+            // แก้ไข Backslash เผื่ออัปโหลดจาก Windows
+            let normalizedPath = path.replace(/\\/g, '/');
             let cleanPath = normalizedPath.startsWith('/') ? normalizedPath.substring(1) : normalizedPath;
             
-            // 4. เข้ารหัส URL (URL Encoding) แปลงตัวอักษรไทย/เว้นวรรค ให้บราว์เซอร์อ่านได้
+            // เข้ารหัส URL สำหรับชื่อโฟลเดอร์ภาษาไทยและช่องว่าง
             return `${BASE_URL}/${encodeURI(cleanPath)}`;
         }
 
