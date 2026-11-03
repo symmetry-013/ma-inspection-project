@@ -2,6 +2,16 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+// ฟังก์ชันแกะ ID รูปภาพจาก Google Drive
+function defaultExtractDriveId(url) {
+    if (!url) return null;
+    const matchFileD = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (matchFileD) return matchFileD[1];
+    const matchId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (matchId) return matchId[1];
+    return null;
+}
+
 async function generateInspectionPDF(inspections, calibrations, term, basin, res, equipmentMap, hardcodedBasins, fetchImageBufferDirectly, extractDriveId, fixThaiVowels) {
   try {
     const doc = new PDFDocument({ size: 'A4', margin: 30 });
@@ -20,19 +30,93 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.registerFont('ThaiBold', 'Helvetica-Bold');
     }
 
-    const getThaiDate = (date) => {
-      if (!date) return '-';
-      const d = new Date(date);
+    // ฟังก์ชันจัดการเวลาให้เป็น Asia/Bangkok
+    const getThaiDate = (dateString) => {
+      if (!dateString) return '-';
+      const d = new Date(dateString);
       if (isNaN(d)) return '-';
-      return new Intl.DateTimeFormat('th-TH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' }).format(d);
+      
+      const parts = new Intl.DateTimeFormat('en-US', { 
+        timeZone: 'Asia/Bangkok', 
+        year: 'numeric', 
+        month: 'numeric', 
+        day: 'numeric' 
+      }).formatToParts(d);
+      
+      let day, month, year;
+      parts.forEach(p => {
+        if (p.type === 'day') day = parseInt(p.value, 10);
+        if (p.type === 'month') month = parseInt(p.value, 10);
+        if (p.type === 'year') year = parseInt(p.value, 10);
+      });
+      
+      const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+      return `${day} ${months[month - 1]} ${year + 543}`;
     };
 
+    const getThaiTime = (dateString, addMinutes = 0) => {
+      if (!dateString) return '-';
+      const d = new Date(dateString);
+      if (isNaN(d)) return '-';
+      
+      d.setMinutes(d.getMinutes() + addMinutes); 
+      
+      const timeString = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Bangkok',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(d);
+      
+      return timeString.replace(':', '.');
+    };
+
+    // ระบบโหลดรูปภาพอัจฉริยะ รองรับไฟล์ในเครื่อง และ Google Drive
+    const renderCalibImage = async (fileUrl, x, y, w, h) => {
+      if (!fileUrl) return;
+      let buf = null;
+      try {
+        const getId = extractDriveId || defaultExtractDriveId;
+        const fId = getId(fileUrl);
+        
+        // 1. ถ้ารูปมาจาก Google Drive
+        if (fId && fetchImageBufferDirectly) {
+           buf = await fetchImageBufferDirectly(fId);
+        } 
+        // 2. ถ้ารูปมาจากโฟลเดอร์ในระบบ
+        else {
+           let cleanPath = fileUrl.replace(/\\/g, '/');
+           if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+           const localPath = path.join(__dirname, cleanPath);
+           const decodedPath = path.join(__dirname, decodeURIComponent(cleanPath));
+           
+           if (fs.existsSync(localPath)) {
+               buf = fs.readFileSync(localPath);
+           } else if (fs.existsSync(decodedPath)) {
+               buf = fs.readFileSync(decodedPath);
+           }
+        }
+
+        if (buf) {
+            doc.image(buf, x + 2, y + 2, { fit: [w - 4, h - 4], align: 'center', valign: 'center' }); 
+        } else {
+            doc.font('ThaiRegular').fontSize(8).fillColor('black').text('[ไม่พบรูปภาพ]', x + 5, y + Math.floor(h/2));
+        }
+      } catch (e) {
+        doc.font('ThaiRegular').fontSize(8).fillColor('black').text('[ภาพขัดข้อง]', x + 5, y + Math.floor(h/2));
+      }
+    };
+
+    // ============================================================================
+    // หน้ารายงานแอป 1 (ตารางภาพรวม)
+    // ============================================================================
     doc.font('ThaiBold').fontSize(16).fillColor('black');
     doc.text(fixThaiVowels(`รายงานสรุปสถานีโทรมาตร ลุ่มน้ำ${basin === 'all' ? 'ทั้งหมด' : basin}`), { align: 'center' });
-    doc.fontSize(12).fillColor('red');
-    doc.text(fixThaiVowels(`งวดการตรวจสอบ : ${term}`), { align: 'center' });
     
-    let inspectDate = inspections.length > 0 ? inspections[0].mam_updated_at || inspections[0].last_sync_at : new Date();
+    doc.fontSize(12).fillColor('red');
+    doc.text(fixThaiVowels(`งวดการตรวจสอบ : ${term === 'all' ? 'ทั้งหมด' : term}`), { align: 'center' });
+    
+    let inspectDate = inspections.length > 0 ? (inspections[0].timestamp || inspections[0].createdAt || new Date()) : new Date();
     doc.text(fixThaiVowels(`วันที่ตรวจสอบ : ${getThaiDate(inspectDate)}`), { align: 'center' });
     
     doc.moveDown(1);
@@ -41,12 +125,13 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
     let currentY = doc.y;
     const colX = [30, 60, 110, 195, 245, 295, 395, 465]; 
     const colW = [30, 50,  85,  50,  50, 100,  70,  100]; 
-    const headers = ['ลำดับ', 'รหัสสถานี', 'ชื่อสถานี', 'พร้อมใช้งาน', 'ความสะอาด', 'อุปกรณ์ที่ชำรุด', 'หมายเหตุ', 'ข้อคิดเห็น'];
+    const headers = ['ลำดับ', 'รหัสสถานี', 'ชื่อสถานี', 'พร้อมใช้งาน', 'ความสะอาด', 'อุปกรณ์ที่ชำรุด', 'หมายเหตุ', 'ข้อคิดเห็นกรรมการ'];
 
     const drawTableHeader = (yPos) => {
       doc.fillColor('black').font('ThaiBold').fontSize(9);
       doc.rect(startX, yPos, 535, 25).fillAndStroke('#f0f0f0', 'black');
       doc.fillColor('black');
+      
       headers.forEach((h, i) => {
         doc.text(fixThaiVowels(h), colX[i], yPos + 6, { width: colW[i], align: 'center' });
         if (i > 0) doc.moveTo(colX[i], yPos).lineTo(colX[i], yPos + 25).stroke(); 
@@ -61,30 +146,43 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       let brokenList = [];
       const isBrokenValue = (val) => {
         const v = (val || '').toString().trim().toLowerCase();
-        return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน';
+        return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง';
       };
 
-      // หาอุปกรณ์ที่ชำรุดจาก equipmentMap ที่ดึงมาจาก name_sv.js
-      Object.keys(equipmentMap).forEach(key => {
-        if (isBrokenValue(item[key])) brokenList.push(equipmentMap[key]);
-      });
+      if (equipmentMap) {
+          Object.keys(equipmentMap).forEach(key => {
+            if (isBrokenValue(item[key])) {
+              brokenList.push(equipmentMap[key]);
+            }
+          });
+      }
 
-      // ลอจิกระบบใช้ไม่ได้ (กลุ่ม A และ กลุ่ม B)
       let isSystemBroken = false;
-      const groupA = ['power', 'sta_cpu', 'plc', 'sta_cctv1', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
-      if (groupA.some(key => isBrokenValue(item[key]))) isSystemBroken = true;
+      const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
+      if (groupA.some(key => isBrokenValue(item[key]))) {
+        isSystemBroken = true;
+      }
+
       if (isBrokenValue(item.sta_m1) && isBrokenValue(item.sta_m2)) isSystemBroken = true;
       if (isBrokenValue(item.sta_p1) && isBrokenValue(item.sta_p2)) isSystemBroken = true;
 
       const statusText = isSystemBroken ? 'ใช้ไม่ได้' : 'ใช้ได้';
-      const cleanStatus = (item.clean === 'P' || item.clean === 'ผ่าน') ? 'ผ่าน' : (item.clean === 'O' ? 'ไม่ผ่าน' : '-');
+      
+      let cleanStatus = item.clean || '-';
+      const cleanLower = cleanStatus.toLowerCase();
+      if (cleanLower === 'o' || cleanLower === 'ไม่ผ่าน') cleanStatus = 'ไม่ผ่าน';
+      else if (cleanLower === 'p' || cleanLower === 'ผ่าน') cleanStatus = 'ผ่าน';
+      
       const brokenDesc = brokenList.join(', ') || '-';
+      // ดึงค่าหมายเหตุกลับมาใส่
+      const note1 = item.note || '-';
       const note2 = item.note2 || '-';
 
       const h1 = doc.heightOfString(fixThaiVowels(item.name_id || '-'), { width: colW[2] - 4 });
       const h2 = doc.heightOfString(fixThaiVowels(brokenDesc), { width: colW[5] - 4 });
-      const h3 = doc.heightOfString(fixThaiVowels(note2), { width: colW[7] - 4 });
-      const rowHeight = Math.max(h1, h2, h3, 15) + 10;
+      const h3 = doc.heightOfString(fixThaiVowels(note1), { width: colW[6] - 4 });
+      const h4 = doc.heightOfString(fixThaiVowels(note2), { width: colW[7] - 4 });
+      const rowHeight = Math.max(h1, h2, h3, h4, 15) + 10;
 
       if (currentY + rowHeight > 780) {
         doc.addPage();
@@ -102,17 +200,116 @@ async function generateInspectionPDF(inspections, calibrations, term, basin, res
       doc.text(fixThaiVowels(statusText), colX[3], textY, { width: colW[3], align: 'center' });
       doc.text(fixThaiVowels(cleanStatus), colX[4], textY, { width: colW[4], align: 'center' });
       doc.text(fixThaiVowels(brokenDesc), colX[5] + 2, textY, { width: colW[5] - 4, align: 'left' });
-      doc.text(fixThaiVowels('-'), colX[6] + 2, textY, { width: colW[6] - 4, align: 'left' });
+      doc.text(fixThaiVowels(note1), colX[6] + 2, textY, { width: colW[6] - 4, align: 'left' });
       doc.text(fixThaiVowels(note2), colX[7] + 2, textY, { width: colW[7] - 4, align: 'left' });
 
       currentY += rowHeight;
     });
 
+    // ============================================================================
+    // หน้ารายงานแอป 2 และ 3 (Calibrations - สอบเทียบ) คืนชีพกลับมา!
+    // ============================================================================
+    if (calibrations && calibrations.length > 0) {
+        for (const calib of calibrations) {
+          
+          doc.addPage();
+          doc.font('ThaiBold').fontSize(14).fillColor('black');
+          doc.text(fixThaiVowels(`1. สอบเทียบเซ็นเซอร์อุปกรณ์ตรวจวัดระดับน้ำ สถานี “${calib.myData1 || '-'}”`), 40, 40);
+          
+          doc.font('ThaiRegular').fontSize(12);
+          const calibDate = calib.timestamp || calib.createdAt || new Date();
+          doc.text(fixThaiVowels(`วันที่บันทึกค่า ${getThaiDate(calibDate)}`), 40, 60);
+
+          doc.font('ThaiBold').fontSize(12);
+          doc.text(fixThaiVowels(`ครั้งที่ 1 เวลา ${getThaiTime(calibDate)} น.`), 40, 85);
+
+          let tY = 105;
+          doc.rect(40, tY, 171, 20).stroke(); doc.rect(211, tY, 171, 20).stroke(); doc.rect(382, tY, 171, 20).stroke();
+          doc.text(fixThaiVowels('รูปที่ 1 ค่า ค่าแผ่นวัดระดับน้ำ'), 40, tY + 5, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels('รูปที่ 2 ค่า RTU'), 211, tY + 5, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels('รูปที่ 3 Website'), 382, tY + 5, { width: 171, align: 'center' });
+
+          tY += 20;
+          doc.rect(40, tY, 171, 140).stroke(); doc.rect(211, tY, 171, 140).stroke(); doc.rect(382, tY, 171, 140).stroke();
+          await renderCalibImage(calib.myFileUrl, 40, tY, 171, 140);
+          await renderCalibImage(calib.myFileUrl2, 211, tY, 171, 140);
+          await renderCalibImage(calib.myFileUrl3, 382, tY, 171, 140);
+
+          tY += 140;
+          doc.rect(40, tY, 171, 25).stroke(); doc.rect(211, tY, 171, 25).stroke(); doc.rect(382, tY, 171, 25).stroke();
+          doc.font('ThaiRegular').fillColor('red');
+          doc.text(fixThaiVowels(`${calib.myData4 || '-'} ม.รสม.`), 40, tY + 7, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels(`${calib.myData5 || '-'} ม.รสม.`), 211, tY + 7, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels(`${calib.myData6 || '-'} ม.รสม.`), 382, tY + 7, { width: 171, align: 'center' });
+
+          tY += 40;
+          doc.font('ThaiBold').fillColor('black').fontSize(12);
+          doc.text(fixThaiVowels(`ครั้งที่ 2 เวลา ${getThaiTime(calibDate, 10)} น.`), 40, tY);
+
+          tY += 20;
+          doc.rect(40, tY, 171, 20).stroke(); doc.rect(211, tY, 171, 20).stroke(); doc.rect(382, tY, 171, 20).stroke();
+          doc.text(fixThaiVowels('รูปที่ 1 ค่า ค่าแผ่นวัดระดับน้ำ'), 40, tY + 5, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels('รูปที่ 2 ค่า RTU'), 211, tY + 5, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels('รูปที่ 3 Website'), 382, tY + 5, { width: 171, align: 'center' });
+
+          tY += 20;
+          doc.rect(40, tY, 171, 140).stroke(); doc.rect(211, tY, 171, 140).stroke(); doc.rect(382, tY, 171, 140).stroke();
+          await renderCalibImage(calib.myFileUrl4, 40, tY, 171, 140);
+          await renderCalibImage(calib.myFileUrl5, 211, tY, 171, 140);
+          await renderCalibImage(calib.myFileUrl6, 382, tY, 171, 140);
+
+          tY += 140;
+          doc.rect(40, tY, 171, 25).stroke(); doc.rect(211, tY, 171, 25).stroke(); doc.rect(382, tY, 171, 25).stroke();
+          doc.font('ThaiRegular').fillColor('red');
+          doc.text(fixThaiVowels(`${calib.myData8 || '-'} ม.รสม.`), 40, tY + 7, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels(`${calib.myData9 || '-'} ม.รสม.`), 211, tY + 7, { width: 171, align: 'center' });
+          doc.text(fixThaiVowels(`${calib.myData10 || '-'} ม.รสม.`), 382, tY + 7, { width: 171, align: 'center' });
+
+          tY += 40;
+          doc.font('ThaiRegular').fillColor('black');
+          doc.text(fixThaiVowels(`หมายเหตุ : ${calib.myData7 || '-'}`), 40, tY);
+
+          doc.addPage();
+          doc.font('ThaiBold').fontSize(14).fillColor('black');
+          doc.text(fixThaiVowels(`2. สอบเทียบเซ็นเซอร์อุปกรณ์ตรวจวัดค่าน้ำฝน สถานี “${calib.myData1 || '-'}”`), 40, 40);
+          
+          doc.font('ThaiRegular').fontSize(12);
+          doc.text(fixThaiVowels(`วันที่บันทึกค่า ${getThaiDate(calibDate)}`), 40, 60);
+          doc.text(fixThaiVowels(`ครั้งที่ 1 เวลา ${getThaiTime(calibDate)} น.`), 40, 80);
+          doc.text(fixThaiVowels(`จำนวนเคาะจากกระบอกน้ำฝน ${calib.myData11 || '-'} ครั้ง`), 40, 100);
+
+          let rY = 125;
+          doc.font('ThaiBold').fontSize(12);
+          
+          doc.rect(40, rY, 256, 20).stroke(); doc.rect(296, rY, 256, 20).stroke();
+          doc.text(fixThaiVowels('รูปที่ 1 ค่า RTU'), 40, rY + 5, { width: 256, align: 'center' });
+          doc.text(fixThaiVowels('รูปที่ 2 ค่า Website'), 296, rY + 5, { width: 256, align: 'center' });
+
+          rY += 20;
+          doc.rect(40, rY, 256, 220).stroke(); doc.rect(296, rY, 256, 220).stroke();
+          await renderCalibImage(calib.myFileUrl7, 40, rY, 256, 220);
+          await renderCalibImage(calib.myFileUrl8, 296, rY, 256, 220);
+
+          rY += 220;
+          doc.rect(40, rY, 256, 25).stroke(); doc.rect(296, rY, 256, 25).stroke();
+          doc.font('ThaiRegular').fillColor('red');
+          
+          doc.text(fixThaiVowels(`${calib.myData12 || '-'} มม.`), 40, rY + 7, { width: 256, align: 'center' });
+          doc.text(fixThaiVowels(`${calib.myData13 || '-'} มม.`), 296, rY + 7, { width: 256, align: 'center' });
+
+          rY += 40;
+          doc.font('ThaiRegular').fillColor('black');
+          doc.text(fixThaiVowels(`หมายเหตุ : (${calib.myData14 || '-'})`), 40, rY);
+        }
+    }
+
     doc.end();
   } catch (error) {
     console.error('PDF Generation Error:', error);
-    if (!res.headersSent) res.status(500).send('Error');
+    if (!res.headersSent) res.status(500).send('เกิดข้อผิดพลาดในการสร้าง PDF');
   }
 }
 
-module.exports = { generateInspectionPDF };
+module.exports = {
+  generateInspectionPDF
+};

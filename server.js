@@ -6,7 +6,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// เรียกใช้ไฟล์ pdfGenerator.js (ตรวจสอบชื่อฟังก์ชันในไฟล์ของคุณด้วยว่าชื่อ generateInspectionPDF หรือไม่)
 const { generateInspectionPDF } = require('./pdfGenerator');
 
 const app = express();
@@ -106,7 +105,7 @@ app.get('/api/calibrations', async (req, res) => {
 });
 
 // ===============================================
-// การสร้าง PDF - แก้ไขชื่อฟังก์ชันและส่งตัวแปรสำรอง
+// การสร้าง PDF - เพิ่มการดึง Calibration จากฐานข้อมูล
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -119,9 +118,19 @@ app.get('/api/report/pdf', async (req, res) => {
         }
         if (basin !== 'all') query.code = basin;
 
+        // ดึงข้อมูลการตรวจรับงาน (Inspection)
         const inspectionData = await Inspection.find(query).lean();
 
-        // ฝังตัวแปรสำรองไว้ใน Backend เลย ป้องกันไฟล์อื่นสูญหาย
+        // 🌟 เพิ่ม: ดึงข้อมูลการสอบเทียบ (Calibration) โดยใช้เงื่อนไขของตารางสอบเทียบ
+        let calibQuery = {};
+        if (term !== 'all') {
+            calibQuery.myDataPeriod = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
+        }
+        if (basin !== 'all') calibQuery.myData0 = basin;
+        
+        const calibrationData = await Calibration.find(calibQuery).lean();
+
+        // ฝังตัวแปรสำรองไว้ใน Backend
         const fallbackEquipmentMap = {
             clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
             online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
@@ -133,10 +142,10 @@ app.get('/api/report/pdf', async (req, res) => {
         };
         const fixThaiVowels = (text) => text || '';
 
-        // ถ้าโค้ดเก่าใน pdfGenerator.js ของคุณชื่อว่า generateInspectionPDF
+        // ส่งตัวแปร calibrationData เข้าไปด้วย ไม่ใช่ []
         await generateInspectionPDF(
             inspectionData, 
-            [], 
+            calibrationData, 
             term, 
             basin, 
             res, 
@@ -150,6 +159,21 @@ app.get('/api/report/pdf', async (req, res) => {
     } catch (error) {
         console.error('Error generating PDF:', error);
         res.status(500).send('เกิดข้อผิดพลาดในการสร้าง PDF: ' + error.message);
+    }
+});
+
+app.post('/webhook/update-station', async (req, res) => {
+    try {
+        const apiKey = req.headers['x-api-key'];
+        if (apiKey !== process.env.WEBHOOK_SECRET) {
+            return res.status(401).json({ success: false, message: 'Unauthorized: Invalid API Key' });
+        }
+        const payload = req.body;
+        const newRecord = new Inspection(payload);
+        await newRecord.save();
+        res.status(200).json({ success: true, message: 'Webhook received and processed' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 });
 
