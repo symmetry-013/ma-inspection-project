@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard แสดงผลสอบเทียบ | 3D Cartoon Edition</title>
     
-    <!-- Tailwind CSS (ใช้แทน Bootstrap เดิมเพื่อให้เข้ากับโปรเจกต์ใหม่) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Google Fonts: Prompt -->
@@ -159,6 +159,7 @@
                     <label class="text-sm font-bold text-slate-600">กลุ่มลุ่มน้ำ</label>
                     <select id="myData0" class="w-full p-3.5 rounded-xl puffy-input">
                         <option value="">ทั้งหมด (ทุกลุ่มน้ำ)</option>
+                        <!-- จะถูกเติมด้วย Javascript -->
                     </select>
                 </div>
             </div>
@@ -207,16 +208,23 @@
     </main>
 
     <script>
-        const API_URL = ''; 
-        const basinSelect = document.getElementById("myData0");
         let globalFetchedData = [];
+        const basinSelect = document.getElementById("myData0");
+        const BASE_URL = 'https://ma-inspection-project.onrender.com';
 
-        // เติมตัวเลือกลุ่มน้ำ
-        if (typeof hardcodedBasins !== 'undefined') {
-            for (let basin of hardcodedBasins) {
-                let opt = document.createElement("option"); opt.value = basin; opt.textContent = basin; basinSelect.appendChild(opt);
+        // โหลดข้อมูลตัวเลือกลุ่มน้ำเมื่อหน้าเว็บพร้อม
+        window.addEventListener('DOMContentLoaded', () => {
+            if (typeof hardcodedBasins !== 'undefined') {
+                hardcodedBasins.forEach(basin => { 
+                    let opt = document.createElement("option"); 
+                    opt.value = basin; 
+                    opt.textContent = basin; 
+                    basinSelect.appendChild(opt); 
+                });
+            } else {
+                console.error("ไม่พบข้อมูล hardcodedBasins จาก constants.js");
             }
-        }
+        });
 
         // ฟังก์ชันหลีกเลี่ยง HTML Injection (หาก constants ไม่มีให้)
         const escapeHtml = (unsafe) => {
@@ -224,7 +232,9 @@
         };
 
         async function fetchData() {
-            document.getElementById('emptyState')?.classList.add('hidden');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.classList.add('hidden');
+            
             document.getElementById('errorMessage').classList.add('hidden');
             document.getElementById('resultsContainer').innerHTML = '';
             document.getElementById('localSearchContainer').classList.add('hidden');
@@ -234,26 +244,41 @@
             const btn = document.getElementById('searchBtn');
             const originalBtnHtml = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังดึงข้อมูล';
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังดึงข้อมูล...';
 
             const filterPeriod = document.getElementById('myDataPeriod').value;
             const filterBasin = document.getElementById('myData0').value;
 
             try {
-                const response = await fetch('https://ma-inspection-project.onrender.com/api/calibrations');
+                // เรียกใช้ API เพื่อดึงข้อมูลสอบเทียบ (ใช้ URL Backend ตัวเต็ม)
+                const response = await fetch(`${BASE_URL}/api/calibrations`);
                 const result = await response.json();
 
                 if (response.ok && result.success) {
                     const textKeys = ['myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
                     
-                    result.data.forEach(it => textKeys.forEach(k => { if (typeof it[k] === 'string') it[k] = escapeHtml(it[k]); }));
+                    // ป้องกัน HTML Injection โดยใช้ฟังก์ชัน escapeHtml
+                    result.data.forEach(it => {
+                        textKeys.forEach(k => { 
+                            if (typeof it[k] === 'string' && typeof escapeHtml === 'function') {
+                                it[k] = escapeHtml(it[k]); 
+                            }
+                        });
+                    });
                     
                     let filteredData = result.data;
+                    
+                    // กรองข้อมูลตามที่ผู้ใช้เลือก (งวด / ลุ่มน้ำ)
                     if (filterPeriod) filteredData = filteredData.filter(item => item.myDataPeriod === filterPeriod);
                     if (filterBasin) filteredData = filteredData.filter(item => item.myData0 === filterBasin);
 
                     globalFetchedData = filteredData;
-                    if (globalFetchedData.length > 0) document.getElementById('localSearchContainer').classList.remove('hidden');
+                    
+                    // แสดงช่องค้นหาย่อย (Local Search) หากมีข้อมูล
+                    if (globalFetchedData.length > 0) {
+                        document.getElementById('localSearchContainer').classList.remove('hidden');
+                    }
+                    
                     renderCards(globalFetchedData);
                 } else {
                     throw new Error(result.message || 'ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้');
@@ -267,13 +292,35 @@
             }
         }
 
+        // ค้นหาข้อมูลในหน้าเว็บ
         function filterLocalData() {
             const searchTerm = document.getElementById('localSearchInput').value.toLowerCase().trim();
             if (searchTerm === "") return renderCards(globalFetchedData);
-            const filteredData = globalFetchedData.filter(item => (item.myData1 || "").toLowerCase().includes(searchTerm) || (item.myData2 || "").toLowerCase().includes(searchTerm));
+            
+            const filteredData = globalFetchedData.filter(item => 
+                (item.myData1 || "").toLowerCase().includes(searchTerm) || 
+                (item.myData2 || "").toLowerCase().includes(searchTerm)
+            );
             renderCards(filteredData);
         }
 
+        // ฟังก์ชันช่วยจัดการ URL รูปภาพให้ถูกต้องเสมอ
+        function getValidImageUrl(imagePath) {
+            if (!imagePath || imagePath.trim() === '') return null;
+            
+            // ถ้าเป็นลิงก์เว็บเต็มๆ อยู่แล้ว (http:// หรือ https://) ให้ใช้ได้เลย
+            if (/^https?:\/\//i.test(imagePath)) {
+                return imagePath;
+            }
+            
+            // ถ้ามี slash นำหน้า ให้ตัดออกก่อน (เช่น /uploads/... กลายเป็น uploads/...)
+            let cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
+            
+            // ประกอบร่างกับ BASE_URL (https://ma-inspection-project.onrender.com)
+            return `${BASE_URL}/${cleanPath}`;
+        }
+
+        // แสดงผลการ์ด
         function renderCards(dataItems) {
             const container = document.getElementById('resultsContainer');
             if (dataItems.length === 0) {
@@ -297,24 +344,30 @@
             const colors = ['border-t-sky-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400'];
 
             dataItems.forEach((item, index) => {
-                const dateObj = new Date(item.timestamp);
+                const dateObj = new Date(item.createdAt || item.timestamp);
                 const dateStr = !isNaN(dateObj.getTime()) ? dateObj.toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
                 
                 let imagesHtml = ''; let hasImage = false;
+                
+                // ดึงรูปภาพโดยใช้ฟังก์ชัน getValidImageUrl เพื่อป้องกัน URL ผิดพลาด
                 imageColsMap.forEach(col => {
-                    if (item[col.field] && item[col.field].trim() !== '') {
+                    const fullImgUrl = getValidImageUrl(item[col.field]);
+                    
+                    if (fullImgUrl) {
                         hasImage = true;
-                        const fullImgUrl = /^https?:\/\//i.test(item[col.field]) ? item[col.field] : `https://ma-inspection-project.onrender.com/${item[col.field]}`;
                         imagesHtml += `
                         <div class="polaroid">
                             <a href="${fullImgUrl}" target="_blank" class="polaroid-img-wrapper block mb-2">
-                                <img src="${fullImgUrl}" alt="${col.label}" loading="lazy">
+                                <img src="${fullImgUrl}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/f1f5f9/64748b?text=Image+Error';">
                             </a>
                             <p class="text-center text-[10px] font-bold text-slate-600 mb-0 uppercase">${col.label}</p>
                         </div>`;
                     }
                 });
-                if (!hasImage) imagesHtml = `<div class="bg-slate-50 w-full p-4 rounded-xl text-center border-2 border-dashed border-slate-200 text-slate-400 font-bold text-sm"><i class="ph-fill ph-image-slash text-2xl block mb-1 text-slate-300"></i>ไม่มีรูปภาพแนบสำหรับรายงานนี้</div>`;
+                
+                if (!hasImage) {
+                    imagesHtml = `<div class="bg-slate-50 w-full p-4 rounded-xl text-center border-2 border-dashed border-slate-200 text-slate-400 font-bold text-sm"><i class="ph-fill ph-image-slash text-2xl block mb-1 text-slate-300"></i>ไม่มีรูปภาพแนบสำหรับรายงานนี้</div>`;
+                }
 
                 const cardColor = colors[index % colors.length];
 
@@ -393,6 +446,7 @@
             container.innerHTML = html;
         }
 
+        // แสดงกล่องแจ้งเตือนข้อผิดพลาด
         function showError(errorMsg) {
             const errorDiv = document.getElementById('errorMessage');
             document.getElementById('errorText').innerText = errorMsg;

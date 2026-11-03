@@ -3,100 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรายงานสรุปผล PDF</title>
+    <title>ระบบรายงานสรุปผล PDF | 3D Cartoon Edition</title>
     
-    <!-- นำเข้า Tailwind, Fonts, Icons และ SweetAlert2 -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- SweetAlert2 (Light Theme) -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     
-    <!-- เชื่อมต่อข้อมูลส่วนกลาง (ลุ่มน้ำ, สถานี) -->
+    <!-- เชื่อมต่อข้อมูลส่วนกลาง -->
     <script src="constants.js"></script>
     
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                    colors: { 
+                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' },
+                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
+                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
+                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e' }
+                    }
+                } 
+            }
+        }
+    </script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Prompt', sans-serif; }
+        body {
+            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
+            background-color: #fffbeb; 
+            color: #334155;
+            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        /* 3D Container */
+        .puffy-container {
+            background-color: #ffffff;
+            border-radius: 32px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+            border-top-width: 12px;
+            border-top-color: #34d399; /* Emerald 400 */
+        }
+
+        /* 3D Input Fields */
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 700;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #34d399;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
+        }
+
+        /* 3D Submit Button (สีเขียว Emerald) */
+        .btn-puffy-emerald {
+            background-color: #10b981;
+            color: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 0 #059669;
+            transition: all 0.15s ease;
+            font-weight: 800;
+            border: 4px solid #6ee7b7;
+        }
+        .btn-puffy-emerald:active { transform: translateY(8px); box-shadow: 0 0px 0 #059669; }
+
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .bounce-soft { animation: bounceSoft 2s infinite; }
+        @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
     </style>
 </head>
-<body class="min-h-screen p-6 flex items-center justify-center">
-    <div class="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl p-8 border border-slate-700">
+<body class="min-h-screen p-4 md:p-6 flex items-center justify-center font-sans">
+    
+    <div class="w-full max-w-2xl puffy-container p-6 md:p-10 fade-in relative">
         
-        <!-- ส่วนหัว (Header) และปุ่มย้อนกลับ -->
-        <div class="flex items-center justify-between mb-8 border-b border-slate-700 pb-5">
-            <div class="flex items-center space-x-4">
-                <a href="index.html" class="w-10 h-10 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center hover:bg-slate-600 hover:scale-105 transition-all text-slate-300 hover:text-white shadow-lg cursor-pointer">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-                <h1 class="text-2xl md:text-3xl font-bold text-emerald-400">
-                    <i class="fas fa-file-pdf mr-2"></i>สร้างรายงานสรุป PDF
+        <!-- Icon ลอยๆ ตกแต่ง -->
+        <div class="absolute -top-12 right-10 w-24 h-24 bg-white rounded-full border-4 border-emerald-100 flex items-center justify-center shadow-lg bounce-soft">
+            <i class="ph-fill ph-file-pdf text-6xl text-emerald-400"></i>
+        </div>
+
+        <!-- ส่วนหัว (Header) -->
+        <div class="flex items-center gap-4 mb-8 pb-6 border-b-2 border-slate-100 mt-2">
+            <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1 shrink-0">
+                <i class="ph-bold ph-caret-left text-2xl"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">
+                    สร้างรายงาน <span class="text-emerald-500">PDF</span>
                 </h1>
+                <p class="text-slate-400 font-bold text-sm mt-0.5">ระบบจะดึงข้อมูลมาจัดหน้ากระดาษให้อัตโนมัติ</p>
             </div>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-slate-300">📌 งวดที่ตรวจ</label>
-                <select id="termSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+        <!-- ฟอร์มเลือกข้อมูล -->
+        <div class="space-y-6 mb-8">
+            <div class="bg-emerald-50 p-5 rounded-2xl border-2 border-emerald-100">
+                <label class="block text-sm font-bold text-emerald-600 mb-2 flex items-center gap-1.5 uppercase">
+                    <i class="ph-fill ph-calendar-check text-lg"></i> เลือกระยะเวลา (งวด)
+                </label>
+                <select id="termSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
                     <option value="all">รวมทั้งหมด (ทุกงวด)</option>
-                    <option value="งวดที่ 1">งวดที่ 1</option>
-                    <option value="งวดที่ 2">งวดที่ 2</option>
-                    <option value="งวดที่ 3">งวดที่ 3</option>
-                    <option value="งวดที่ 4">งวดที่ 4</option>
+                    <option value="งวดที่1">งวดที่ 1</option>
+                    <option value="งวดที่2">งวดที่ 2</option>
+                    <option value="งวดที่3">งวดที่ 3</option>
+                    <option value="งวดที่4">งวดที่ 4</option>
                 </select>
             </div>
             
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-slate-300">🌊 กลุ่มลุ่มน้ำ</label>
-                <select id="basinSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
-                    <option value="all" class="font-bold text-emerald-400">✨ สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
-                    <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript จาก constants.js -->
+            <div class="bg-sky-50 p-5 rounded-2xl border-2 border-sky-100">
+                <label class="block text-sm font-bold text-sky-600 mb-2 flex items-center gap-1.5 uppercase">
+                    <i class="ph-fill ph-map-trifold text-lg"></i> เลือกพื้นที่ (กลุ่มลุ่มน้ำ)
+                </label>
+                <select id="basinSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
+                    <option value="all" class="font-extrabold text-sky-600">✨ สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
+                    <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript -->
                 </select>
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-            <button onclick="downloadPDF()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold py-4 px-8 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 cursor-pointer w-full sm:w-auto">
-                <i class="fas fa-download text-lg"></i>
-                สร้างและดาวน์โหลด PDF
-            </button>
-        </div>
+        <!-- ปุ่มสร้าง PDF -->
+        <button onclick="downloadPDF()" class="w-full btn-puffy-emerald py-5 flex items-center justify-center gap-3 text-lg md:text-xl">
+            <i class="ph-bold ph-download-simple text-2xl"></i>
+            สร้างและดาวน์โหลดเอกสาร
+        </button>
+
     </div>
 
     <script>
-        // ดึงรายชื่อลุ่มน้ำจากไฟล์ constants.js มาสร้างเป็น Option อัตโนมัติ
-        const basinSelect = document.getElementById('basinSelect');
-        if (typeof hardcodedBasins !== 'undefined') {
-            hardcodedBasins.forEach(b => {
-                const opt = document.createElement('option');
-                opt.value = b;
-                opt.textContent = b;
-                basinSelect.appendChild(opt);
-            });
-        } else {
-            console.error("ไม่พบข้อมูล hardcodedBasins โปรดตรวจสอบไฟล์ constants.js");
-        }
+        // เติมรายชื่อลุ่มน้ำจาก constants.js
+        window.addEventListener('DOMContentLoaded', () => {
+            const basinSelect = document.getElementById('basinSelect');
+            if (typeof hardcodedBasins !== 'undefined') {
+                hardcodedBasins.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b;
+                    opt.textContent = `ลุ่มน้ำ ${b}`;
+                    basinSelect.appendChild(opt);
+                });
+            } else {
+                console.error("ไม่พบข้อมูล hardcodedBasins จาก constants.js");
+            }
+        });
 
         function downloadPDF() {
             const term = document.getElementById('termSelect').value;
             const basin = document.getElementById('basinSelect').value;
             
             const baseUrl = 'https://ma-inspection-project.onrender.com';
-            
-            // เพิ่ม &t=timestamp เพื่อป้องกันเบราว์เซอร์จำไฟล์เก่า (Cache)
             const url = `${baseUrl}/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&t=${new Date().getTime()}`;
             
             Swal.fire({
-                title: 'กำลังเปิดเพื่อดาวน์โหลด',
-                html: '<span style="color: #cbd5e1;">ระบบจะเปิดหน้าต่างใหม่ขึ้นมา<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า "Render" <b>ไม่ต้องตกใจ ให้รอประมาณ 30-50 วินาที</b> เพื่อให้เซิร์ฟเวอร์สร้าง PDF<br><br>เมื่อดาวน์โหลดเสร็จแล้ว สามารถกลับมาใช้งานหน้านี้ต่อได้เลยครับ</span>',
+                title: 'เตรียมดาวน์โหลด! 📥',
+                html: '<span style="color: #64748b; font-weight: 500;">ระบบกำลังเปิดแท็บใหม่เพื่อสร้างเอกสาร<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า <b>"Render"</b> ไม่ต้องตกใจ!<br>ปล่อยทิ้งไว้ประมาณ 30-50 วินาที ระบบกำลังวาดตาราง PDF ให้ครับ 🎨✨</span>',
                 icon: 'info',
-                background: '#1e293b',
-                color: '#fff',
+                showCancelButton: true,
                 confirmButtonColor: '#10b981',
-                confirmButtonText: 'รับทราบ เปิดเลย'
+                cancelButtonColor: '#cbd5e1',
+                confirmButtonText: 'รับทราบ เปิดเลย',
+                cancelButtonText: 'ยกเลิก',
+                customClass: {
+                    popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white',
+                    title: 'font-prompt font-extrabold text-emerald-600',
+                    htmlContainer: 'font-prompt',
+                    confirmButton: 'font-prompt font-bold rounded-xl px-6 py-2.5',
+                    cancelButton: 'font-prompt font-bold rounded-xl px-6 py-2.5 text-slate-600'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // เปลี่ยนจาก _system เป็น _blank เพื่อให้รองรับเว็บบราวเซอร์มาตรฐานทุกตัว
                     window.open(url, '_blank');
                 }
             });
