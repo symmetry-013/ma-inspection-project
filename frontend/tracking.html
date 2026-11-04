@@ -11,9 +11,9 @@
     <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Leaflet JS & CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <!-- Leaflet JS & CSS (กลับไปใช้ unpkg แบบโค้ดเก่าที่ทำงานได้ชัวร์ๆ) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -105,7 +105,6 @@
             <i class="ph-bold ph-map-trifold text-4xl text-sky-500"></i>
         </div>
         <p class="text-sky-600 font-extrabold text-lg tracking-wide">กำลังเตรียมข้อมูลแผนที่...</p>
-        <p class="text-sky-400 font-medium text-xs mt-2 text-center max-w-xs">(หากโหลดครั้งแรกอาจใช้เวลา 30-50 วินาที<br>เพื่อปลุกเซิร์ฟเวอร์ฐานข้อมูล)</p>
     </div>
 
     <!-- แผงควบคุม (Dashboard) -->
@@ -154,7 +153,6 @@
             </div>
         </div>
 
-        <!-- ปุ่มโหลดข้อมูลใหม่ -->
         <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto btn-refresh px-5 py-3 flex items-center justify-center gap-2 w-full md:w-auto mt-2 md:mt-0">
             <i id="refreshIcon" class="ph-bold ph-arrows-clockwise text-xl text-sky-500"></i>
             <span class="font-extrabold text-slate-600 text-sm">รีเฟรชข้อมูล</span>
@@ -162,10 +160,15 @@
     </div>
 
     <script>
-        let map; let markersLayer; let allStationData = []; let currentStatusSelection = 'ALL'; let isDashboardOpen = true;
+        let map; 
+        let markersLayer; 
+        let allStationData = []; 
+        let currentStatusSelection = 'ALL'; 
+        let isDashboardOpen = true;
+        
         const BASE_URL = 'https://ma-inspection-project.onrender.com';
         
-        const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลจำลองให้แสดงผล', location: '-', basin: '-', period: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
+        const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลให้แสดงผล', location: '-', basin: '-', period: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
 
         const equipNames = {
             power: "ระบบไฟ", sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI",
@@ -181,12 +184,12 @@
         };
 
         const escapeHtml = (unsafe) => {
-            return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            return String(unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
         function getValidImageUrl(imagePath) {
-            if (!imagePath || imagePath.trim() === '') return null;
-            let path = imagePath.trim();
+            if (!imagePath || String(imagePath).trim() === '') return null;
+            let path = String(imagePath).trim();
             if (path.includes('/api/images/')) {
                 const fileId = path.split('/api/images/').pop().replace(/\//g, '');
                 return `https://drive.google.com/uc?export=view&id=${fileId}`;
@@ -266,7 +269,7 @@
                             basin: row.code || '-',
                             period: row.saya || '-', 
                             statusUsage: isSystemBroken ? 'O' : 'P', 
-                            statusClean: row.clean ? row.clean.trim().toUpperCase() : '-',
+                            statusClean: row.clean ? String(row.clean).trim().toUpperCase() : '-',
                             defects: defectsList.join(', '), 
                             remark: row.note || '-', 
                             comment: row.note2 || '-', 
@@ -319,7 +322,9 @@
             
             let filteredData = allStationData.filter(d => {
                 const matchBasin = selectedBasin === 'ALL' || d.basin === selectedBasin;
-                const matchPeriod = selectedPeriod === 'ALL' || (d.period && d.period.replace(/\s+/g, '') === selectedPeriod.replace(/\s+/g, ''));
+                const safePeriod = String(d.period || '');
+                const safeSelectedPeriod = String(selectedPeriod || '');
+                const matchPeriod = selectedPeriod === 'ALL' || (safePeriod.replace(/\s+/g, '') === safeSelectedPeriod.replace(/\s+/g, ''));
                 return matchBasin && matchPeriod;
             });
 
@@ -405,30 +410,26 @@
         }
 
         // ===============================================
-        // สร้างแผนที่ ESRI 
+        // การเชื่อมต่อแผนที่ตามแบบโค้ดเก่า
         // ===============================================
         document.addEventListener('DOMContentLoaded', () => {
             try {
-                // รอแผนที่สร้างเสร็จก่อน ค่อยให้ระบบโหลดข้อมูล API
+                // สร้างแผนที่และเลเยอร์เหมือนโค้ดเก่าเป๊ะๆ
                 map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
                 
-                map.whenReady(() => {
-                    L.control.zoom({ position: 'bottomright' }).addTo(map);
-                    
-                    // ใช้แผนที่ ESRI แบบเดิมที่เสถียรและโหลดไวที่สุด
-                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                        attribution: '&copy; Esri', 
-                        maxZoom: 19 
-                    }).addTo(map);
-                    
-                    markersLayer = L.layerGroup().addTo(map);
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                    attribution: '&copy; Esri', 
+                    maxZoom: 19 
+                }).addTo(map);
+                
+                markersLayer = L.layerGroup().addTo(map);
 
-                    // สร้างแผนที่เสร็จแล้วค่อยไปโหลด API
-                    loadData();
-                });
+                // หน่วงเวลาโหลดข้อมูลนิดนึงตามฉบับโค้ดเดิม เพื่อให้แผนที่เซ็ตตัวทัน
+                setTimeout(loadData, 500);
 
-                // ตั้งเวลาทำลาย Loading แบบฉุกเฉิน (กันค้างเผื่อแผนที่โหลดไม่ขึ้น)
-                setTimeout(forceCloseLoading, 8000);
+                // เผื่อเหตุฉุกเฉิน สั่งเคลียร์หน้าโหลดทิ้งหลังจาก 6 วินาที
+                setTimeout(forceCloseLoading, 6000);
 
             } catch (error) {
                 console.error("Map Initialization Failed:", error);
