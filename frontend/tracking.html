@@ -11,9 +11,9 @@
     <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Leaflet JS & CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet JS & CSS (เปลี่ยนมาใช้ cdnjs ที่เสถียรกว่าในไทย) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -105,6 +105,7 @@
             <i class="ph-bold ph-map-trifold text-4xl text-sky-500"></i>
         </div>
         <p class="text-sky-600 font-extrabold text-lg tracking-wide">กำลังเตรียมข้อมูลแผนที่...</p>
+        <p class="text-sky-400 font-medium text-xs mt-2 text-center max-w-xs">(หากโหลดครั้งแรกอาจใช้เวลา 30-50 วินาที<br>เพื่อปลุกเซิร์ฟเวอร์ฐานข้อมูล)</p>
     </div>
 
     <!-- แผงควบคุม (Dashboard) -->
@@ -120,7 +121,6 @@
                 </div>
                 
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <!-- เพิ่ม: เลือกงวดที่ (ปีสัญญา) -->
                     <select id="periodFilter" onchange="renderMap()" class="w-full sm:w-28 text-xs puffy-input rounded-xl px-3 py-2">
                         <option value="ALL">ทุกงวดตรวจ</option>
                         <option value="งวดที่1">งวดที่ 1</option>
@@ -129,7 +129,6 @@
                         <option value="งวดที่4">งวดที่ 4</option>
                     </select>
                     
-                    <!-- เลือกลุ่มน้ำ -->
                     <select id="basinFilter" onchange="renderMap()" class="w-full sm:w-28 text-xs puffy-input rounded-xl px-3 py-2">
                         <option value="ALL">ทุกลุ่มน้ำ</option>
                     </select>
@@ -145,7 +144,6 @@
                     <div onclick="setStatusFilter('ALL')" id="btnFilterALL" class="filter-btn active filter-all px-4 py-2 font-extrabold text-slate-600 flex items-center gap-2 flex-grow justify-center">
                         ทั้งหมด <span id="countALL" class="bg-white/80 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px]">0</span>
                     </div>
-                    <!-- เปลี่ยนคำว่า "สมบูรณ์" เป็น "พร้อมใช้งาน" -->
                     <div onclick="setStatusFilter('P')" id="btnFilterP" class="filter-btn filter-p px-4 py-2 font-extrabold text-slate-600 flex items-center gap-2 flex-grow justify-center">
                         <i class="ph-fill ph-check-circle text-emerald-500 text-lg"></i> พร้อมใช้งาน <span id="countP" class="bg-white/80 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px]">0</span>
                     </div>
@@ -169,7 +167,6 @@
         
         const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลจำลองให้แสดงผล', location: '-', basin: '-', period: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
 
-        // แมปปิ้งอุปกรณ์ตรวจสอบการชำรุด
         const equipNames = {
             power: "ระบบไฟ", sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI",
             sta_do: "DO", sta_io: "IO", sta_m1: "Modem1", sta_m2: "Modem2", plc: "PLC",
@@ -187,7 +184,6 @@
             return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        // ฟังก์ชันจัดการ URL รูปภาพ (รองรับ Google Drive และโฟลเดอร์)
         function getValidImageUrl(imagePath) {
             if (!imagePath || imagePath.trim() === '') return null;
             let path = imagePath.trim();
@@ -227,19 +223,26 @@
             }
         }
 
+        // ===============================================
+        // การโหลดข้อมูล
+        // ===============================================
         async function loadData() {
-            if (!map) return;
             const icon = document.getElementById('refreshIcon');
-            icon.classList.add('animate-spin');
+            if (icon) icon.classList.add('animate-spin');
             
             try {
                 const response = await fetch(`${BASE_URL}/api/inspections?t=${new Date().getTime()}`);
                 const result = await response.json();
                 
-                if (result.success) {
+                if (result.success && result.data && result.data.length > 0) {
                     const transformedData = [];
+                    
                     result.data.forEach(row => {
-                        if (!row.lat || !row.lon) return;
+                        // ป้องกัน Error จากฐานข้อมูลที่มีค่า lat/lon เป็น string
+                        const rLat = parseFloat(row.lat);
+                        const rLon = parseFloat(row.lon);
+                        
+                        if (isNaN(rLat) || isNaN(rLon)) return;
                         
                         let defectsList = [];
                         Object.keys(equipNames).forEach(key => {
@@ -257,31 +260,38 @@
                             name: row.name_id || 'ไม่ระบุชื่อ', 
                             location: row.geoAddress || row.install_status || '-', 
                             basin: row.code || '-',
-                            period: row.saya || '-', // เก็บข้อมูลงวดที่ตรวจ
+                            period: row.saya || '-', 
                             statusUsage: isSystemBroken ? 'O' : 'P', 
                             statusClean: row.clean ? row.clean.trim().toUpperCase() : '-',
                             defects: defectsList.join(', '), 
                             remark: row.note || '-', 
                             comment: row.note2 || '-', 
-                            lat: row.lat, 
-                            lng: row.lon, 
+                            lat: rLat, 
+                            lng: rLon, 
                             photos: row.photos || []
                         });
                     });
                     allStationData = transformedData.length > 0 ? transformedData : mockData;
+                } else {
+                    allStationData = mockData;
                 }
             } catch (err) { 
                 allStationData = mockData; 
                 console.error("Load Data Error:", err);
             } finally {
-                icon.classList.remove('animate-spin');
+                if (icon) icon.classList.remove('animate-spin');
+                
+                // ถอดหน้าโหลดออก 100% แน่นอน
                 const loader = document.getElementById('loadingUI');
                 if(loader) { 
                     loader.style.opacity = '0'; 
                     setTimeout(() => loader.style.display = 'none', 300); 
                 }
+                
                 updateBasinDropdown(); 
-                renderMap();
+                
+                // ต้องชัวร์ว่าแผนที่พร้อมก่อนวาด
+                if (map) renderMap();
             }
         }
 
@@ -302,46 +312,43 @@
             });
             const activeBtn = document.getElementById('btnFilter' + status);
             if (activeBtn) { activeBtn.classList.add('active', 'shadow-sm'); }
-            renderMap();
+            if (map) renderMap();
         }
 
         function renderMap() {
-            if (!markersLayer) return; markersLayer.clearLayers();
+            if (!markersLayer) return; 
+            markersLayer.clearLayers();
             
             const selectedBasin = document.getElementById('basinFilter').value;
             const selectedPeriod = document.getElementById('periodFilter').value;
             
-            // 🌟 1. กรองตาม ลุ่มน้ำ และ งวดที่
             let filteredData = allStationData.filter(d => {
                 const matchBasin = selectedBasin === 'ALL' || d.basin === selectedBasin;
-                // ตัดช่องว่างออกเพื่อให้เทียบ "งวดที่1" กับ "งวดที่ 1" ได้ตรงกัน
                 const matchPeriod = selectedPeriod === 'ALL' || (d.period && d.period.replace(/\s+/g, '') === selectedPeriod.replace(/\s+/g, ''));
                 return matchBasin && matchPeriod;
             });
 
-            // อัปเดตตัวเลขแสดงผล
             document.getElementById('countALL').innerText = filteredData.length;
             document.getElementById('countP').innerText = filteredData.filter(d => d.statusUsage === 'P').length;
             document.getElementById('countO').innerText = filteredData.filter(d => d.statusUsage === 'O').length;
 
-            // 2. กรองตามสถานะการใช้งาน (P/O) ที่ปุ่ม 3D
             if (currentStatusSelection !== 'ALL') {
                 filteredData = filteredData.filter(d => d.statusUsage === currentStatusSelection);
             }
 
             const groupedData = {};
             filteredData.forEach(p => { 
-                const key = p.lat.toFixed(5)+','+p.lng.toFixed(5); 
+                const key = p.lat.toFixed(5) + ',' + p.lng.toFixed(5); 
                 if(!groupedData[key]) groupedData[key]=[]; 
                 groupedData[key].push(p); 
             });
+            
             const bounds = [];
 
             Object.values(groupedData).forEach(group => {
                 const hasO = group.some(p => p.statusUsage === 'O'); 
                 const hasP = group.some(p => p.statusUsage === 'P');
                 
-                // สี Marker สไตล์พาสเทล
                 let fc = hasO ? '#fb7185' : (hasP ? '#34d399' : '#ffffff'); 
                 let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
 
@@ -350,7 +357,6 @@
                     const safeDefects = escapeHtml(p.defects); const safeRemark = escapeHtml(p.remark); const safeComment = escapeHtml(p.comment);
                     
                     const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-emerald-200 uppercase"><i class="ph-bold ph-check"></i> พร้อมใช้งาน</span>' : '<span class="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-rose-200 uppercase"><i class="ph-bold ph-warning"></i> ชำรุด</span>';
-                    const cleanText = p.statusClean === 'P' ? '<span class="text-emerald-600 font-bold">ผ่าน</span>' : (p.statusClean === 'O' ? '<span class="text-rose-600 font-bold">ไม่ผ่าน</span>' : '-');
                     
                     const defectsHtml = safeDefects ? `<div class="mt-2 p-2.5 bg-rose-50 border-2 border-rose-100 rounded-xl text-[10px]"><div class="font-extrabold text-rose-600 mb-1 flex items-center gap-1"><i class="ph-fill ph-wrench"></i> อุปกรณ์ชำรุด:</div><div class="text-rose-500 font-bold">${safeDefects}</div></div>` : '';
                     const extra = (safeRemark !== '-' ? `<div class="bg-sky-50 p-2 rounded-lg border border-sky-100 mt-2"><span class="font-bold text-sky-600 block text-[9px] uppercase">หมายเหตุ</span>${safeRemark}</div>` : '') + 
@@ -403,15 +409,23 @@
             if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
         }
 
+        // ===============================================
+        // โหลดข้อมูลแผนที่เมื่อเปิดหน้าจอ
+        // ===============================================
         document.addEventListener('DOMContentLoaded', () => {
-            map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-            // เปลี่ยนธีมแผนที่ให้ดูสว่างเข้ากับ 3D Cartoon
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { 
-                attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 
-            }).addTo(map);
-            markersLayer = L.layerGroup().addTo(map);
-            setTimeout(loadData, 500);
+            // สั่งโหลดข้อมูล API แบบขนานไปกับการสร้างแผนที่
+            loadData();
+
+            try {
+                map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { 
+                    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 
+                }).addTo(map);
+                markersLayer = L.layerGroup().addTo(map);
+            } catch (error) {
+                console.error("Map Initialization Failed:", error);
+            }
         });
     </script>
 </body>
