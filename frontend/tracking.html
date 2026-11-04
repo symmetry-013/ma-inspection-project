@@ -11,7 +11,7 @@
     <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Leaflet JS & CSS (อิงตามไฟล์เก่าที่ทำงานได้ 100%) -->
+    <!-- Leaflet JS & CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
@@ -36,60 +36,28 @@
     </script>
     <style>
         html, body { font-family: 'Prompt', sans-serif; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #fffbeb; }
-        
         #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background-color: #e5e5e5; }
-        
         .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15); padding: 0; overflow: hidden; border: 4px solid #f8fafc; }
         .leaflet-popup-content { margin: 0; line-height: 1.5; width: 260px !important; }
         .leaflet-container a.leaflet-popup-close-button { color: #94a3b8; font-weight: bold; padding: 6px 12px; }
-        
-        .simple-tooltip { 
-            background: rgba(255, 255, 255, 0.95); border: 2px solid #e2e8f0; 
-            border-radius: 12px; font-family: 'Prompt', sans-serif; font-size: 11px; 
-            font-weight: 700; padding: 4px 10px; color: #475569; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
-        }
-        
+        .simple-tooltip { background: rgba(255, 255, 255, 0.95); border: 2px solid #e2e8f0; border-radius: 12px; font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 700; padding: 4px 10px; color: #475569; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .custom-scrollbar::-webkit-scrollbar { width: 8px; } 
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid #f1f5f9; }
-        
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
         .spin { animation: spin 1s linear infinite; }
         
-        /* 3D UI Components */
-        .puffy-panel {
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            border-radius: 20px;
-            border: 4px solid #f8fafc;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
-        }
-
-        .puffy-input {
-            background-color: #f8fafc;
-            border: 2px solid #e2e8f0;
-            color: #334155;
-            transition: all 0.2s ease;
-            font-weight: 700;
-        }
+        .puffy-panel { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 20px; border: 4px solid #f8fafc; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05); transition: all 0.3s ease; }
+        .puffy-input { background-color: #f8fafc; border: 2px solid #e2e8f0; color: #334155; transition: all 0.2s ease; font-weight: 700; }
         .puffy-input:focus { outline: none; border-color: #38bdf8; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
 
-        /* 3D Filter Buttons */
         .filter-btn { transition: all 0.15s ease; cursor: pointer; user-select: none; border: 2px solid #e2e8f0; background: #f8fafc; border-radius: 12px; } 
         .filter-btn:active { transform: translateY(2px); }
         .filter-btn.active.filter-all { border-color: #38bdf8; background-color: #f0f9ff; color: #0284c7; box-shadow: 0 4px 0 #bae6fd; }
         .filter-btn.active.filter-p { border-color: #34d399; background-color: #ecfdf5; color: #059669; box-shadow: 0 4px 0 #a7f3d0; }
         .filter-btn.active.filter-o { border-color: #fb7185; background-color: #fff1f2; color: #e11d48; box-shadow: 0 4px 0 #fecaca; }
         
-        /* 3D Refresh Button */
-        .btn-refresh {
-            background-color: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 4px 0 #e2e8f0;
-            transition: all 0.15s ease;
-            border: 2px solid #f1f5f9;
-        }
+        .btn-refresh { background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 0 #e2e8f0; transition: all 0.15s ease; border: 2px solid #f1f5f9; }
         .btn-refresh:active { transform: translateY(4px); box-shadow: 0 0px 0 #e2e8f0; }
 
         @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
@@ -155,7 +123,7 @@
 
         <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto btn-refresh px-5 py-3 flex items-center justify-center gap-2 w-full md:w-auto mt-2 md:mt-0">
             <i id="refreshIcon" class="ph-bold ph-arrows-clockwise text-xl text-sky-500"></i>
-            <span class="font-extrabold text-slate-600 text-sm">รีเฟรชข้อมูล</span>
+            <span class="font-extrabold text-slate-600 text-sm" id="refreshText">รีเฟรชข้อมูล</span>
         </button>
     </div>
 
@@ -167,7 +135,6 @@
         let isDashboardOpen = true;
         
         const BASE_URL = 'https://ma-inspection-project.onrender.com';
-        
         const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลให้แสดงผล', location: '-', basin: '-', period: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
 
         const equipNames = {
@@ -179,32 +146,32 @@
         };
 
         const isBrokenValue = (val) => {
-            const v = (val || '').toString().trim().toLowerCase();
+            const v = String(val || '').trim().toLowerCase();
             return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง';
         };
 
-        const escapeHtml = (unsafe) => {
+        const safeEscapeHtml = (unsafe) => {
             return String(unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
         function parseImageInfo(imagePath) {
             if (!imagePath || String(imagePath).trim() === '') return null;
             let path = String(imagePath).trim();
+            let fileId = null;
+
             if (path.includes('/api/images/')) {
-                const fileId = path.split('/api/images/').pop().replace(/\//g, '');
-                return {
-                    href: `https://drive.google.com/file/d/${fileId}/view`,
-                    src: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
-                };
+                fileId = path.split('/api/images/').pop().replace(/\//g, '');
             } else if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
-                let fileId = null;
                 const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                 if (matchFileD) fileId = matchFileD[1];
                 else {
                     const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/);
                     if (matchId) fileId = matchId[1];
                 }
-                if (fileId) return {
+            }
+
+            if (fileId) {
+                return {
                     href: `https://drive.google.com/file/d/${fileId}/view`,
                     src: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
                 };
@@ -216,6 +183,14 @@
             let encodedPath = cleanPath.split('/').map(p => encodeURIComponent(p)).join('/');
             const fullUrl = `${BASE_URL}/${encodedPath}`;
             return { href: fullUrl, src: fullUrl };
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('loadingUI');
+            if (loader && loader.style.display !== 'none') { 
+                loader.style.opacity = '0'; 
+                setTimeout(() => { loader.style.display = 'none'; }, 300); 
+            }
         }
 
         function toggleDashboard() {
@@ -234,20 +209,30 @@
         }
 
         async function loadData() {
+            if (!map) return;
             const icon = document.getElementById('refreshIcon');
-            if (icon) icon.classList.add('animate-spin');
+            const text = document.getElementById('refreshText');
+            if (icon) icon.classList.add('spin');
+            if (text) text.innerText = 'กำลังดึงข้อมูล...';
             
             try {
-                const response = await fetch(`${BASE_URL}/api/inspections?t=${new Date().getTime()}`);
+                // ตั้งเวลา Timeout 15 วินาที ป้องกันการค้างตลอดกาล
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const response = await fetch(`${BASE_URL}/api/inspections?t=${new Date().getTime()}`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
                 const result = await response.json();
                 
-                if (result.success && result.data && result.data.length > 0) {
+                if (result.success && Array.isArray(result.data)) {
                     const transformedData = [];
                     
                     result.data.forEach(row => {
                         const rLat = parseFloat(row.lat);
                         const rLon = parseFloat(row.lon);
-                        
                         if (isNaN(rLat) || isNaN(rLon)) return;
                         
                         let defectsList = [];
@@ -274,7 +259,7 @@
                             comment: row.note2 || '-', 
                             lat: rLat, 
                             lng: rLon, 
-                            photos: row.photos || []
+                            photos: Array.isArray(row.photos) ? row.photos : []
                         });
                     });
                     allStationData = transformedData.length > 0 ? transformedData : mockData;
@@ -282,20 +267,14 @@
                     allStationData = mockData;
                 }
             } catch (err) { 
-                allStationData = mockData; 
                 console.error("Load Data Error:", err);
+                allStationData = mockData; 
             } finally {
-                if (icon) icon.classList.remove('animate-spin');
-                
-                // ปิดหน้าโหลด 100%
-                const loader = document.getElementById('loadingUI');
-                if(loader) { 
-                    loader.style.opacity = '0'; 
-                    setTimeout(() => loader.style.display = 'none', 300); 
-                }
-                
+                if (icon) icon.classList.remove('spin');
+                if (text) text.innerText = 'รีเฟรชข้อมูล';
+                hideLoader();
                 updateBasinDropdown(); 
-                if (map) renderMap();
+                renderMap();
             }
         }
 
@@ -316,7 +295,7 @@
             });
             const activeBtn = document.getElementById('btnFilter' + status);
             if (activeBtn) { activeBtn.classList.add('active', 'shadow-sm'); }
-            if (map) renderMap();
+            renderMap();
         }
 
         function renderMap() {
@@ -328,9 +307,9 @@
             
             let filteredData = allStationData.filter(d => {
                 const matchBasin = selectedBasin === 'ALL' || d.basin === selectedBasin;
-                const safePeriod = String(d.period || '');
-                const safeSelectedPeriod = String(selectedPeriod || '');
-                const matchPeriod = selectedPeriod === 'ALL' || (safePeriod.replace(/\s+/g, '') === safeSelectedPeriod.replace(/\s+/g, ''));
+                const safePeriod = String(d.period || '').replace(/\s+/g, '');
+                const safeSelectedPeriod = String(selectedPeriod || '').replace(/\s+/g, '');
+                const matchPeriod = selectedPeriod === 'ALL' || (safePeriod === safeSelectedPeriod);
                 return matchBasin && matchPeriod;
             });
 
@@ -359,8 +338,11 @@
                 let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
 
                 let stationsHtml = group.map((p, i) => {
-                    const safeName = escapeHtml(p.name); const safeLoc = escapeHtml(p.location); 
-                    const safeDefects = escapeHtml(p.defects); const safeRemark = escapeHtml(p.remark); const safeComment = escapeHtml(p.comment);
+                    const safeName = safeEscapeHtml(p.name); 
+                    const safeLoc = safeEscapeHtml(p.location); 
+                    const safeDefects = safeEscapeHtml(p.defects); 
+                    const safeRemark = safeEscapeHtml(p.remark); 
+                    const safeComment = safeEscapeHtml(p.comment);
                     
                     const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-emerald-200 uppercase"><i class="ph-bold ph-check"></i> พร้อมใช้งาน</span>' : '<span class="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-rose-200 uppercase"><i class="ph-bold ph-warning"></i> ชำรุด</span>';
                     
@@ -369,8 +351,8 @@
                                   (safeComment !== '-' ? `<div class="bg-amber-50 p-2 rounded-lg border border-amber-100 mt-1.5"><span class="font-bold text-amber-600 block text-[9px] uppercase">กรรมการ</span>${safeComment}</div>` : '');
                     
                     let photoHtml = '';
-                    if (p.photos.length > 0) {
-                        const imgInfo = parseImageInfo(p.photos[0].thumbnailUrl || p.photos[0].webViewLink);
+                    if (p.photos && p.photos.length > 0 && p.photos[0]) {
+                        const imgInfo = parseImageInfo(p.photos[0].thumbnailUrl || p.photos[0].webViewLink || p.photos[0].fileId);
                         if (imgInfo) {
                             photoHtml = `<div class="mt-2 mb-2 relative border-2 border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                                 <a href="${imgInfo.href}" target="_blank">
@@ -414,21 +396,25 @@
             if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
         }
 
-        // ===============================================
-        // สร้างแผนที่ (อิงตามไฟล์เก่า 100%)
-        // ===============================================
         document.addEventListener('DOMContentLoaded', () => {
-            // โครงสร้างเดียวกับตัวเก่าที่ทำงานได้ 100%
-            map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
-            L.control.zoom({ position: 'bottomright' }).addTo(map);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                attribution: '&copy; Esri', 
-                maxZoom: 19 
-            }).addTo(map);
-            markersLayer = L.layerGroup().addTo(map);
-            
-            // ใช้ setTimeout ดึงข้อมูลเหมือนเดิมเป๊ะๆ
-            setTimeout(loadData, 500);
+            try {
+                map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
+                L.control.zoom({ position: 'bottomright' }).addTo(map);
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                    attribution: '&copy; Esri', 
+                    maxZoom: 19 
+                }).addTo(map);
+                markersLayer = L.layerGroup().addTo(map);
+                
+                // ปลดล็อกหน้าจอให้เห็นแผนที่ทันทีหลังผ่านไป 1 วินาที (ไม่รอ API ค้าง)
+                setTimeout(hideLoader, 1000);
+                
+                // ดึงข้อมูลมาปักหมุด
+                setTimeout(loadData, 300);
+            } catch (e) {
+                console.error("Map Init Error:", e);
+                hideLoader();
+            }
         });
     </script>
 </body>

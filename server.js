@@ -21,8 +21,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
+// เผื่อกรณีมีรูปเก่าในเครื่องเซิร์ฟเวอร์
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir));
+
 // ==========================================
-// 1. ตั้งค่า File Upload (ใช้ Memory Storage เพื่อส่งต่อเข้า Drive)
+// 1. ตั้งค่า File Upload (Memory Storage สำหรับส่งเข้า Google Drive)
 // ==========================================
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -33,14 +40,19 @@ const upload = multer({
 // ==========================================
 // 2. Database Setup (MongoDB)
 // ==========================================
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ma_inspection')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ma_inspection')
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-const InspectionSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
+// เพิ่ม default timestamp เพื่อให้เข้ากับโค้ดเก่าและใหม่ได้ 100%
+const InspectionSchema = new mongoose.Schema({
+    timestamp: { type: Date, default: Date.now }
+}, { strict: false, timestamps: true });
 const Inspection = mongoose.model('Inspection', InspectionSchema);
 
-const CalibrationSchema = new mongoose.Schema({}, { strict: false, timestamps: true });
+const CalibrationSchema = new mongoose.Schema({
+    timestamp: { type: Date, default: Date.now }
+}, { strict: false, timestamps: true });
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
 const OAuthToken = mongoose.model('OAuthToken', new mongoose.Schema({
@@ -57,7 +69,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `https://ma-inspection-project.onrender.com/auth/google/callback`;
 const ADMIN_KEY = process.env.ADMIN_KEY || 'MAM_Secret_2026'; 
-const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1YYa-Cu1vu-Ei9a0qpJMFOTJxmQPN2srv'; // 📌 โฟลเดอร์หลักที่คุณระบุ
+const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1YYa-Cu1vu-Ei9a0qpJMFOTJxmQPN2srv';
 
 let driveAuthorized = false;
 let oauth2Client;
@@ -77,7 +89,7 @@ if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
 }
 
 function applyRefreshToken(refreshToken) {
-    if(oauth2Client) {
+    if (oauth2Client) {
         oauth2Client.setCredentials({ refresh_token: refreshToken });
         driveAuthorized = true;
     }
@@ -91,7 +103,6 @@ async function saveRefreshToken(refreshToken) {
     );
 }
 
-// โหลด Token เมื่อต่อ DB สำเร็จ
 mongoose.connection.once('open', async () => {
     if (process.env.GOOGLE_REFRESH_TOKEN) {
         applyRefreshToken(process.env.GOOGLE_REFRESH_TOKEN);
@@ -103,7 +114,7 @@ mongoose.connection.once('open', async () => {
                 applyRefreshToken(saved.refresh_token);
                 console.log('✅ Google Drive: โหลด Refresh Token จาก MongoDB เรียบร้อยแล้ว');
             } else {
-                console.warn('⚠️ Google Drive ยังไม่ได้เชื่อมต่อ → กรุณาเปิด /auth/google?key=<ADMIN_KEY> เพื่อล็อกอินครั้งแรก');
+                console.warn('⚠️ Google Drive ยังไม่ได้เชื่อมต่อ → กรุณาเปิด /auth/google?key=<ADMIN_KEY> เพื่อล็อกอิน');
             }
         } catch (e) {
             console.error('❌ โหลด Google token ไม่สำเร็จ:', e.message);
@@ -111,7 +122,6 @@ mongoose.connection.once('open', async () => {
     }
 });
 
-// เส้นทางสำหรับล็อกอิน Google Drive (ต้องเข้าผ่าน URL)
 const pendingStates = new Map();
 app.get('/auth/google', (req, res) => {
     if (req.query.key !== ADMIN_KEY) return res.status(403).send('Forbidden: ต้องใช้ Admin Key');
@@ -137,9 +147,9 @@ app.get('/auth/google/callback', async (req, res) => {
             applyRefreshToken(tokens.refresh_token);
             await saveRefreshToken(tokens.refresh_token);
             const about = await drive.about.get({ fields: 'user(emailAddress)' });
-            res.send(`✅ เชื่อมต่อ Google Drive สำเร็จด้วยบัญชี ${about.data.user.emailAddress} — ปิดหน้านี้ได้เลยและระบบพร้อมใช้งาน`);
+            res.send(`✅ เชื่อมต่อ Google Drive สำเร็จด้วยบัญชี ${about.data.user.emailAddress} — ปิดหน้านี้ได้เลย`);
         } else {
-            res.status(400).send('ไม่ได้รับ refresh_token — กรุณาไปที่ Google Account เพื่อลบสิทธิ์ของแอพนี้ แล้วล็อกอินใหม่');
+            res.status(400).send('ไม่ได้รับ refresh_token — กรุณาลบสิทธิ์แอพเก่าในบัญชี Google แล้วลองใหม่');
         }
     } catch (e) {
         res.status(500).send('เชื่อมต่อไม่สำเร็จ: ' + e.message);
@@ -147,19 +157,49 @@ app.get('/auth/google/callback', async (req, res) => {
 });
 
 // ==========================================
-// 4. ฟังก์ชันจัดการโฟลเดอร์และอัปโหลดรูปภาพ
+// 4. ฟังก์ชันจัดการโฟลเดอร์และรูปภาพ Google Drive
 // ==========================================
 const folderCache = new Map();
 
-// ฟังก์ชันสร้าง/ค้นหาโฟลเดอร์แบบซ้อนกัน
+function extractDriveId(url) {
+    if (!url) return null;
+    const str = String(url);
+    const ucMatch = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (ucMatch) return ucMatch[1];
+    const dMatch = str.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (dMatch) return dMatch[1];
+    const apiMatch = str.match(/\/api\/images\/([a-zA-Z0-9_-]+)/);
+    if (apiMatch) return apiMatch[1];
+    return null;
+}
+
+// เส้นทางช่วยดึงรูปภาพผ่านเซิร์ฟเวอร์โดยตรง (ป้องกันรูปแตก/ติดบล็อกจาก Google)
+app.get('/api/images/:fileId', async (req, res) => {
+    try {
+        const fileId = req.params.fileId;
+        if (!driveAuthorized) {
+            return res.redirect(`https://drive.google.com/thumbnail?id=${fileId}&sz=w800`);
+        }
+        const response = await drive.files.get(
+            { fileId: fileId, alt: 'media' },
+            { responseType: 'stream' }
+        );
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        response.data.pipe(res);
+    } catch (error) {
+        console.error('❌ Fetch image API error:', error.message);
+        res.redirect(`https://drive.google.com/thumbnail?id=${req.params.fileId}&sz=w800`);
+    }
+});
+
 async function getTargetFolderId(folderPathArray) {
     if (!driveAuthorized) return null;
     let currentParentId = GOOGLE_DRIVE_FOLDER_ID;
 
     for (const folderName of folderPathArray) {
-        if (!folderName || folderName.trim() === '' || folderName === 'ไม่ระบุ' || folderName === 'null') continue;
+        if (!folderName || String(folderName).trim() === '' || folderName === 'ไม่ระบุ' || folderName === 'null') continue;
 
-        const safeFolderName = folderName.trim();
+        const safeFolderName = String(folderName).trim();
         const cacheKey = `${currentParentId}_${safeFolderName}`;
         
         if (folderCache.has(cacheKey)) {
@@ -168,20 +208,19 @@ async function getTargetFolderId(folderPathArray) {
         }
 
         try {
-            const query = `mimeType='application/vnd.google-apps.folder' and name='${safeFolderName}' and '${currentParentId}' in parents and trashed=false`;
+            const escapedName = safeFolderName.replace(/'/g, "\\'");
+            const query = `mimeType='application/vnd.google-apps.folder' and name='${escapedName}' and '${currentParentId}' in parents and trashed=false`;
             const res = await drive.files.list({ q: query, fields: 'files(id, name)', supportsAllDrives: true, includeItemsFromAllDrives: true });
 
             if (res.data.files && res.data.files.length > 0) {
                 currentParentId = res.data.files[0].id;
                 folderCache.set(cacheKey, currentParentId);
             } else {
-                // สร้างโฟลเดอร์ใหม่
                 const folder = await drive.files.create({
                     requestBody: { name: safeFolderName, mimeType: 'application/vnd.google-apps.folder', parents: [currentParentId] },
                     fields: 'id', supportsAllDrives: true
                 });
                 
-                // แชร์ให้คนที่มีลิงก์ดูได้
                 await drive.permissions.create({ fileId: folder.data.id, requestBody: { role: 'reader', type: 'anyone' }, supportsAllDrives: true });
                 currentParentId = folder.data.id;
                 folderCache.set(cacheKey, currentParentId);
@@ -193,14 +232,12 @@ async function getTargetFolderId(folderPathArray) {
     return currentParentId;
 }
 
-// ฟังก์ชันอัปโหลดไฟล์ขึ้น Google Drive
 async function uploadFileToFolder(file, targetFolderId) {
     if (!driveAuthorized) return null;
     try {
         const bufferStream = new stream.PassThrough();
         bufferStream.end(file.buffer);
 
-        // ตั้งชื่อไฟล์ใหม่ให้ไม่ซ้ำ
         const safeName = Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         
         const response = await drive.files.create({
@@ -210,7 +247,6 @@ async function uploadFileToFolder(file, targetFolderId) {
             supportsAllDrives: true,
         });
 
-        // เปิดสิทธิ์ให้คนนอกดูรูปได้
         await drive.permissions.create({
             fileId: response.data.id,
             requestBody: { role: 'reader', type: 'anyone' },
@@ -221,8 +257,8 @@ async function uploadFileToFolder(file, targetFolderId) {
         return {
             fileId: fileId,
             name: response.data.name,
-            webViewLink: response.data.webViewLink,
-            thumbnailUrl: `https://drive.google.com/uc?export=view&id=${fileId}` // ลิงก์ตรงสำหรับดูภาพ
+            webViewLink: response.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
+            thumbnailUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
         };
     } catch (error) {
         console.error('❌ Google Drive Upload API Error:', error.message);
@@ -230,7 +266,6 @@ async function uploadFileToFolder(file, targetFolderId) {
     }
 }
 
-// ฟังก์ชันดึงภาพตรงๆ มาให้ PDF วาด
 async function fetchImageBufferDirectly(fileId) {
     if (!driveAuthorized || !fileId) return null;
     try {
@@ -246,22 +281,33 @@ async function fetchImageBufferDirectly(fileId) {
 }
 
 // ==========================================
-// 5. API: รับข้อมูลตรวจสอบสถานี (Inspection)
+// 5. API: รับ-ส่งข้อมูลตรวจสอบสถานี (Inspection)
 // ==========================================
 app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     try {
-        const formData = req.body;
-        const photos = [];
-        
+        const formData = { ...req.body };
+        formData.timestamp = new Date();
+
+        // ค้นหาที่อยู่จากพิกัด GPS อัตโนมัติ (เหมือนโค้ดตัวเก่า)
+        let geoAddress = "ไม่ระบุพิกัด";
+        if (formData.lat && formData.lon) {
+            try {
+                const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${formData.lat}&lon=${formData.lon}&zoom=18&addressdetails=1`;
+                const response = await axios.get(osmUrl, { headers: { 'User-Agent': 'MA_Inspection_App' }, timeout: 5000 });
+                if (response.data && response.data.display_name) geoAddress = response.data.display_name;
+            } catch (e) { geoAddress = "หาที่อยู่ไม่เจอ"; }
+        }
+        formData.geoAddress = geoAddress;
+
         const term = formData.saya || 'ไม่ระบุงวด';
         const basin = formData.code || 'ไม่ระบุลุ่มน้ำ';
         const station = formData.id_name || 'ไม่ระบุสถานี';
         
-        // 🌟 1. สร้างโฟลเดอร์แบบ งวดที่ > ลุ่มน้ำ > รหัสสถานี
+        // สร้างโฟลเดอร์ งวดที่ > ลุ่มน้ำ > รหัสสถานี
         const targetFolderId = await getTargetFolderId([term, basin, station]);
 
+        const photos = [];
         if (req.files && req.files.length > 0) {
-            // 🌟 2. อัปโหลดภาพเข้า Google Drive
             for (const file of req.files) {
                 const uploaded = await uploadFileToFolder(file, targetFolderId);
                 if (uploaded) photos.push(uploaded);
@@ -272,7 +318,7 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
         const newInspection = new Inspection(formData);
         await newInspection.save();
         
-        res.status(200).json({ success: true, message: 'บันทึกข้อมูลสำเร็จ' });
+        res.status(200).json({ success: true, message: 'บันทึกข้อมูลสำเร็จ', photos });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -280,7 +326,7 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
 
 app.get('/api/inspections', async (req, res) => {
     try {
-        const data = await Inspection.find().sort({ createdAt: -1 });
+        const data = await Inspection.find().sort({ timestamp: -1, createdAt: -1 }).lean();
         res.status(200).json({ success: true, data: data });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -288,7 +334,7 @@ app.get('/api/inspections', async (req, res) => {
 });
 
 // ==========================================
-// 6. API: รับข้อมูลสอบเทียบ (Calibration)
+// 6. API: รับ-ส่งข้อมูลสอบเทียบ (Calibration)
 // ==========================================
 const calibrationUploadFields = [
     { name: 'myFile', maxCount: 1 }, { name: 'myFile2', maxCount: 1 },
@@ -299,22 +345,22 @@ const calibrationUploadFields = [
 
 app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req, res) => {
     try {
-        const formData = req.body;
+        const formData = { ...req.body };
+        formData.timestamp = new Date();
         
         const term = formData.myDataPeriod || 'ไม่ระบุงวด';
         const basin = formData.myData0 || 'ไม่ระบุลุ่มน้ำ';
         const station = formData.myData1 || 'ไม่ระบุสถานี';
         
-        // 🌟 1. สร้างโฟลเดอร์แบบ งวดที่ > ลุ่มน้ำ > รหัสสถานี
+        // สร้างโฟลเดอร์ งวดที่ > ลุ่มน้ำ > รหัสสถานี
         const targetFolderId = await getTargetFolderId([term, basin, station]);
 
         const fileFields = ['myFile', 'myFile2', 'myFile3', 'myFile4', 'myFile5', 'myFile6', 'myFile7', 'myFile8'];
         
-        // 🌟 2. อัปโหลดภาพเข้า Google Drive (ใช้ Promise.all ให้ไวขึ้น)
         await Promise.all(fileFields.map(async (field, index) => {
             const urlField = index === 0 ? 'myFileUrl' : `myFileUrl${index + 1}`;
             
-            if (req.files[field] && req.files[field].length > 0) {
+            if (req.files && req.files[field] && req.files[field].length > 0) {
                 const file = req.files[field][0];
                 const uploaded = await uploadFileToFolder(file, targetFolderId);
                 formData[urlField] = uploaded ? uploaded.thumbnailUrl : '';
@@ -334,7 +380,7 @@ app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req,
 
 app.get('/api/calibrations', async (req, res) => {
     try {
-        const data = await Calibration.find().sort({ createdAt: -1 });
+        const data = await Calibration.find().sort({ timestamp: -1, createdAt: -1 }).lean();
         res.status(200).json({ success: true, data: data });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -373,9 +419,8 @@ app.get('/api/report/pdf', async (req, res) => {
             sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
             sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
         };
-        const fixThaiVowels = (text) => text || '';
+        const fixThaiVowels = (text) => text ? String(text).replace(/ำ/g, 'ํา').replace(/ํ/g, 'ํ') : '';
 
-        // ส่ง fetchImageBufferDirectly ให้ PDF ใช้งานดึงรูปวาดลงกระดาษ
         await generateInspectionPDF(
             inspectionData, 
             calibrationData, 
@@ -385,18 +430,18 @@ app.get('/api/report/pdf', async (req, res) => {
             fallbackEquipmentMap, 
             [], 
             fetchImageBufferDirectly, 
-            null, 
+            extractDriveId, 
             fixThaiVowels
         );
 
     } catch (error) {
         console.error('Error generating PDF:', error);
-        res.status(500).send('เกิดข้อผิดพลาดในการสร้าง PDF: ' + error.message);
+        if (!res.headersSent) res.status(500).send('เกิดข้อผิดพลาดในการสร้าง PDF: ' + error.message);
     }
 });
 
 // ==========================================
-// 8. Webhook (สำหรับทีมรับจ้าง)
+// 8. Webhook (สำหรับทีมรับจ้าง MAM)
 // ==========================================
 app.post('/webhook/update-station', async (req, res) => {
     try {
@@ -404,13 +449,19 @@ app.post('/webhook/update-station', async (req, res) => {
         if (apiKey !== process.env.WEBHOOK_SECRET) {
             return res.status(401).json({ success: false, message: 'Unauthorized: Invalid API Key' });
         }
-        const payload = req.body;
+        const payload = { ...req.body, timestamp: new Date() };
         const newRecord = new Inspection(payload);
         await newRecord.save();
         res.status(200).json({ success: true, message: 'Webhook received and processed' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
+});
+
+app.use((err, req, res, next) => {
+    if (!err) return next();
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'ไฟล์รูปใหญ่เกิน 15 MB' : err.message;
+    res.status(400).json({ success: false, message: msg });
 });
 
 app.listen(PORT, () => {
