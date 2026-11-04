@@ -11,6 +11,8 @@ const { google } = require('googleapis');
 const axios = require('axios');
 
 const { generateInspectionPDF } = require('./pdfGenerator');
+// นำเข้าข้อมูลลุ่มน้ำและตารางอุปกรณ์จาก name_sv.js เพื่อให้ข้อมูลตรงกันทุกจุด 100%
+const { equipmentMap: svEquipmentMap, hardcodedBasins: svHardcodedBasins } = require('./name_sv');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -400,7 +402,7 @@ app.get('/api/calibrations', async (req, res) => {
 });
 
 // ===============================================
-// 7. การสร้าง PDF (รองรับการกรองปีงบประมาณ)
+// 7. การสร้าง PDF (ใช้งานร่วมกับ name_sv.js / constants.js)
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -423,20 +425,21 @@ app.get('/api/report/pdf', async (req, res) => {
         let inspectionData = await Inspection.find(query).lean();
         let calibrationData = await Calibration.find(calibQuery).lean();
 
-        // กรองตามปีงบประมาณ (รองรับทั้งข้อมูลใหม่ที่มีฟิลด์ contractYear และข้อมูลเก่าที่คำนวณจาก timestamp)
         if (year !== 'all' && year !== 'ALL') {
             inspectionData = inspectionData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
             calibrationData = calibrationData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
         }
 
-        const fallbackEquipmentMap = {
+        // ดึง equipmentMap จาก name_sv.js เป็นหลักเพื่อความสอดคล้อง
+        const fallbackEquipmentMap = svEquipmentMap || {
             clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
             online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
             sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC",
             sta_m1: "Modem 1", sta_m2: "Modem 2", sta_p1: "Power 1", sta_p2: "Power 2",
             sta_cctv1: "CCTV1", sta_cctv2: "CCTV2", sta_r: "Rain Gauge", sta_s: "Surge",
             sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
-            sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
+            sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", 
+            sta1: "แผ่นวัดน้ำ(บวก)", sta2: "แผ่นวัดน้ำ(ลบ)", pole2: "เสาวัดน้ำ"
         };
         const fixThaiVowels = (text) => text ? String(text).replace(/ำ/g, 'ํา').replace(/ํ/g, 'ํ') : '';
 
@@ -449,7 +452,7 @@ app.get('/api/report/pdf', async (req, res) => {
             basin, 
             res, 
             fallbackEquipmentMap, 
-            [], 
+            svHardcodedBasins || [], 
             fetchImageBufferDirectly, 
             extractDriveId, 
             fixThaiVowels

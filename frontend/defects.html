@@ -151,15 +151,23 @@
     <script>
         let globalAppData = [];
 
-        const equipmentMapLocal = (typeof equipmentMap !== 'undefined') ? equipmentMap : {
-            clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
-            online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
-            sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC",
-            sta_m1: "Modem 1", sta_m2: "Modem 2", sta_p1: "Power 1", sta_p2: "Power 2",
-            sta_cctv1: "CCTV1", sta_cctv2: "CCTV2", sta_r: "Rain Gauge", sta_s: "Surge",
-            sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
-            sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
-        };
+        // กำหนด Map อุปกรณ์ และบังคับเพิ่ม sta1 (แผ่นวัดบวก) ให้รวมอยู่ในหมวด "แผ่นวัดน้ำ"
+        const equipmentMapLocal = Object.assign(
+            {},
+            (typeof equipmentMap !== 'undefined') ? equipmentMap : {
+                clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
+                online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
+                sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC",
+                sta_m1: "Modem 1", sta_m2: "Modem 2", sta_p1: "Power 1", sta_p2: "Power 2",
+                sta_cctv1: "CCTV1", sta_cctv2: "CCTV2", sta_r: "Rain Gauge", sta_s: "Surge",
+                sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
+                sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", sta2: "แผ่นวัดน้ำ", pole2: "เสาวัดน้ำ"
+            },
+            {
+                sta1: "แผ่นวัดน้ำ", // นับแผ่นวัดบวกที่ชำรุดรวมเข้ากับแผ่นวัดน้ำ
+                sta2: "แผ่นวัดน้ำ"  // นับแผ่นวัดลบที่ชำรุดรวมเข้ากับแผ่นวัดน้ำ
+            }
+        );
 
         const escapeHtmlLocal = (unsafe) => {
             if (typeof escapeHtml === 'function') return escapeHtml(unsafe);
@@ -261,11 +269,12 @@
                     let val = row[key]; 
                     let addCount = 0;
                     
-                    if (typeof val === 'string' && (val.trim().toUpperCase() === "O" || val.trim() === "ชำรุด" || val.trim() === "ไม่ผ่าน")) {
-                        addCount = 1;
-                    } else if (['b2', 'sta2', 'pole2'].includes(key)) { 
+                    // เช็คกรณีที่เป็นค่าตัวเลขจำนวนชำรุด (แบตเตอรี่, แผ่นวัดน้ำบวก sta1, แผ่นวัดน้ำลบ sta2, เสาวัดน้ำ)
+                    if (['b2', 'sta1', 'sta2', 'pole2'].includes(key)) { 
                         let n = Number(val); 
                         if (!isNaN(n) && n > 0) addCount = n; 
+                    } else if (typeof val === 'string' && (val.trim().toUpperCase() === "O" || val.trim() === "ชำรุด" || val.trim() === "ไม่ผ่าน")) {
+                        addCount = 1;
                     }
                     
                     if (addCount > 0) {
