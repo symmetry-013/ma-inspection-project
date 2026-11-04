@@ -39,24 +39,21 @@
     </script>
     <style>
         body {
-            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
             background-color: #fffbeb; 
             color: #334155;
             background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
             background-size: 24px 24px;
         }
 
-        /* 3D Container */
         .puffy-container {
             background-color: #ffffff;
             border-radius: 32px;
             border: 4px solid #f8fafc;
             box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
             border-top-width: 12px;
-            border-top-color: #34d399; /* Emerald 400 */
+            border-top-color: #34d399;
         }
 
-        /* 3D Input Fields */
         .puffy-input {
             background-color: #f8fafc;
             border: 2px solid #e2e8f0;
@@ -71,7 +68,6 @@
             box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
         }
 
-        /* 3D Submit Button (สีเขียว Emerald) */
         .btn-puffy-emerald {
             background-color: #10b981;
             color: white;
@@ -94,12 +90,10 @@
     
     <div class="w-full max-w-2xl puffy-container p-6 md:p-10 fade-in relative">
         
-        <!-- Icon ลอยๆ ตกแต่ง -->
         <div class="absolute -top-12 right-10 w-24 h-24 bg-white rounded-full border-4 border-emerald-100 flex items-center justify-center shadow-lg bounce-soft">
             <i class="ph-fill ph-file-pdf text-6xl text-emerald-400"></i>
         </div>
 
-        <!-- ส่วนหัว (Header) -->
         <div class="flex items-center gap-4 mb-8 pb-6 border-b-2 border-slate-100 mt-2">
             <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1 shrink-0">
                 <i class="ph-bold ph-caret-left text-2xl"></i>
@@ -112,8 +106,17 @@
             </div>
         </div>
         
-        <!-- ฟอร์มเลือกข้อมูล -->
-        <div class="space-y-6 mb-8">
+        <!-- ฟอร์มเลือกข้อมูล (เพิ่มปีงบประมาณ) -->
+        <div class="space-y-5 mb-8">
+            <div class="bg-amber-50 p-5 rounded-2xl border-2 border-amber-100">
+                <label class="block text-sm font-bold text-amber-600 mb-2 flex items-center gap-1.5 uppercase">
+                    <i class="ph-fill ph-calendar text-lg"></i> เลือกปีงบประมาณ
+                </label>
+                <select id="yearSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
+                    <option value="all">รวมทั้งหมด (ทุกปีงบประมาณ)</option>
+                </select>
+            </div>
+
             <div class="bg-emerald-50 p-5 rounded-2xl border-2 border-emerald-100">
                 <label class="block text-sm font-bold text-emerald-600 mb-2 flex items-center gap-1.5 uppercase">
                     <i class="ph-fill ph-calendar-check text-lg"></i> เลือกระยะเวลา (งวด)
@@ -133,12 +136,10 @@
                 </label>
                 <select id="basinSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
                     <option value="all" class="font-extrabold text-sky-600">✨ สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
-                    <!-- ตัวเลือกลุ่มน้ำจะถูกเพิ่มด้วย JavaScript -->
                 </select>
             </div>
         </div>
 
-        <!-- ปุ่มสร้าง PDF -->
         <button onclick="downloadPDF()" class="w-full btn-puffy-emerald py-5 flex items-center justify-center gap-3 text-lg md:text-xl">
             <i class="ph-bold ph-download-simple text-2xl"></i>
             สร้างและดาวน์โหลดเอกสาร
@@ -147,8 +148,20 @@
     </div>
 
     <script>
-        // เติมรายชื่อลุ่มน้ำจาก constants.js
         window.addEventListener('DOMContentLoaded', () => {
+            // เติมปีงบประมาณ
+            const yearSelect = document.getElementById('yearSelect');
+            const startYear = 2568;
+            const totalYears = 10;
+            for (let i = 0; i <= totalYears; i++) {
+                const y = startYear + i;
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = `ปีงบประมาณ ${y}`;
+                yearSelect.appendChild(opt);
+            }
+
+            // เติมรายชื่อลุ่มน้ำจาก constants.js
             const basinSelect = document.getElementById('basinSelect');
             if (typeof hardcodedBasins !== 'undefined') {
                 hardcodedBasins.forEach(b => {
@@ -157,17 +170,16 @@
                     opt.textContent = `ลุ่มน้ำ ${b}`;
                     basinSelect.appendChild(opt);
                 });
-            } else {
-                console.error("ไม่พบข้อมูล hardcodedBasins จาก constants.js");
             }
         });
 
         function downloadPDF() {
+            const year = document.getElementById('yearSelect').value;
             const term = document.getElementById('termSelect').value;
             const basin = document.getElementById('basinSelect').value;
             
             const baseUrl = 'https://ma-inspection-project.onrender.com';
-            const url = `${baseUrl}/api/report/pdf?term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&t=${new Date().getTime()}`;
+            const url = `${baseUrl}/api/report/pdf?year=${encodeURIComponent(year)}&term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&t=${new Date().getTime()}`;
             
             Swal.fire({
                 title: 'เตรียมดาวน์โหลด! 📥',

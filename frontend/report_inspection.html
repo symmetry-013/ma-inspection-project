@@ -33,7 +33,6 @@
     </script>
     <style>
         body {
-            /* พื้นหลังสไตล์ 3D Cartoon */
             background-color: #fffbeb; 
             color: #334155;
             background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
@@ -44,7 +43,6 @@
         ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
 
-        /* 3D Container Cards */
         .puffy-container {
             background-color: #ffffff;
             border-radius: 24px;
@@ -52,7 +50,6 @@
             box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
         }
 
-        /* 3D Input Fields */
         .puffy-input {
             background-color: #f8fafc;
             border: 2px solid #e2e8f0;
@@ -67,7 +64,6 @@
             box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
         }
 
-        /* 3D Buttons */
         .btn-puffy-blue {
             background-color: #38bdf8;
             color: white;
@@ -78,7 +74,6 @@
         }
         .btn-puffy-blue:active { transform: translateY(4px); box-shadow: 0 0px 0 #0284c7; }
 
-        /* Table & Badges */
         .table-container { max-height: 60vh; overflow-y: auto; border-radius: 16px; border: 2px solid #e2e8f0; } 
         thead th { position: sticky; top: 0; z-index: 10; background-color: #f8fafc; border-bottom: 2px solid #e2e8f0; }
         
@@ -89,7 +84,6 @@
 
         .truncate-text { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* 3D Stats Card */
         .stat-card {
             border: 2px solid;
             border-radius: 16px;
@@ -104,7 +98,7 @@
 </head>
 <body class="antialiased min-h-screen flex flex-col font-sans">
     
-    <!-- Header สไตล์ 3D Cartoon -->
+    <!-- Header -->
     <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center space-x-3 md:space-x-4">
@@ -129,21 +123,33 @@
 
     <main class="flex-grow max-w-7xl mx-auto w-full px-4 py-8">
         
-        <!-- ส่วนตัวกรอง (Filters) -->
+        <!-- ส่วนตัวกรอง (Filters) เพิ่มปีงบประมาณ -->
         <div class="puffy-container p-6 mb-6 border-t-8 border-t-violet-400">
             <h2 class="text-lg font-bold text-violet-600 mb-4 flex items-center gap-2 border-b-2 border-violet-100 pb-3">
                 <i class="ph-fill ph-faders text-2xl"></i> ตัวกรองการค้นหาฐานข้อมูล
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-600 uppercase">ปีงบประมาณ</label>
+                    <select id="yearSelect" class="w-full p-3 rounded-xl puffy-input">
+                        <option value="ALL">ทุกปีงบประมาณ</option>
+                    </select>
+                </div>
                 <div class="space-y-1.5">
                     <label class="text-xs font-bold text-slate-600 uppercase">งวดที่ตรวจ <span class="text-rose-500">*</span></label>
-                    <input type="text" id="sheetSelect" list="sheetList" placeholder="เลือกงวดที่ตรวจ..." class="w-full p-3 rounded-xl puffy-input">
-                    <datalist id="sheetList"></datalist>
+                    <select id="sheetSelect" class="w-full p-3 rounded-xl puffy-input">
+                        <option value="ALL">ทุกงวดที่ตรวจ</option>
+                        <option value="งวดที่1" selected>งวดที่ 1</option>
+                        <option value="งวดที่2">งวดที่ 2</option>
+                        <option value="งวดที่3">งวดที่ 3</option>
+                        <option value="งวดที่4">งวดที่ 4</option>
+                    </select>
                 </div>
                 <div class="space-y-1.5">
                     <label class="text-xs font-bold text-slate-600 uppercase">กลุ่มลุ่มน้ำ</label>
-                    <input type="text" id="refNameInput" list="basinList" placeholder="พิมพ์ชื่อลุ่มน้ำ" class="w-full p-3 rounded-xl puffy-input">
-                    <datalist id="basinList"></datalist>
+                    <select id="refNameInput" class="w-full p-3 rounded-xl puffy-input">
+                        <option value="">ทุกลุ่มน้ำ (ทั้งหมด)</option>
+                    </select>
                 </div>
                 <div class="space-y-1.5">
                     <label class="text-xs font-bold text-slate-600 uppercase">สถานะการใช้งาน</label>
@@ -183,14 +189,13 @@
         <div id="dataContainer" class="hidden">
             
             <div class="mb-5 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-                <!-- 3D Stats -->
                 <div class="grid grid-cols-3 gap-3 sm:flex sm:gap-4 w-full lg:w-auto">
                     <div class="stat-card stat-total flex flex-col sm:flex-row items-center sm:gap-2 justify-center">
                         <span class="text-[10px] sm:text-xs font-bold uppercase opacity-80">ทั้งหมด</span>
                         <span id="countTotal" class="text-xl sm:text-2xl font-extrabold">0</span>
                     </div>
                     <div class="stat-card stat-ready flex flex-col sm:flex-row items-center sm:gap-2 justify-center">
-                        <span class="text-[10px] sm:text-xs font-bold uppercase opacity-80">ใช้ได้</span>
+                        <span class="text-[10px] sm:text-xs font-bold uppercase opacity-80">พร้อมใช้งาน</span>
                         <span id="countReady" class="text-xl sm:text-2xl font-extrabold">0</span>
                     </div>
                     <div class="stat-card stat-broken flex flex-col sm:flex-row items-center sm:gap-2 justify-center">
@@ -199,7 +204,6 @@
                     </div>
                 </div>
                 
-                <!-- ค้นหาย่อยและเรียงลำดับ -->
                 <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
                     <div class="relative w-full sm:w-64">
                         <div class="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -220,15 +224,16 @@
                     <table class="min-w-full divide-y-2 divide-slate-200 text-left">
                         <thead>
                             <tr>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">รหัสสถานี</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ชื่อสถานี</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ลุ่มน้ำ</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase text-center bg-slate-50">พร้อมใช้งาน</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase text-center bg-slate-50">ความสะอาด</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ที่ตั้งอาคาร</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">อุปกรณ์ชำรุด</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">อธิบายเพิ่มเติม</th>
-                                <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">คอมเม้นจากกรรมการ</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ปีงบ / งวด</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">รหัสสถานี</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ชื่อสถานี</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ลุ่มน้ำ</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase text-center bg-slate-50">พร้อมใช้งาน</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase text-center bg-slate-50">ความสะอาด</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">ที่ตั้งอาคาร</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">อุปกรณ์ชำรุด</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">อธิบายเพิ่มเติม</th>
+                                <th class="px-4 py-4 text-xs font-bold text-slate-500 uppercase bg-slate-50">คอมเม้นจากกรรมการ</th>
                             </tr>
                         </thead>
                         <tbody id="desktopTableBody" class="divide-y divide-slate-100 bg-white"></tbody>
@@ -254,7 +259,6 @@
         let globalRawData = [];
         let globalFetchedData = [];
 
-        // ฟังก์ชันหลีกเลี่ยง HTML Injection
         function escapeHtml(unsafe) {
             return (unsafe || '').toString()
                  .replace(/&/g, "&amp;")
@@ -264,7 +268,15 @@
                  .replace(/'/g, "&#039;");
         }
 
-        // === ตั้งค่ากลุ่มอุปกรณ์ ===
+        function getFiscalYearFromDate(dateStr, explicitYear) {
+            if (explicitYear && String(explicitYear).trim() !== '') return String(explicitYear).trim();
+            const d = dateStr ? new Date(dateStr) : new Date();
+            if (isNaN(d.getTime())) return String(new Date().getFullYear() + 543);
+            let thaiYear = d.getFullYear() + 543;
+            if (d.getMonth() >= 9) thaiYear += 1;
+            return String(thaiYear);
+        }
+
         const equipNames = {
             power: "ระบบไฟฟ้าภายนอกภายใน", sta_cpu: "CPU Status", sta_ai: "AI Status", sta_di: "DI Status",
             sta_do: "DO Status", sta_io: "IO Status", sta_m1: "Modem 1", sta_m2: "Modem 2", plc: "RTU PLC",
@@ -281,15 +293,17 @@
         window.addEventListener('load', initializeFilters);
 
         async function initializeFilters() {
-            const sheetSelect = document.getElementById('sheetSelect');
-            const sheetList = document.getElementById('sheetList');
-            const basinList = document.getElementById('basinList');
-            
-            ["งวดที่1", "งวดที่2", "งวดที่3", "งวดที่4"].forEach(s => sheetList.innerHTML += `<option value="${s}">`);
-            sheetSelect.value = "งวดที่1";
-            
+            const yearSelect = document.getElementById('yearSelect');
+            const startYear = 2568;
+            const totalYears = 10;
+            for (let i = 0; i <= totalYears; i++) {
+                const y = startYear + i;
+                yearSelect.innerHTML += `<option value="${y}">ปีงบประมาณ ${y}</option>`;
+            }
+
+            const basinSelect = document.getElementById('refNameInput');
             if (typeof hardcodedBasins !== 'undefined') {
-                hardcodedBasins.forEach(b => basinList.innerHTML += `<option value="${b}">`);
+                hardcodedBasins.forEach(b => basinSelect.innerHTML += `<option value="${b}">${b}</option>`);
             }
 
             try {
@@ -303,19 +317,20 @@
         }
 
         function applyFilters() {
+            const selectedYear = document.getElementById('yearSelect').value;
             const sheetName = document.getElementById('sheetSelect').value.trim();
             const refName = document.getElementById('refNameInput').value.trim();
             const isFilterName = document.getElementById('filterNameCheck').checked;
             const statusMode = document.getElementById('statusSelect').value;
-
-            if (!sheetName) { showError("กรุณาเลือกงวดที่ตรวจ"); return; }
 
             document.getElementById('loadingIndicator').classList.add('hidden');
             document.getElementById('errorContainer').classList.add('hidden');
 
             let output = [];
             globalRawData.forEach(row => {
-                if (row.saya !== sheetName) return;
+                const rowYear = getFiscalYearFromDate(row.timestamp || row.createdAt, row.contractYear);
+                if (selectedYear !== 'ALL' && rowYear !== String(selectedYear)) return;
+                if (sheetName !== 'ALL' && row.saya !== sheetName) return;
                 if (refName && row.code !== refName) return;
                 if (isFilterName && (!row.lat || !row.lon)) return;
 
@@ -325,22 +340,10 @@
                 });
 
                 let isSystemBroken = false;
-                
-                // กลุ่ม A
                 const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
-                if (groupA.some(key => isBrokenValue(row[key]))) {
-                    isSystemBroken = true;
-                }
-
-                // กลุ่ม B1: Modem (ต้อง O ทั้งคู่ถึงจะพัง)
-                if (isBrokenValue(row.sta_m1) && isBrokenValue(row.sta_m2)) {
-                    isSystemBroken = true;
-                }
-
-                // กลุ่ม B2: Power Supply (ต้อง O ทั้งคู่ถึงจะพัง)
-                if (isBrokenValue(row.sta_p1) && isBrokenValue(row.sta_p2)) {
-                    isSystemBroken = true;
-                }
+                if (groupA.some(key => isBrokenValue(row[key]))) isSystemBroken = true;
+                if (isBrokenValue(row.sta_m1) && isBrokenValue(row.sta_m2)) isSystemBroken = true;
+                if (isBrokenValue(row.sta_p1) && isBrokenValue(row.sta_p2)) isSystemBroken = true;
 
                 let readyStatusCode = isSystemBroken ? 'O' : 'P';
                 if (statusMode !== 'ALL' && statusMode !== readyStatusCode) return;
@@ -351,12 +354,17 @@
                 else if (cleanLower === 'p' || cleanLower === 'ผ่าน') cleanStatusStr = 'ผ่าน';
 
                 output.push({
-                    stationCode: row.id_name || '-', stationName: row.name_id || '-', basin: row.code || '-',
+                    year: rowYear,
+                    period: row.saya || '-',
+                    stationCode: row.id_name || '-', 
+                    stationName: row.name_id || '-', 
+                    basin: row.code || '-',
                     readyStatus: isSystemBroken ? 'ใช้ไม่ได้' : 'ใช้ได้',
                     cleanStatus: cleanStatusStr,
                     location: row.install_status || '-',
                     brokenEquip: reasons.length > 0 ? reasons.join(', ') : '-',
-                    note: row.note || '-', comment: row.note2 || '-'
+                    note: row.note || '-', 
+                    comment: row.note2 || '-'
                 });
             });
 
@@ -402,7 +410,7 @@
             dtBody.innerHTML = ''; mbCont.innerHTML = '';
 
             if (data.length === 0 && isSearch) {
-                dtBody.innerHTML = `<tr><td colspan="9" class="px-5 py-10 text-center text-slate-400 font-bold"><i class="ph-fill ph-magnifying-glass text-2xl mb-2 block text-slate-300"></i> ไม่พบสถานีที่ค้นหา</td></tr>`;
+                dtBody.innerHTML = `<tr><td colspan="10" class="px-5 py-10 text-center text-slate-400 font-bold"><i class="ph-fill ph-magnifying-glass text-2xl mb-2 block text-slate-300"></i> ไม่พบสถานีที่ค้นหา</td></tr>`;
                 mbCont.innerHTML = `<div class="bg-white rounded-2xl border-4 border-slate-100 p-8 text-center text-slate-400 font-bold"><i class="ph-fill ph-magnifying-glass text-3xl mb-2 block text-slate-300"></i> ไม่พบสถานี</div>`; return;
             }
 
@@ -412,26 +420,26 @@
                 const safeComment = escapeHtml(row.comment);
                 const safeName = escapeHtml(row.stationName);
                 
-                // สำหรับ Desktop
                 dtBody.innerHTML += `<tr class="hover:bg-slate-50 transition-colors group">
-                    <td class="px-5 py-4 whitespace-nowrap text-sm font-extrabold text-sky-600">${escapeHtml(row.stationCode)}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm font-bold text-slate-700">${safeName}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">${escapeHtml(row.basin)}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-center">${getBadge(row.readyStatus)}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-center">${getBadge(row.cleanStatus)}</td>
-                    <td class="px-5 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">${escapeHtml(row.location)}</td>
-                    <td class="px-5 py-4 text-sm font-bold text-rose-500"><div class="truncate-text" title="${safeBroken}">${safeBroken}</div></td>
-                    <td class="px-5 py-4 text-sm font-medium text-slate-500"><div class="truncate-text" title="${safeNote}">${safeNote}</div></td>
-                    <td class="px-5 py-4 text-sm font-medium text-slate-500"><div class="truncate-text" title="${safeComment}">${safeComment}</div></td></tr>`;
+                    <td class="px-4 py-4 whitespace-nowrap text-xs font-bold text-slate-500">${escapeHtml(row.year)} / ${escapeHtml(row.period)}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-extrabold text-sky-600">${escapeHtml(row.stationCode)}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-bold text-slate-700">${safeName}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">${escapeHtml(row.basin)}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-center">${getBadge(row.readyStatus)}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-center">${getBadge(row.cleanStatus)}</td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">${escapeHtml(row.location)}</td>
+                    <td class="px-4 py-4 text-sm font-bold text-rose-500"><div class="truncate-text" title="${safeBroken}">${safeBroken}</div></td>
+                    <td class="px-4 py-4 text-sm font-medium text-slate-500"><div class="truncate-text" title="${safeNote}">${safeNote}</div></td>
+                    <td class="px-4 py-4 text-sm font-medium text-slate-500"><div class="truncate-text" title="${safeComment}">${safeComment}</div></td></tr>`;
 
-                // สำหรับ Mobile 3D Card
                 let borderClass = row.readyStatus === 'ใช้ไม่ได้' ? 'border-l-rose-400' : 'border-l-sky-400';
                 mbCont.innerHTML += `
                 <div class="bg-white p-5 rounded-2xl border-2 border-slate-100 border-l-8 ${borderClass} shadow-sm flex flex-col gap-3">
                     <div>
-                        <p class="text-xs font-extrabold text-sky-600 mb-1 flex items-center gap-1.5">
+                        <p class="text-xs font-extrabold text-sky-600 mb-1 flex flex-wrap items-center gap-1.5">
                             <i class="ph-bold ph-tag"></i> ${escapeHtml(row.stationCode)} 
-                            <span class="text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-lg ml-1">${escapeHtml(row.basin)}</span>
+                            <span class="text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-lg">${escapeHtml(row.basin)}</span>
+                            <span class="text-violet-600 font-bold bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-lg">ปีงบ ${escapeHtml(row.year)} (${escapeHtml(row.period)})</span>
                         </p>
                         <h3 class="text-base font-extrabold text-slate-800">${safeName}</h3>
                     </div>

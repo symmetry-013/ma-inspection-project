@@ -113,7 +113,7 @@
 </head>
 <body class="antialiased min-h-screen flex flex-col font-sans">
     
-    <!-- Header สไตล์ 3D Cartoon -->
+    <!-- Header -->
     <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
         <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
             <div class="flex items-center space-x-3 md:space-x-4">
@@ -134,12 +134,18 @@
 
     <main class="flex-grow max-w-5xl mx-auto w-full px-4 py-8">
         
-        <!-- ตัวกรองการค้นหา -->
+        <!-- ตัวกรองการค้นหา (เพิ่มปีงบประมาณ) -->
         <div class="puffy-container p-6 border-t-8 border-t-sky-400 fade-in">
             <h2 class="text-lg font-bold text-sky-600 mb-4 flex items-center gap-2 border-b-2 border-sky-100 pb-3">
                 <i class="ph-fill ph-magnifying-glass text-2xl"></i> ค้นหาข้อมูลผลสอบเทียบ
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="space-y-1.5">
+                    <label class="text-sm font-bold text-slate-600">ปีงบประมาณ</label>
+                    <select id="myDataYear" class="w-full p-3.5 rounded-xl puffy-input">
+                        <option value="">ทั้งหมด (ทุกปีงบประมาณ)</option>
+                    </select>
+                </div>
                 <div class="space-y-1.5">
                     <label class="text-sm font-bold text-slate-600">งวดตรวจงาน MA</label>
                     <select id="myDataPeriod" class="w-full p-3.5 rounded-xl puffy-input">
@@ -217,7 +223,28 @@
             return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        function initBasins() {
+        function getFiscalYearFromDate(dateStr, explicitYear) {
+            if (explicitYear && String(explicitYear).trim() !== '') return String(explicitYear).trim();
+            const d = dateStr ? new Date(dateStr) : new Date();
+            if (isNaN(d.getTime())) return String(new Date().getFullYear() + 543);
+            let thaiYear = d.getFullYear() + 543;
+            if (d.getMonth() >= 9) thaiYear += 1;
+            return String(thaiYear);
+        }
+
+        function initFilters() {
+            // เติมปีงบประมาณ
+            const yearSelect = document.getElementById("myDataYear");
+            const startYear = 2568;
+            const totalYears = 10;
+            for (let i = 0; i <= totalYears; i++) {
+                let opt = document.createElement("option");
+                opt.value = startYear + i;
+                opt.textContent = `ปีงบประมาณ ${startYear + i}`;
+                yearSelect.appendChild(opt);
+            }
+
+            // เติมลุ่มน้ำ
             const basinSelect = document.getElementById("myData0");
             const basinsToUse = (typeof hardcodedBasins !== 'undefined') ? hardcodedBasins : fallbackBasins;
             basinsToUse.forEach(basin => { 
@@ -229,24 +256,20 @@
         }
         
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initBasins);
+            document.addEventListener('DOMContentLoaded', initFilters);
         } else {
-            initBasins();
+            initFilters();
         }
 
-        // 🔥 แก้ปัญหารูปภาพ Google Drive ไม่แสดง 100%
         function parseImageInfo(imagePath) {
             if (!imagePath || imagePath.trim() === '') return null;
             let path = imagePath.trim();
             let fileId = null;
 
-            // 1. ดักจับ API รูปแบบเก่า (ถ้ามีหลงเหลือ)
             if (path.includes('/api/images/')) {
                 const parts = path.split('/api/images/');
                 fileId = parts[parts.length - 1].replace(/\//g, '');
-            }
-            // 2. ดักจับทุกลิงก์ของ Google Drive
-            else if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
+            } else if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
                 const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                 if (matchFileD) {
                     fileId = matchFileD[1];
@@ -256,23 +279,19 @@
                 }
             }
 
-            // ถ้าระบุ ID ไฟล์จาก Google Drive ได้
             if (fileId) {
                 return {
-                    href: `https://drive.google.com/file/d/${fileId}/view`, // สำหรับกดคลิกเข้าไปดูภาพใหญ่
-                    src: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800` // สำหรับแสดงพรีวิวในแท็ก <img> (ทะลุบล็อก Google)
+                    href: `https://drive.google.com/file/d/${fileId}/view`,
+                    src: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
                 };
             }
 
-            // 3. ถ้าเป็นลิงก์เว็บทั่วไป (http:// หรือ https://)
             if (/^https?:\/\//i.test(path)) {
                 return { href: path, src: path };
             }
             
-            // 4. กรณีไฟล์ในเครื่อง Server (uploads/ภาษาไทย)
             let normalizedPath = path.replace(/\\/g, '/');
             let cleanPath = normalizedPath.startsWith('/') ? normalizedPath.substring(1) : normalizedPath;
-            // เข้ารหัสภาษาไทยให้ URL ใช้งานได้
             let encodedPath = cleanPath.split('/').map(part => encodeURIComponent(part)).join('/');
             const fullUrl = `${BASE_URL}/${encodedPath}`;
             
@@ -294,6 +313,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังดึงข้อมูล...';
 
+            const filterYear = document.getElementById('myDataYear').value;
             const filterPeriod = document.getElementById('myDataPeriod').value;
             const filterBasin = document.getElementById('myData0').value;
 
@@ -302,7 +322,7 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    const textKeys = ['myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
+                    const textKeys = ['contractYear','myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
                     
                     result.data.forEach(it => {
                         textKeys.forEach(k => { 
@@ -310,9 +330,11 @@
                                 it[k] = safeEscapeHtml(it[k]); 
                             }
                         });
+                        it._computedYear = getFiscalYearFromDate(it.timestamp || it.createdAt, it.contractYear);
                     });
                     
                     let filteredData = result.data;
+                    if (filterYear) filteredData = filteredData.filter(item => item._computedYear === String(filterYear));
                     if (filterPeriod) filteredData = filteredData.filter(item => item.myDataPeriod === filterPeriod);
                     if (filterBasin) filteredData = filteredData.filter(item => item.myData0 === filterBasin);
 
@@ -374,6 +396,7 @@
             dataItems.forEach((item, index) => {
                 const dateObj = new Date(item.createdAt || item.timestamp);
                 const dateStr = !isNaN(dateObj.getTime()) ? dateObj.toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                const fiscalYear = item._computedYear || getFiscalYearFromDate(item.timestamp || item.createdAt, item.contractYear);
                 
                 let imagesHtml = ''; let hasImage = false;
                 
@@ -403,7 +426,8 @@
                             <div>
                                 <div class="flex flex-wrap items-center gap-2 mb-2">
                                     <span class="bg-emerald-100 text-emerald-700 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase flex items-center gap-1"><i class="ph-bold ph-map-trifold"></i> ลุ่มน้ำ ${item.myData0 || '-'}</span>
-                                    <span class="bg-slate-100 text-slate-600 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase border border-slate-200">งวด ${item.myDataPeriod || '-'}</span>
+                                    <span class="bg-sky-100 text-sky-700 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase border border-sky-200">ปีงบ ${fiscalYear}</span>
+                                    <span class="bg-slate-100 text-slate-600 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase border border-slate-200">${item.myDataPeriod || '-'}</span>
                                 </div>
                                 <h3 class="text-xl md:text-2xl font-extrabold text-slate-800">${item.myData2 || item.myData1 || 'ไม่ระบุชื่อสถานี'}</h3>
                                 <p class="text-sky-500 font-bold text-sm mt-0.5"><i class="ph-bold ph-tag"></i> รหัส: ${item.myData1 || '-'}</p>

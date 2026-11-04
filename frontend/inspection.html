@@ -168,7 +168,13 @@
                 <h2 class="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
                     <i class="ph-fill ph-info text-sky-500 text-2xl"></i> ข้อมูลการตรวจสอบพื้นฐาน
                 </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- เพิ่มฟิลด์เลือกปีงบประมาณ -->
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ปีงบประมาณ</label>
+                        <select name="contractYear" id="contractYearSelect" required class="w-full p-3 rounded-xl puffy-input">
+                        </select>
+                    </div>
                     <div class="space-y-1.5">
                         <label class="text-sm font-bold text-slate-600">งวดที่ตรวจ</label>
                         <select name="saya" id="saya" required class="w-full p-3 rounded-xl puffy-input">
@@ -193,7 +199,7 @@
                             <option value="เหนือน้ำ">เหนือน้ำ</option><option value="ท้ายน้ำ">ท้ายน้ำ</option><option value="ปกติ">ปกติ</option>
                         </select>
                     </div>
-                    <div class="space-y-1.5 md:col-span-2 lg:col-span-4 mt-2">
+                    <div class="space-y-1.5 md:col-span-2 lg:col-span-3 mt-2">
                         <label class="text-sm font-bold text-slate-600">ชื่อสถานี</label>
                         <input type="text" name="name_id" id="name_id" readonly 
                                class="w-full p-4 rounded-xl bg-slate-50 border-2 border-slate-200 text-sky-600 font-extrabold text-center text-lg focus:outline-none">
@@ -340,7 +346,7 @@
                     </div>
                 </div>
 
-                <!-- ส่วนอัปโหลดรูปภาพที่อัปเกรดให้แสดงชื่อและพรีวิว -->
+                <!-- ส่วนอัปโหลดรูปภาพ -->
                 <div class="mb-6">
                     <label class="text-sm font-bold text-slate-700 flex items-center gap-1.5 mb-2">
                         <i class="ph-bold ph-camera text-sky-500"></i> ภาพถ่ายสภาพสถานี (เลือกได้หลายรูป)
@@ -356,7 +362,6 @@
                         </label>
                     </div>
 
-                    <!-- พื้นที่สำหรับแสดงรายชื่อและพรีวิวรูปภาพที่เลือก -->
                     <div id="imagePreviewContainer" class="hidden space-y-3 bg-slate-50 p-4 rounded-2xl border-2 border-slate-200">
                         <div class="flex justify-between items-center">
                             <span id="imageCountText" class="text-xs font-bold text-slate-600">เลือกแล้ว 0 รูป</span>
@@ -390,14 +395,28 @@
     </main>
 
     <script>
+        // --- Init Fiscal Year ---
+        const contractYearSelect = document.getElementById('contractYearSelect');
+        const startYear = 2568;
+        const totalYears = 10;
+        const currentDate = new Date();
+        let currentThaiFiscalYear = currentDate.getFullYear() + 543;
+        if (currentDate.getMonth() >= 9) currentThaiFiscalYear += 1;
+
+        for (let i = 0; i <= totalYears; i++) {
+            const year = startYear + i;
+            const opt = document.createElement("option");
+            opt.value = year; opt.textContent = year;
+            contractYearSelect.appendChild(opt);
+        }
+        contractYearSelect.value = (currentThaiFiscalYear >= startYear && currentThaiFiscalYear <= startYear + totalYears) ? currentThaiFiscalYear : startYear;
+
         // --- Image Preview Logic ---
         let selectedFilesData = new DataTransfer();
 
         function previewImages(event) {
             const files = event.target.files;
-            const container = document.getElementById('imageThumbnails');
             const previewBox = document.getElementById('imagePreviewContainer');
-            const countText = document.getElementById('imageCountText');
 
             if (files.length > 0) {
                 previewBox.classList.remove('hidden');
@@ -405,7 +424,6 @@
                     selectedFilesData.items.add(files[i]);
                 }
                 document.getElementById('photos').files = selectedFilesData.files;
-                
                 renderThumbnails();
             }
         }
@@ -447,9 +465,7 @@
             const files = selectedFilesData.files;
 
             for (let i = 0; i < files.length; i++) {
-                if (i !== index) {
-                    dt.items.add(files[i]);
-                }
+                if (i !== index) dt.items.add(files[i]);
             }
             selectedFilesData = dt;
             document.getElementById('photos').files = selectedFilesData.files;
@@ -583,7 +599,7 @@
                     document.getElementById('plcGroup').classList.add('hidden');
                     document.getElementById('modemGroup').classList.add('hidden');
                     document.getElementById('wlDynamicFields').innerHTML = '';
-                    clearImages(); // ล้างพรีวิวรูปภาพหลังส่งสำเร็จ
+                    clearImages();
                     
                     Swal.fire({ 
                         position: 'center', 

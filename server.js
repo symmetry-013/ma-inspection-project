@@ -21,15 +21,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// เผื่อกรณีมีรูปเก่าในเครื่องเซิร์ฟเวอร์
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadDir));
 
+// ฟังก์ชันช่วยคำนวณปีงบประมาณไทย (ต.ค. - ก.ย.)
+function getThaiFiscalYear(dateInput, explicitYear) {
+    if (explicitYear && String(explicitYear).trim() !== '' && explicitYear !== 'all' && explicitYear !== 'ALL') {
+        return String(explicitYear).trim();
+    }
+    const d = dateInput ? new Date(dateInput) : new Date();
+    if (isNaN(d.getTime())) return String(new Date().getFullYear() + 543);
+    let thaiYear = d.getFullYear() + 543;
+    if (d.getMonth() >= 9) thaiYear += 1;
+    return String(thaiYear);
+}
+
 // ==========================================
-// 1. ตั้งค่า File Upload (Memory Storage สำหรับส่งเข้า Google Drive)
+// 1. ตั้งค่า File Upload (Memory Storage)
 // ==========================================
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -44,7 +55,6 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ma_inspec
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// เพิ่ม default timestamp เพื่อให้เข้ากับโค้ดเก่าและใหม่ได้ 100%
 const InspectionSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 }, { strict: false, timestamps: true });
@@ -173,7 +183,6 @@ function extractDriveId(url) {
     return null;
 }
 
-// เส้นทางช่วยดึงรูปภาพผ่านเซิร์ฟเวอร์โดยตรง (ป้องกันรูปแตก/ติดบล็อกจาก Google)
 app.get('/api/images/:fileId', async (req, res) => {
     try {
         const fileId = req.params.fileId;
@@ -287,8 +296,8 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     try {
         const formData = { ...req.body };
         formData.timestamp = new Date();
+        formData.contractYear = getThaiFiscalYear(formData.timestamp, formData.contractYear);
 
-        // ค้นหาที่อยู่จากพิกัด GPS อัตโนมัติ (เหมือนโค้ดตัวเก่า)
         let geoAddress = "ไม่ระบุพิกัด";
         if (formData.lat && formData.lon) {
             try {
@@ -299,12 +308,13 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
         }
         formData.geoAddress = geoAddress;
 
+        const yearFolder = `ปีงบ_${formData.contractYear}`;
         const term = formData.saya || 'ไม่ระบุงวด';
         const basin = formData.code || 'ไม่ระบุลุ่มน้ำ';
         const station = formData.id_name || 'ไม่ระบุสถานี';
         
-        // สร้างโฟลเดอร์ งวดที่ > ลุ่มน้ำ > รหัสสถานี
-        const targetFolderId = await getTargetFolderId([term, basin, station]);
+        // สร้างโฟลเดอร์ ปีงบประมาณ > งวดที่ > ลุ่มน้ำ > รหัสสถานี
+        const targetFolderId = await getTargetFolderId([yearFolder, term, basin, station]);
 
         const photos = [];
         if (req.files && req.files.length > 0) {
@@ -347,13 +357,15 @@ app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req,
     try {
         const formData = { ...req.body };
         formData.timestamp = new Date();
+        formData.contractYear = getThaiFiscalYear(formData.timestamp, formData.contractYear);
         
+        const yearFolder = `ปีงบ_${formData.contractYear}`;
         const term = formData.myDataPeriod || 'ไม่ระบุงวด';
         const basin = formData.myData0 || 'ไม่ระบุลุ่มน้ำ';
         const station = formData.myData1 || 'ไม่ระบุสถานี';
         
-        // สร้างโฟลเดอร์ งวดที่ > ลุ่มน้ำ > รหัสสถานี
-        const targetFolderId = await getTargetFolderId([term, basin, station]);
+        // สร้างโฟลเดอร์ ปีงบประมาณ > งวดที่ > ลุ่มน้ำ > รหัสสถานี
+        const targetFolderId = await getTargetFolderId([yearFolder, term, basin, station]);
 
         const fileFields = ['myFile', 'myFile2', 'myFile3', 'myFile4', 'myFile5', 'myFile6', 'myFile7', 'myFile8'];
         
@@ -388,10 +400,11 @@ app.get('/api/calibrations', async (req, res) => {
 });
 
 // ===============================================
-// 7. การสร้าง PDF 
+// 7. การสร้าง PDF (รองรับการกรองปีงบประมาณ)
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
+        const year = req.query.year || 'all';
         const term = req.query.term || 'all';
         const basin = req.query.basin || 'all';
 
@@ -407,8 +420,14 @@ app.get('/api/report/pdf', async (req, res) => {
             calibQuery.myData0 = basin;
         }
 
-        const inspectionData = await Inspection.find(query).lean();
-        const calibrationData = await Calibration.find(calibQuery).lean();
+        let inspectionData = await Inspection.find(query).lean();
+        let calibrationData = await Calibration.find(calibQuery).lean();
+
+        // กรองตามปีงบประมาณ (รองรับทั้งข้อมูลใหม่ที่มีฟิลด์ contractYear และข้อมูลเก่าที่คำนวณจาก timestamp)
+        if (year !== 'all' && year !== 'ALL') {
+            inspectionData = inspectionData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
+            calibrationData = calibrationData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
+        }
 
         const fallbackEquipmentMap = {
             clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
@@ -421,10 +440,12 @@ app.get('/api/report/pdf', async (req, res) => {
         };
         const fixThaiVowels = (text) => text ? String(text).replace(/ำ/g, 'ํา').replace(/ํ/g, 'ํ') : '';
 
+        const termLabel = (year !== 'all' && year !== 'ALL') ? `${term} (ปีงบประมาณ ${year})` : term;
+
         await generateInspectionPDF(
             inspectionData, 
             calibrationData, 
-            term, 
+            termLabel, 
             basin, 
             res, 
             fallbackEquipmentMap, 
@@ -449,7 +470,12 @@ app.post('/webhook/update-station', async (req, res) => {
         if (apiKey !== process.env.WEBHOOK_SECRET) {
             return res.status(401).json({ success: false, message: 'Unauthorized: Invalid API Key' });
         }
-        const payload = { ...req.body, timestamp: new Date() };
+        const now = new Date();
+        const payload = { 
+            ...req.body, 
+            timestamp: now,
+            contractYear: getThaiFiscalYear(now, req.body.contractYear)
+        };
         const newRecord = new Inspection(payload);
         await newRecord.save();
         res.status(200).json({ success: true, message: 'Webhook received and processed' });

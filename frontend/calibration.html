@@ -37,7 +37,6 @@
     </script>
     <style>
         body {
-            /* พื้นหลังสีเหลืองพาสเทลอ่อนๆ สไตล์ 3D Cartoon */
             background-color: #fffbeb; 
             color: #334155;
             background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
@@ -49,7 +48,6 @@
         ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
 
-        /* 3D Container Cards */
         .puffy-container {
             background-color: #ffffff;
             border-radius: 24px;
@@ -58,7 +56,6 @@
             margin-bottom: 24px;
         }
 
-        /* 3D Input Fields (ทั่วไป) */
         .puffy-input {
             background-color: #f8fafc;
             border: 2px solid #e2e8f0;
@@ -68,7 +65,7 @@
         }
         .puffy-input:focus {
             outline: none;
-            border-color: #fbbf24; /* Amber */
+            border-color: #fbbf24;
             background-color: #ffffff;
             box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);
         }
@@ -79,7 +76,6 @@
             border-color: #e2e8f0;
         }
 
-        /* 3D Input Fields (แบบตัวเลข มีสีเฉพาะ) */
         .input-num-sky { background-color: #f0f9ff; border-color: #bae6fd; color: #0284c7; }
         .input-num-sky:focus { border-color: #38bdf8; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2); }
         
@@ -89,7 +85,6 @@
         .input-num-violet { background-color: #f5f3ff; border-color: #ddd6fe; color: #7c3aed; }
         .input-num-violet:focus { border-color: #a78bfa; box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.2); }
 
-        /* 3D File Input */
         input[type="file"] { 
             padding: 8px; font-size: 0.85rem; width: 100%; color: #64748b; 
             background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
@@ -104,10 +99,9 @@
             background-color: #f1f5f9; border-color: #94a3b8; color: #334155; transform: translateY(1px); box-shadow: 0 1px 0 #94a3b8;
         }
 
-        /* 3D Submit Button (สีเหลืองทอง น่ารักๆ) */
         .btn-puffy-submit {
             background-color: #facc15;
-            color: #713f12; /* น้ำตาลเข้ม */
+            color: #713f12;
             border-radius: 20px;
             box-shadow: 0 8px 0 #ca8a04;
             transition: all 0.15s ease;
@@ -117,12 +111,11 @@
         }
         .btn-puffy-submit:active:not(:disabled) { transform: translateY(8px); box-shadow: 0 0px 0 #ca8a04; }
         .btn-puffy-submit:disabled { background-color: #fde047; box-shadow: 0 8px 0 #facc15; border-color: #fef08a; cursor: not-allowed; opacity: 0.6; }
-
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
     
-    <!-- Header สไตล์ 3D Cartoon -->
+    <!-- Header -->
     <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
         <div class="container mx-auto px-4 flex justify-between items-center max-w-5xl">
             <div class="flex items-center space-x-3 md:space-x-4">
@@ -150,7 +143,13 @@
                     <i class="ph-fill ph-map-pin text-amber-500 text-2xl"></i> ข้อมูลสถานี
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div class="space-y-1.5 md:col-span-2">
+                    <!-- เพิ่มฟิลด์เลือกปีงบประมาณ -->
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ปีงบประมาณ</label>
+                        <select name="contractYear" id="contractYearSelect" required class="w-full p-3 rounded-xl puffy-input">
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
                         <label class="text-sm font-bold text-slate-600">งวดตรวจงาน MA</label>
                         <select name="myDataPeriod" id="myDataPeriod" required class="w-full p-3 rounded-xl puffy-input">
                             <option selected disabled value="">-- เลือกงวดตรวจงาน --</option>
@@ -303,6 +302,22 @@
     </main>
 
     <script>
+        // --- Init Fiscal Year ---
+        const contractYearSelect = document.getElementById('contractYearSelect');
+        const startYear = 2568;
+        const totalYears = 10;
+        const currentDate = new Date();
+        let currentThaiFiscalYear = currentDate.getFullYear() + 543;
+        if (currentDate.getMonth() >= 9) currentThaiFiscalYear += 1;
+
+        for (let i = 0; i <= totalYears; i++) {
+            const year = startYear + i;
+            const opt = document.createElement("option");
+            opt.value = year; opt.textContent = year;
+            contractYearSelect.appendChild(opt);
+        }
+        contractYearSelect.value = (currentThaiFiscalYear >= startYear && currentThaiFiscalYear <= startYear + totalYears) ? currentThaiFiscalYear : startYear;
+
         const basinSelect = document.getElementById("myData0");
         const stationInput = document.getElementById("myData1");
         const stationNameInput = document.getElementById("myData2");
@@ -355,7 +370,6 @@
             });
 
             try {
-                // ปิดปุ่มระหว่างรอ
                 btn.disabled = true;
                 btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังส่งข้อมูล...';
 
