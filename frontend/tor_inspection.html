@@ -103,7 +103,7 @@
             color: white !important;
             border-color: #059669 !important;
             box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
         
         /* State: ไม่ผ่าน */
@@ -112,7 +112,7 @@
             color: white !important;
             border-color: #dc2626 !important;
             box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
         
         /* State: ยังไม่ทำ */
@@ -121,7 +121,7 @@
             color: white !important;
             border-color: #475569 !important;
             box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
 
         /* Task Card ภายใน */
@@ -159,9 +159,9 @@
             
             <!-- ส่วนค้นหาข้อมูลสถานี -->
             <div class="puffy-container p-6 md:p-8">
-                <h2 class="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+                <h2 class="text-xl font-bold text-slate-800 mb-5 flex flex-wrap items-center gap-2 border-b-2 border-slate-100 pb-3">
                     <i class="ph-fill ph-magnifying-glass text-sky-500"></i> ค้นหาข้อมูลสถานี 
-                    <span class="text-sm font-semibold bg-sky-100 text-sky-600 px-3 py-1 rounded-full ml-2">เชื่อมโยง MAM</span>
+                    <span class="text-[10px] md:text-sm font-semibold bg-sky-100 text-sky-600 px-3 py-1 rounded-full ml-1 whitespace-nowrap">เชื่อมโยง MAM</span>
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -199,23 +199,23 @@
                 </div>
 
                 <button type="button" id="btnFetchMam" onclick="fetchStationWorkData()" disabled 
-                        class="btn-puffy-blue w-full font-bold py-4 text-lg flex items-center justify-center gap-2 mb-2">
+                        class="btn-puffy-blue w-full font-bold py-4 text-base md:text-lg flex items-center justify-center gap-2 mb-2">
                     <i class="ph-bold ph-cloud-arrow-down text-2xl"></i> ดึงข้อมูลจากระบบ MAM
                 </button>
             </div>
 
             <!-- ส่วนแสดงรายการตรวจรับ -->
-            <div class="puffy-container p-6 md:p-8 min-h-[250px]">
-                <h2 class="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+            <div class="puffy-container p-4 md:p-8 min-h-[250px]">
+                <h2 class="text-lg md:text-xl font-bold text-slate-800 mb-5 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
                     <i class="ph-fill ph-list-checks text-emerald-500"></i> ประเมินผลการปฏิบัติงานตาม TOR
                 </h2>
                 
                 <div id="tasksContainer">
-                    <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                            <i class="ph-fill ph-clipboard-text text-5xl text-slate-300"></i>
+                    <div class="py-12 md:py-16 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <div class="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                            <i class="ph-fill ph-clipboard-text text-4xl md:text-5xl text-slate-300"></i>
                         </div>
-                        <p class="font-bold text-slate-500">กรุณาเลือกรหัสสถานีและกดดึงข้อมูลก่อน</p>
+                        <p class="font-bold text-slate-500 text-sm md:text-base text-center px-4">กรุณาเลือกรหัสสถานีและกดดึงข้อมูลก่อน</p>
                     </div>
                 </div>
             </div>
@@ -223,7 +223,7 @@
             <!-- ปุ่มบันทึก -->
             <div class="pb-10 pt-2">
                 <button type="submit" id="btnSubmit" disabled 
-                        class="btn-puffy-pink w-full py-5 font-extrabold text-xl flex items-center justify-center gap-2">
+                        class="btn-puffy-pink w-full py-4 md:py-5 font-extrabold text-lg md:text-xl flex items-center justify-center gap-2">
                     <i class="ph-bold ph-floppy-disk text-2xl"></i> บันทึกผลการตรวจรับ
                 </button>
             </div>
@@ -311,11 +311,11 @@
 
         function resetTasksContainer() {
             tasksContainer.innerHTML = `
-                <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                        <i class="ph-fill ph-clipboard-text text-5xl text-slate-300"></i>
+                <div class="py-12 md:py-16 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                        <i class="ph-fill ph-clipboard-text text-4xl md:text-5xl text-slate-300"></i>
                     </div>
-                    <p class="font-bold text-slate-500">กรุณาเลือกรหัสสถานีและกดดึงข้อมูลก่อน</p>
+                    <p class="font-bold text-slate-500 text-sm md:text-base text-center px-4">กรุณาเลือกรหัสสถานีและกดดึงข้อมูลก่อน</p>
                 </div>`;
         }
 
@@ -333,9 +333,9 @@
 
             btnFetchMam.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังตรวจสอบข้อมูล...';
             tasksContainer.innerHTML = `
-                <div class="py-16 flex flex-col items-center justify-center text-sky-500 bg-sky-50 rounded-2xl border-2 border-sky-100">
-                    <i class="ph-bold ph-spinner animate-spin text-5xl mb-4"></i>
-                    <p class="font-bold">กำลังตรวจสอบผลงานของ ${stationId}...</p>
+                <div class="py-16 flex flex-col items-center justify-center text-sky-500 bg-sky-50 rounded-2xl border-2 border-sky-100 text-center px-4">
+                    <i class="ph-bold ph-spinner animate-spin text-4xl md:text-5xl mb-4"></i>
+                    <p class="font-bold text-sm md:text-base">กำลังตรวจสอบผลงานของ ${stationId}...</p>
                 </div>`;
 
             try {
@@ -362,27 +362,27 @@
             } catch (error) {
                 console.error(error);
                 tasksContainer.innerHTML = `
-                    <div class="p-8 text-center bg-rose-50 rounded-2xl border-2 border-rose-200">
+                    <div class="p-6 md:p-8 text-center bg-rose-50 rounded-2xl border-2 border-rose-200 mx-2">
                         <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-3">
                             <i class="ph-fill ph-warning-circle text-4xl text-rose-500"></i>
                         </div>
-                        <p class="font-bold text-rose-600 text-lg">${error.message}</p>
-                        <p class="text-sm mt-2 text-rose-400 font-medium">ผู้รับจ้างอาจจะยังไม่ได้ส่งข้อมูลเข้าระบบ</p>
+                        <p class="font-bold text-rose-600 text-base md:text-lg leading-tight">${error.message}</p>
+                        <p class="text-xs md:text-sm mt-2 text-rose-400 font-medium">ผู้รับจ้างอาจจะยังไม่ได้ส่งข้อมูลเข้าระบบ</p>
                     </div>`;
                 btnFetchMam.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-2xl"></i> ลองดึงข้อมูลใหม่';
                 btnFetchMam.disabled = false;
             }
         }
 
-        // --- Render UI ---
+        // --- Render UI (ปรับปุ่มให้ Responsive) ---
         function renderDynamicInspectionTasks(period, mamData) {
             let htmlContent = "";
 
             // หมวดหมู่ 1
             htmlContent += `
                 <div class="flex items-center gap-2 mb-4 mt-2">
-                    <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500"><i class="ph-bold ph-wrench"></i></div>
-                    <h3 class="text-slate-800 font-extrabold text-lg">งานบำรุงรักษาทั่วไป</h3>
+                    <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-500 shrink-0"><i class="ph-bold ph-wrench"></i></div>
+                    <h3 class="text-slate-800 font-extrabold text-base md:text-lg leading-tight">งานบำรุงรักษาทั่วไป</h3>
                 </div>`;
             htmlContent += createTaskCard("1", "การทำความสะอาด กำจัดวัชพืชและแมลง", { status: mamData.clean });
             htmlContent += createTaskCard("2", "การตรวจสอบป้ายสถานีสนาม", { status: mamData.pai });
@@ -392,8 +392,8 @@
             if (mamData.extra_work_tor4 && mamData.extra_work_tor4.length > 0) {
                 htmlContent += `
                     <div class="flex items-center gap-2 mb-4 mt-8">
-                        <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500"><i class="ph-bold ph-star"></i></div>
-                        <h3 class="text-slate-800 font-extrabold text-lg">งานพิเศษ (ข้อมูลจาก MAM)</h3>
+                        <div class="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center text-sky-500 shrink-0"><i class="ph-bold ph-star"></i></div>
+                        <h3 class="text-slate-800 font-extrabold text-base md:text-lg leading-tight">งานพิเศษ (ข้อมูลจาก MAM)</h3>
                     </div>`;
                 
                 mamData.extra_work_tor4.forEach((task, index) => {
@@ -407,14 +407,14 @@
                 });
             }
 
-            // แจ้งเตือน
+            // แจ้งเตือนจาก MAM
             if (mamData.note) {
                 htmlContent = `
                 <div class="mb-6 bg-sky-50 border-2 border-sky-200 rounded-2xl p-4 text-sky-800 flex items-start gap-3">
-                    <i class="ph-fill ph-info text-sky-500 text-2xl shrink-0 mt-0.5"></i>
+                    <i class="ph-fill ph-info text-sky-500 text-xl md:text-2xl shrink-0 mt-0.5"></i>
                     <div>
-                        <strong class="block font-bold mb-1">หมายเหตุจากผู้รับจ้าง:</strong> 
-                        <span class="text-sm font-medium">${mamData.note}</span>
+                        <strong class="block font-bold mb-1 text-sm md:text-base">หมายเหตุจากผู้รับจ้าง:</strong> 
+                        <span class="text-xs md:text-sm font-medium leading-relaxed">${mamData.note}</span>
                     </div>
                 </div>
                 ` + htmlContent;
@@ -432,54 +432,55 @@
                     const statusBg = mamContext.status === "P" ? "bg-emerald-100 text-emerald-700 border-emerald-200" : (mamContext.status === "O" ? "bg-rose-100 text-rose-700 border-rose-200" : "bg-slate-100 text-slate-700 border-slate-200");
                     const statusIcon = mamContext.status === "P" ? "ph-check-circle" : (mamContext.status === "O" ? "ph-x-circle" : "ph-minus-circle");
                     
-                    infoText = `<div class="${statusBg} border-2 font-bold px-3 py-1 rounded-xl text-sm flex items-center gap-1.5 inline-flex"><i class="ph-fill ${statusIcon} text-lg"></i> ${statusName}</div>`;
+                    infoText = `<div class="${statusBg} border-2 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 inline-flex whitespace-nowrap"><i class="ph-fill ${statusIcon} text-base"></i> ${statusName}</div>`;
                 } else if (mamContext.amount !== undefined) {
-                    infoText = `<div class="bg-sky-100 text-sky-700 border-2 border-sky-200 font-bold px-3 py-1 rounded-xl text-sm inline-flex">ปริมาณ: ${mamContext.amount} ${mamContext.unit}</div>`;
-                    if(mamContext.desc) infoText += ` <span class="ml-2 text-slate-500 text-xs font-medium bg-slate-100 px-2 py-1 rounded-lg">(${mamContext.desc})</span>`;
+                    infoText = `<div class="bg-sky-100 text-sky-700 border-2 border-sky-200 font-bold px-3 py-1.5 rounded-xl text-xs inline-flex">ปริมาณ: ${mamContext.amount} ${mamContext.unit}</div>`;
+                    if(mamContext.desc) infoText += ` <span class="ml-1 md:ml-2 text-slate-500 text-[10px] md:text-xs font-medium bg-slate-100 px-2 py-1 rounded-lg">(${mamContext.desc})</span>`;
                 }
 
                 mamInfoHtml = `
-                <div class="mt-3 mb-4 bg-slate-50 rounded-xl p-3 text-sm border-2 border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <span class="text-slate-500 font-bold flex items-center gap-1.5"><i class="ph-fill ph-device-mobile text-lg"></i> ข้อมูลจากสนาม:</span>
-                    <div>${infoText}</div>
+                <div class="mt-3 mb-4 bg-slate-50 rounded-xl p-3 md:p-4 text-xs md:text-sm border-2 border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span class="text-slate-500 font-bold flex items-center gap-1.5 shrink-0"><i class="ph-fill ph-device-mobile text-lg"></i> ข้อมูลจากสนาม:</span>
+                    <div class="flex-grow flex sm:justify-end overflow-hidden">${infoText}</div>
                 </div>`;
             }
 
             return `
-            <div class="task-card p-5 mb-5 transition-all">
-                <p class="text-base font-extrabold text-slate-700 mb-2 break-words flex items-start gap-2">
-                    <span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg text-sm">${id}</span> ${name}
+            <div class="task-card p-4 md:p-5 mb-5 transition-all w-full">
+                <p class="text-sm md:text-base font-extrabold text-slate-700 mb-2 break-words flex items-start gap-2 leading-tight">
+                    <span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg text-xs md:text-sm shrink-0">${id}</span> 
+                    <span class="mt-0.5">${name}</span>
                 </p>
                 ${mamInfoHtml}
                 
                 <input type="hidden" name="taskId[]" value="${id}">
                 <input type="hidden" name="taskName[]" value="${name}">
                 
-                <!-- 3D Radio Buttons -->
-                <div class="grid grid-cols-3 gap-3 mt-2">
-                    <label class="cursor-pointer group">
+                <!-- 🌟 3D Radio Buttons (ปรับปรุงให้ Responsive ไม่ตกขอบ) -->
+                <div class="flex w-full gap-2 mt-2">
+                    <label class="cursor-pointer group flex-1">
                         <input type="radio" name="status_${id}" value="ผ่าน" class="sr-only status-radio">
-                        <div class="btn-pass btn-status-radio bg-emerald-50 text-emerald-600 border-emerald-200 py-3 rounded-2xl text-center text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-100">
-                            <i class="ph-bold ph-check"></i> ผ่าน
+                        <div class="btn-pass btn-status-radio bg-emerald-50 text-emerald-600 border-emerald-200 h-11 md:h-12 rounded-xl md:rounded-2xl text-center text-xs md:text-sm font-bold flex items-center justify-center gap-1 hover:bg-emerald-100 w-full px-1">
+                            <i class="ph-bold ph-check text-base"></i> <span class="truncate">ผ่าน</span>
                         </div>
                     </label>
-                    <label class="cursor-pointer group">
+                    <label class="cursor-pointer group flex-1">
                         <input type="radio" name="status_${id}" value="ไม่ผ่าน" class="sr-only status-radio">
-                        <div class="btn-fail btn-status-radio bg-rose-50 text-rose-600 border-rose-200 py-3 rounded-2xl text-center text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-rose-100">
-                            <i class="ph-bold ph-x"></i> ไม่ผ่าน
+                        <div class="btn-fail btn-status-radio bg-rose-50 text-rose-600 border-rose-200 h-11 md:h-12 rounded-xl md:rounded-2xl text-center text-xs md:text-sm font-bold flex items-center justify-center gap-1 hover:bg-rose-100 w-full px-1">
+                            <i class="ph-bold ph-x text-base"></i> <span class="truncate">ไม่ผ่าน</span>
                         </div>
                     </label>
-                    <label class="cursor-pointer group">
+                    <label class="cursor-pointer group flex-1">
                         <input type="radio" name="status_${id}" value="ยังไม่ทำ" checked class="sr-only status-radio">
-                        <div class="btn-pending btn-status-radio bg-slate-100 text-slate-500 border-slate-200 py-3 rounded-2xl text-center text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-slate-200">
-                            <i class="ph-bold ph-minus"></i> ยังไม่ทำ
+                        <div class="btn-pending btn-status-radio bg-slate-100 text-slate-500 border-slate-200 h-11 md:h-12 rounded-xl md:rounded-2xl text-center text-[11px] md:text-sm font-bold flex items-center justify-center gap-1 hover:bg-slate-200 w-full px-1 leading-none">
+                            <span class="truncate">ยังไม่ทำ</span>
                         </div>
                     </label>
                 </div>
                 
                 <div class="mt-4">
                     <input type="text" name="remark_${id}" placeholder="ระบุหมายเหตุ (ถ้ามี)..." 
-                           class="w-full p-3 text-sm rounded-xl puffy-input">
+                           class="w-full p-2.5 md:p-3 text-xs md:text-sm rounded-xl puffy-input">
                 </div>
             </div>`;
         }
@@ -498,10 +499,10 @@
                 cancelButtonText: 'ยกเลิก',
                 customClass: {
                     popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                    title: 'font-prompt font-extrabold text-slate-800',
-                    htmlContainer: 'font-prompt font-medium text-slate-500',
-                    confirmButton: 'font-prompt font-bold rounded-xl px-6',
-                    cancelButton: 'font-prompt font-bold rounded-xl px-6'
+                    title: 'font-prompt font-extrabold text-slate-800 text-lg md:text-xl',
+                    htmlContainer: 'font-prompt font-medium text-slate-500 text-sm md:text-base',
+                    confirmButton: 'font-prompt font-bold rounded-xl px-5 md:px-6 text-sm md:text-base',
+                    cancelButton: 'font-prompt font-bold rounded-xl px-5 md:px-6 text-sm md:text-base'
                 }
             }).then(async (result) => {
                 if (result.isConfirmed) {

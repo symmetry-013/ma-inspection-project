@@ -3,64 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบติดตามสถานะสถานี (Map) - MA Inspection</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>ระบบติดตามสถานะสถานี (Map) | 3D Cartoon Edition</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet JS & CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
     <script src="constants.js"></script>
+
+    <script>
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
+                    colors: { 
+                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9' },
+                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981' },
+                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e' }
+                    }
+                } 
+            }
+        }
+    </script>
     <style>
-        html, body { font-family: 'Prompt', sans-serif; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #f8fafc; }
-        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background-color: #e5e5e5; }
-        .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); padding: 0; overflow: hidden; }
-        .leaflet-popup-content { margin: 0; line-height: 1.5; width: 240px !important; }
-        .simple-tooltip { background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 600; padding: 4px 8px; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }
-        .filter-btn { transition: all 0.2s ease; cursor: pointer; user-select: none; } .filter-btn.active { border-color: #3b82f6; background-color: #eff6ff; }
+        html, body { font-family: 'Prompt', sans-serif; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #fffbeb; }
+        
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background-color: #e2e8f0; }
+        
+        .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15); padding: 0; overflow: hidden; border: 4px solid #f8fafc; }
+        .leaflet-popup-content { margin: 0; line-height: 1.5; width: 260px !important; }
+        .leaflet-container a.leaflet-popup-close-button { color: #94a3b8; font-weight: bold; padding: 6px 12px; }
+        
+        .simple-tooltip { 
+            background: rgba(255, 255, 255, 0.95); border: 2px solid #e2e8f0; 
+            border-radius: 12px; font-family: 'Prompt', sans-serif; font-size: 11px; 
+            font-weight: 700; padding: 4px 10px; color: #475569; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; } 
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid #f1f5f9; }
+        
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
+        .spin { animation: spin 1s linear infinite; }
+        
+        /* 3D UI Components */
+        .puffy-panel {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 700;
+        }
+        .puffy-input:focus { outline: none; border-color: #38bdf8; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+
+        /* 3D Filter Buttons */
+        .filter-btn { transition: all 0.15s ease; cursor: pointer; user-select: none; border: 2px solid #e2e8f0; background: #f8fafc; border-radius: 12px; } 
+        .filter-btn:active { transform: translateY(2px); }
+        .filter-btn.active.filter-all { border-color: #38bdf8; background-color: #f0f9ff; color: #0284c7; box-shadow: 0 4px 0 #bae6fd; }
+        .filter-btn.active.filter-p { border-color: #34d399; background-color: #ecfdf5; color: #059669; box-shadow: 0 4px 0 #a7f3d0; }
+        .filter-btn.active.filter-o { border-color: #fb7185; background-color: #fff1f2; color: #e11d48; box-shadow: 0 4px 0 #fecaca; }
+        
+        /* 3D Refresh Button */
+        .btn-refresh {
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 4px 0 #e2e8f0;
+            transition: all 0.15s ease;
+            border: 2px solid #f1f5f9;
+        }
+        .btn-refresh:active { transform: translateY(4px); box-shadow: 0 0px 0 #e2e8f0; }
+
+        @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .bounce-soft { animation: bounceSoft 2s infinite; }
     </style>
 </head>
 <body class="relative">
     <div id="map"></div>
+    
+    <!-- Loading Screen -->
     <div id="loadingUI" class="absolute inset-0 z-[2000] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-300">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 mb-4 shadow-lg"></div><p class="text-gray-800 font-bold text-sm tracking-wide">กำลังเตรียมข้อมูล...</p>
+        <div class="w-20 h-20 bg-sky-50 rounded-full border-4 border-sky-100 flex items-center justify-center shadow-md bounce-soft mb-4">
+            <i class="ph-bold ph-map-trifold text-4xl text-sky-500"></i>
+        </div>
+        <p class="text-sky-600 font-extrabold text-lg tracking-wide">กำลังเตรียมข้อมูลแผนที่...</p>
     </div>
 
-    <div class="absolute top-0 left-0 w-full p-3 z-[1000] pointer-events-none flex justify-between items-start flex-col md:flex-row gap-3">
-        <div class="bg-white/95 p-3.5 rounded-2xl shadow-lg border border-gray-100 pointer-events-auto w-full md:w-auto md:max-w-md backdrop-blur-sm transition-all duration-300">
-            <div id="dashboardHeader" class="flex justify-between items-center mb-3 border-b border-gray-100 pb-3">
-                <div class="flex items-center gap-2 mr-4">
-                    <a href="index.html" class="text-slate-400 hover:text-blue-600 p-2"><i class="fas fa-arrow-left"></i></a>
-                    <h1 class="text-sm font-bold text-slate-800">แผนที่สถานี</h1>
-                </div>
+    <!-- แผงควบคุม (Dashboard) -->
+    <div class="absolute top-0 left-0 w-full p-4 z-[1000] pointer-events-none flex justify-between items-start flex-col md:flex-row gap-4">
+        
+        <div class="puffy-panel p-4 pointer-events-auto w-full md:w-auto md:max-w-xl transition-all duration-300 border-t-8 border-t-sky-400">
+            <div id="dashboardHeader" class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 border-b-2 border-slate-100 pb-3 gap-3">
                 <div class="flex items-center gap-2">
-                    <select id="basinFilter" onchange="renderMap()" class="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5"><option value="ALL">ทุกลุ่มน้ำ</option></select>
-                    <button onclick="toggleDashboard()" class="p-1.5 text-slate-400"><svg id="toggleIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg></button>
+                    <a href="index.html" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 hover:text-sky-500 hover:bg-sky-50 transition-all border-2 border-slate-200 shrink-0">
+                        <i class="ph-bold ph-caret-left text-xl"></i>
+                    </a>
+                    <h1 class="text-base font-extrabold text-slate-800 tracking-tight leading-tight">ระบบติดตาม<br><span class="text-sky-500">สถานะสถานี</span></h1>
+                </div>
+                
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <!-- เพิ่ม: เลือกงวดที่ (ปีสัญญา) -->
+                    <select id="periodFilter" onchange="renderMap()" class="w-full sm:w-28 text-xs puffy-input rounded-xl px-3 py-2">
+                        <option value="ALL">ทุกงวดตรวจ</option>
+                        <option value="งวดที่1">งวดที่ 1</option>
+                        <option value="งวดที่2">งวดที่ 2</option>
+                        <option value="งวดที่3">งวดที่ 3</option>
+                        <option value="งวดที่4">งวดที่ 4</option>
+                    </select>
+                    
+                    <!-- เลือกลุ่มน้ำ -->
+                    <select id="basinFilter" onchange="renderMap()" class="w-full sm:w-28 text-xs puffy-input rounded-xl px-3 py-2">
+                        <option value="ALL">ทุกลุ่มน้ำ</option>
+                    </select>
+                    
+                    <button onclick="toggleDashboard()" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-200 border-2 border-slate-200 shrink-0 transition-all">
+                        <i id="toggleIcon" class="ph-bold ph-caret-up text-lg"></i>
+                    </button>
                 </div>
             </div>
+            
             <div id="dashboardContent" class="overflow-hidden transition-all duration-300 opacity-100 max-h-[500px]">
-                <div class="flex flex-wrap gap-2 text-[10px] md:text-xs">
-                    <div onclick="setStatusFilter('ALL')" id="btnFilterALL" class="filter-btn active px-3 py-1.5 rounded-full border border-blue-500 bg-blue-50 text-blue-700 font-semibold flex items-center gap-1.5">ทั้งหมด <span id="countALL" class="bg-blue-200 px-1.5 py-0.5 rounded-md">0</span></div>
-                    <div onclick="setStatusFilter('P')" id="btnFilterP" class="filter-btn px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 border border-emerald-600"></span>สมบูรณ์ (P) <span id="countP" class="bg-slate-100 px-1.5 py-0.5 rounded-md">0</span></div>
-                    <div onclick="setStatusFilter('O')" id="btnFilterO" class="filter-btn px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-600 font-semibold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500 border border-rose-600"></span>มีชำรุด (O) <span id="countO" class="bg-slate-100 px-1.5 py-0.5 rounded-md">0</span></div>
+                <div class="flex flex-wrap gap-3 text-xs">
+                    <div onclick="setStatusFilter('ALL')" id="btnFilterALL" class="filter-btn active filter-all px-4 py-2 font-extrabold text-slate-600 flex items-center gap-2 flex-grow justify-center">
+                        ทั้งหมด <span id="countALL" class="bg-white/80 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px]">0</span>
+                    </div>
+                    <!-- เปลี่ยนคำว่า "สมบูรณ์" เป็น "พร้อมใช้งาน" -->
+                    <div onclick="setStatusFilter('P')" id="btnFilterP" class="filter-btn filter-p px-4 py-2 font-extrabold text-slate-600 flex items-center gap-2 flex-grow justify-center">
+                        <i class="ph-fill ph-check-circle text-emerald-500 text-lg"></i> พร้อมใช้งาน <span id="countP" class="bg-white/80 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px]">0</span>
+                    </div>
+                    <div onclick="setStatusFilter('O')" id="btnFilterO" class="filter-btn filter-o px-4 py-2 font-extrabold text-slate-600 flex items-center gap-2 flex-grow justify-center">
+                        <i class="ph-fill ph-warning-circle text-rose-500 text-lg"></i> มีชำรุด <span id="countO" class="bg-white/80 border border-slate-200 px-2 py-0.5 rounded-lg text-[10px]">0</span>
+                    </div>
                 </div>
             </div>
         </div>
-        <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto bg-white/95 text-slate-700 px-3.5 py-2.5 rounded-xl shadow-lg border border-gray-100 flex items-center gap-2"><svg id="refreshIcon" class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><span class="font-semibold text-xs">โหลดใหม่</span></button>
+
+        <!-- ปุ่มโหลดข้อมูลใหม่ -->
+        <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto btn-refresh px-5 py-3 flex items-center justify-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+            <i id="refreshIcon" class="ph-bold ph-arrows-clockwise text-xl text-sky-500"></i>
+            <span class="font-extrabold text-slate-600 text-sm">รีเฟรชข้อมูล</span>
+        </button>
     </div>
 
     <script>
         let map; let markersLayer; let allStationData = []; let currentStatusSelection = 'ALL'; let isDashboardOpen = true;
-        const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลจำลองให้แสดงผล', location: '-', basin: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
+        const BASE_URL = 'https://ma-inspection-project.onrender.com';
+        
+        const mockData = [{ code: 'MOCK-01', name: 'ไม่มีข้อมูลจำลองให้แสดงผล', location: '-', basin: '-', period: '-', statusUsage: 'P', lat: 13.7563, lng: 100.5018, photos: [] }];
 
-        // === ตั้งค่ากลุ่มอุปกรณ์ ===
+        // แมปปิ้งอุปกรณ์ตรวจสอบการชำรุด
         const equipNames = {
-            power: "ระบบไฟฟ้าภายนอกภายใน", sta_cpu: "CPU Status", sta_ai: "AI Status", sta_di: "DI Status",
-            sta_do: "DO Status", sta_io: "IO Status", sta_m1: "Modem 1", sta_m2: "Modem 2", plc: "RTU PLC",
-            sta_p1: "Power Supply 1", sta_p2: "Power Supply 2", sta_cctv1: "CCTV1", sta_cctv2: "CCTV2",
-            sta_r: "Rain Gauge", sta_s: "Surge Protection", sta_wl: "Water Level (bubble)", sta_tro: "ท่อลม",
-            sta_gass: "ถังแก๊ส", sta_wl2: "Water Level (float)", sta_saling: "สายสลิง", sta_wl1: "Water Level (Radar)"
+            power: "ระบบไฟ", sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI",
+            sta_do: "DO", sta_io: "IO", sta_m1: "Modem1", sta_m2: "Modem2", plc: "PLC",
+            sta_p1: "Power1", sta_p2: "Power2", sta_cctv1: "CCTV1", sta_cctv2: "CCTV2",
+            sta_r: "RainGauge", sta_s: "Surge", sta_wl: "WL(bubble)", sta_tro: "ท่อลม",
+            sta_gass: "ถังแก๊ส", sta_wl2: "WL(float)", sta_saling: "สลิง", sta_wl1: "WL(Radar)"
         };
 
         const isBrokenValue = (val) => {
@@ -68,19 +183,59 @@
             return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง';
         };
 
+        const escapeHtml = (unsafe) => {
+            return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        };
+
+        // ฟังก์ชันจัดการ URL รูปภาพ (รองรับ Google Drive และโฟลเดอร์)
+        function getValidImageUrl(imagePath) {
+            if (!imagePath || imagePath.trim() === '') return null;
+            let path = imagePath.trim();
+            if (path.includes('/api/images/')) {
+                const fileId = path.split('/api/images/').pop().replace(/\//g, '');
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            } else if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
+                let fileId = null;
+                const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (matchFileD) fileId = matchFileD[1];
+                else {
+                    const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                    if (matchId) fileId = matchId[1];
+                }
+                if (fileId) return `https://drive.google.com/uc?export=view&id=${fileId}`;
+                if (!/^https?:\/\//i.test(path)) return `https://${path}`;
+                return path;
+            }
+            if (/^https?:\/\//i.test(path)) return path;
+            let cleanPath = path.replace(/\\/g, '/');
+            if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+            return `${BASE_URL}/${cleanPath.split('/').map(p => encodeURIComponent(p)).join('/')}`;
+        }
+
         function toggleDashboard() {
             isDashboardOpen = !isDashboardOpen;
-            const content = document.getElementById('dashboardContent'); const icon = document.getElementById('toggleIcon');
-            if (isDashboardOpen) { content.classList.replace('max-h-0', 'max-h-[500px]'); content.classList.replace('opacity-0', 'opacity-100'); icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>'; } 
-            else { content.classList.replace('max-h-[500px]', 'max-h-0'); content.classList.replace('opacity-100', 'opacity-0'); icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>'; }
+            const content = document.getElementById('dashboardContent'); 
+            const icon = document.getElementById('toggleIcon');
+            if (isDashboardOpen) { 
+                content.classList.replace('max-h-0', 'max-h-[500px]'); 
+                content.classList.replace('opacity-0', 'opacity-100'); 
+                icon.className = 'ph-bold ph-caret-up text-lg'; 
+            } else { 
+                content.classList.replace('max-h-[500px]', 'max-h-0'); 
+                content.classList.replace('opacity-100', 'opacity-0'); 
+                icon.className = 'ph-bold ph-caret-down text-lg'; 
+            }
         }
 
         async function loadData() {
             if (!map) return;
-            document.getElementById('refreshIcon').classList.add('spin');
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('animate-spin');
+            
             try {
-                const response = await fetch(`https://ma-inspection-project.onrender.com/api/inspections?t=${new Date().getTime()}`);
+                const response = await fetch(`${BASE_URL}/api/inspections?t=${new Date().getTime()}`);
                 const result = await response.json();
+                
                 if (result.success) {
                     const transformedData = [];
                     result.data.forEach(row => {
@@ -92,97 +247,169 @@
                         });
                         
                         let isSystemBroken = false;
-                        
-                        // กลุ่ม A
                         const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
-                        if (groupA.some(key => isBrokenValue(row[key]))) {
-                            isSystemBroken = true;
-                        }
-
-                        // กลุ่ม B1: Modem (ต้อง O ทั้งคู่ถึงจะพัง)
-                        if (isBrokenValue(row.sta_m1) && isBrokenValue(row.sta_m2)) {
-                            isSystemBroken = true;
-                        }
-
-                        // กลุ่ม B2: Power Supply (ต้อง O ทั้งคู่ถึงจะพัง)
-                        if (isBrokenValue(row.sta_p1) && isBrokenValue(row.sta_p2)) {
-                            isSystemBroken = true;
-                        }
+                        if (groupA.some(key => isBrokenValue(row[key]))) isSystemBroken = true;
+                        if (isBrokenValue(row.sta_m1) && isBrokenValue(row.sta_m2)) isSystemBroken = true;
+                        if (isBrokenValue(row.sta_p1) && isBrokenValue(row.sta_p2)) isSystemBroken = true;
 
                         transformedData.push({
-                            code: row.id_name || '-', name: row.name_id || 'ไม่ระบุชื่อ', location: row.geoAddress || row.install_status || '-', basin: row.code || '-',
-                            statusUsage: isSystemBroken ? 'O' : 'P', statusClean: row.clean ? row.clean.trim().toUpperCase() : '-',
-                            defects: defectsList.join(', '), remark: row.note || '-', comment: row.note2 || '-', lat: row.lat, lng: row.lon, photos: row.photos || []
+                            code: row.id_name || '-', 
+                            name: row.name_id || 'ไม่ระบุชื่อ', 
+                            location: row.geoAddress || row.install_status || '-', 
+                            basin: row.code || '-',
+                            period: row.saya || '-', // เก็บข้อมูลงวดที่ตรวจ
+                            statusUsage: isSystemBroken ? 'O' : 'P', 
+                            statusClean: row.clean ? row.clean.trim().toUpperCase() : '-',
+                            defects: defectsList.join(', '), 
+                            remark: row.note || '-', 
+                            comment: row.note2 || '-', 
+                            lat: row.lat, 
+                            lng: row.lon, 
+                            photos: row.photos || []
                         });
                     });
                     allStationData = transformedData.length > 0 ? transformedData : mockData;
                 }
-            } catch (err) { allStationData = mockData; } 
-            finally {
-                document.getElementById('refreshIcon').classList.remove('spin');
+            } catch (err) { 
+                allStationData = mockData; 
+                console.error("Load Data Error:", err);
+            } finally {
+                icon.classList.remove('animate-spin');
                 const loader = document.getElementById('loadingUI');
-                if(loader) { loader.style.opacity = '0'; setTimeout(() => loader.style.display = 'none', 300); }
-                updateBasinDropdown(); renderMap();
+                if(loader) { 
+                    loader.style.opacity = '0'; 
+                    setTimeout(() => loader.style.display = 'none', 300); 
+                }
+                updateBasinDropdown(); 
+                renderMap();
             }
         }
 
         function updateBasinDropdown() {
-            const select = document.getElementById('basinFilter'); const currentVal = select.value;
+            const select = document.getElementById('basinFilter'); 
+            const currentVal = select.value;
             const basins = [...new Set(allStationData.map(d => d.basin).filter(b => b && b !== '-'))].sort();
             let optionsHtml = '<option value="ALL">ทุกลุ่มน้ำ</option>';
             basins.forEach(b => optionsHtml += `<option value="${b}">${b}</option>`);
-            select.innerHTML = optionsHtml; if ([...select.options].some(o => o.value === currentVal)) select.value = currentVal;
+            select.innerHTML = optionsHtml; 
+            if ([...select.options].some(o => o.value === currentVal)) select.value = currentVal;
         }
 
         function setStatusFilter(status) {
             currentStatusSelection = status;
-            document.querySelectorAll('.filter-btn').forEach(btn => { btn.classList.remove('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700'); btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600'); });
+            document.querySelectorAll('.filter-btn').forEach(btn => { 
+                btn.classList.remove('active', 'border-sky-400', 'border-emerald-400', 'border-rose-400', 'shadow-sm'); 
+            });
             const activeBtn = document.getElementById('btnFilter' + status);
-            if (activeBtn) { activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600'); activeBtn.classList.add('active', 'border-blue-500', 'bg-blue-50', 'text-blue-700'); }
+            if (activeBtn) { activeBtn.classList.add('active', 'shadow-sm'); }
             renderMap();
         }
 
         function renderMap() {
             if (!markersLayer) return; markersLayer.clearLayers();
+            
             const selectedBasin = document.getElementById('basinFilter').value;
-            let finalData = selectedBasin !== 'ALL' ? allStationData.filter(d => d.basin === selectedBasin) : allStationData;
-            document.getElementById('countALL').innerText = finalData.length;
-            document.getElementById('countP').innerText = finalData.filter(d => d.statusUsage === 'P').length;
-            document.getElementById('countO').innerText = finalData.filter(d => d.statusUsage === 'O').length;
+            const selectedPeriod = document.getElementById('periodFilter').value;
+            
+            // 🌟 1. กรองตาม ลุ่มน้ำ และ งวดที่
+            let filteredData = allStationData.filter(d => {
+                const matchBasin = selectedBasin === 'ALL' || d.basin === selectedBasin;
+                // ตัดช่องว่างออกเพื่อให้เทียบ "งวดที่1" กับ "งวดที่ 1" ได้ตรงกัน
+                const matchPeriod = selectedPeriod === 'ALL' || (d.period && d.period.replace(/\s+/g, '') === selectedPeriod.replace(/\s+/g, ''));
+                return matchBasin && matchPeriod;
+            });
 
-            if (currentStatusSelection !== 'ALL') finalData = finalData.filter(d => d.statusUsage === currentStatusSelection);
+            // อัปเดตตัวเลขแสดงผล
+            document.getElementById('countALL').innerText = filteredData.length;
+            document.getElementById('countP').innerText = filteredData.filter(d => d.statusUsage === 'P').length;
+            document.getElementById('countO').innerText = filteredData.filter(d => d.statusUsage === 'O').length;
+
+            // 2. กรองตามสถานะการใช้งาน (P/O) ที่ปุ่ม 3D
+            if (currentStatusSelection !== 'ALL') {
+                filteredData = filteredData.filter(d => d.statusUsage === currentStatusSelection);
+            }
 
             const groupedData = {};
-            finalData.forEach(p => { const key = p.lat.toFixed(5)+','+p.lng.toFixed(5); if(!groupedData[key]) groupedData[key]=[]; groupedData[key].push(p); });
+            filteredData.forEach(p => { 
+                const key = p.lat.toFixed(5)+','+p.lng.toFixed(5); 
+                if(!groupedData[key]) groupedData[key]=[]; 
+                groupedData[key].push(p); 
+            });
             const bounds = [];
 
             Object.values(groupedData).forEach(group => {
-                const hasO = group.some(p => p.statusUsage === 'O'); const hasP = group.some(p => p.statusUsage === 'P');
-                let fc = hasO ? '#f43f5e' : (hasP ? '#10b981' : '#ffffff'); let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
+                const hasO = group.some(p => p.statusUsage === 'O'); 
+                const hasP = group.some(p => p.statusUsage === 'P');
+                
+                // สี Marker สไตล์พาสเทล
+                let fc = hasO ? '#fb7185' : (hasP ? '#34d399' : '#ffffff'); 
+                let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
 
                 let stationsHtml = group.map((p, i) => {
-                    const safeName = escapeHtml(p.name); const safeLoc = escapeHtml(p.location); const safeDefects = escapeHtml(p.defects); const safeRemark = escapeHtml(p.remark); const safeComment = escapeHtml(p.comment);
-                    const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-bold">สมบูรณ์</span>' : '<span class="text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded text-[10px] font-bold">ใช้ไม่ได้</span>';
-                    const cleanText = p.statusClean === 'P' ? '<span class="text-emerald-600 font-bold">ผ่าน</span>' : (p.statusClean === 'O' ? '<span class="text-rose-600 font-bold">ไม่ผ่าน</span>' : '-');
-                    const defectsHtml = safeDefects ? `<div class="mt-2 p-2 bg-rose-50 border border-rose-100 rounded text-[10px]"><div class="font-bold text-rose-800 mb-0.5">ชำรุด:</div><div class="text-rose-600">${safeDefects}</div></div>` : '';
-                    const extra = (safeRemark !== '-' ? `<div>หมายเหตุ: ${safeRemark}</div>` : '') + (safeComment !== '-' ? `<div>กรรมการ: ${safeComment}</div>` : '');
+                    const safeName = escapeHtml(p.name); const safeLoc = escapeHtml(p.location); 
+                    const safeDefects = escapeHtml(p.defects); const safeRemark = escapeHtml(p.remark); const safeComment = escapeHtml(p.comment);
                     
-                    let photoHtml = p.photos.length > 0 ? `<div class="mt-2 mb-1 relative border border-slate-200 rounded-lg overflow-hidden"><a href="${p.photos[0].webViewLink}" target="_blank"><img src="${p.photos[0].thumbnailUrl}" class="w-full h-24 object-cover"><div class="absolute bottom-0 w-full bg-slate-900/60 text-white text-center text-[9px] py-1">ดูภาพ (${p.photos.length})</div></a></div>` : '';
-                    return `<div class="p-3 ${i>0?'border-t border-slate-200':''}"><h3 class="text-sm font-bold text-slate-800 pb-1">${safeName}</h3>${photoHtml}<div class="text-xs mt-2 space-y-1"><div class="flex justify-between"><span class="text-slate-500">รหัส:</span><b>${p.code}</b></div><div class="flex justify-between gap-2"><span class="text-slate-500">ที่ตั้ง:</span><span class="text-right truncate" title="${safeLoc}">${safeLoc}</span></div><div class="flex justify-between"><span class="text-slate-500">สถานะ:</span>${usageText}</div>${defectsHtml}<div class="text-[10px] text-slate-600 mt-1">${extra}</div></div></div>`;
+                    const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-emerald-200 uppercase"><i class="ph-bold ph-check"></i> พร้อมใช้งาน</span>' : '<span class="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-rose-200 uppercase"><i class="ph-bold ph-warning"></i> ชำรุด</span>';
+                    const cleanText = p.statusClean === 'P' ? '<span class="text-emerald-600 font-bold">ผ่าน</span>' : (p.statusClean === 'O' ? '<span class="text-rose-600 font-bold">ไม่ผ่าน</span>' : '-');
+                    
+                    const defectsHtml = safeDefects ? `<div class="mt-2 p-2.5 bg-rose-50 border-2 border-rose-100 rounded-xl text-[10px]"><div class="font-extrabold text-rose-600 mb-1 flex items-center gap-1"><i class="ph-fill ph-wrench"></i> อุปกรณ์ชำรุด:</div><div class="text-rose-500 font-bold">${safeDefects}</div></div>` : '';
+                    const extra = (safeRemark !== '-' ? `<div class="bg-sky-50 p-2 rounded-lg border border-sky-100 mt-2"><span class="font-bold text-sky-600 block text-[9px] uppercase">หมายเหตุ</span>${safeRemark}</div>` : '') + 
+                                  (safeComment !== '-' ? `<div class="bg-amber-50 p-2 rounded-lg border border-amber-100 mt-1.5"><span class="font-bold text-amber-600 block text-[9px] uppercase">กรรมการ</span>${safeComment}</div>` : '');
+                    
+                    let photoHtml = '';
+                    if (p.photos.length > 0) {
+                        const imgUrl = getValidImageUrl(p.photos[0].thumbnailUrl || p.photos[0].webViewLink);
+                        const viewUrl = getValidImageUrl(p.photos[0].webViewLink);
+                        if (imgUrl) {
+                            photoHtml = `<div class="mt-2 mb-2 relative border-2 border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                <a href="${viewUrl}" target="_blank">
+                                    <img src="${imgUrl}" class="w-full h-28 object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x200/f1f5f9/94a3b8?text=Image+Not+Found';">
+                                    <div class="absolute bottom-0 w-full bg-slate-900/70 backdrop-blur-sm text-white text-center font-bold text-[9px] py-1.5 flex items-center justify-center gap-1">
+                                        <i class="ph-bold ph-images"></i> ดูภาพแนบทั้งหมด (${p.photos.length})
+                                    </div>
+                                </a>
+                            </div>`;
+                        }
+                    }
+                    
+                    return `
+                    <div class="p-4 ${i>0?'border-t-4 border-slate-100':''}">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="text-[13px] font-extrabold text-slate-800 leading-tight flex-grow pr-2">${safeName}</h3>
+                            ${usageText}
+                        </div>
+                        ${photoHtml}
+                        <div class="text-xs mt-2 space-y-1.5 font-medium">
+                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">รหัสสถานี</span><b class="text-sky-600">${p.code}</b></div>
+                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">ที่ตั้ง</span><span class="text-right truncate max-w-[60%] text-slate-700" title="${safeLoc}">${safeLoc}</span></div>
+                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">งวดตรวจ</span><span class="text-slate-700 font-bold bg-slate-200 px-2 py-0.5 rounded-md">${p.period}</span></div>
+                            ${defectsHtml}
+                            <div class="text-[10px] text-slate-600 mt-2">${extra}</div>
+                        </div>
+                    </div>`;
                 }).join('');
 
-                const circle = L.circleMarker([group[0].lat, group[0].lng], { radius: group.length>1?9:7, fillColor: fc, color: sc, weight: 2.5, fillOpacity: 0.95 });
+                const circle = L.circleMarker([group[0].lat, group[0].lng], { 
+                    radius: group.length>1?10:8, 
+                    fillColor: fc, color: sc, weight: 3, fillOpacity: 0.95 
+                });
+                
                 circle.bindTooltip(group.length>1 ? `${group.length} สถานี` : group[0].code, { permanent: true, direction: 'bottom', className: 'simple-tooltip' });
-                circle.bindPopup(`<div class="w-full max-h-[300px] overflow-y-auto custom-scrollbar bg-white">${stationsHtml}</div>`);
-                circle.addTo(markersLayer); bounds.push([group[0].lat, group[0].lng]);
+                circle.bindPopup(`<div class="w-full max-h-[350px] overflow-y-auto custom-scrollbar bg-white">${stationsHtml}</div>`);
+                circle.addTo(markersLayer); 
+                bounds.push([group[0].lat, group[0].lng]);
             });
+            
             if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
             L.control.zoom({ position: 'bottomright' }).addTo(map);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 }).addTo(map);
+            // เปลี่ยนธีมแผนที่ให้ดูสว่างเข้ากับ 3D Cartoon
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { 
+                attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 
+            }).addTo(map);
             markersLayer = L.layerGroup().addTo(map);
             setTimeout(loadData, 500);
         });
