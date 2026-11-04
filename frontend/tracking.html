@@ -11,7 +11,7 @@
     <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Leaflet JS & CSS (เปลี่ยนมาใช้ cdnjs ที่เสถียรกว่าในไทย) -->
+    <!-- Leaflet JS & CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     
@@ -223,9 +223,14 @@
             }
         }
 
-        // ===============================================
-        // การโหลดข้อมูล
-        // ===============================================
+        function forceCloseLoading() {
+            const loader = document.getElementById('loadingUI');
+            if(loader) { 
+                loader.style.opacity = '0'; 
+                setTimeout(() => loader.style.display = 'none', 300); 
+            }
+        }
+
         async function loadData() {
             const icon = document.getElementById('refreshIcon');
             if (icon) icon.classList.add('animate-spin');
@@ -238,7 +243,6 @@
                     const transformedData = [];
                     
                     result.data.forEach(row => {
-                        // ป้องกัน Error จากฐานข้อมูลที่มีค่า lat/lon เป็น string
                         const rLat = parseFloat(row.lat);
                         const rLon = parseFloat(row.lon);
                         
@@ -280,17 +284,8 @@
                 console.error("Load Data Error:", err);
             } finally {
                 if (icon) icon.classList.remove('animate-spin');
-                
-                // ถอดหน้าโหลดออก 100% แน่นอน
-                const loader = document.getElementById('loadingUI');
-                if(loader) { 
-                    loader.style.opacity = '0'; 
-                    setTimeout(() => loader.style.display = 'none', 300); 
-                }
-                
+                forceCloseLoading();
                 updateBasinDropdown(); 
-                
-                // ต้องชัวร์ว่าแผนที่พร้อมก่อนวาด
                 if (map) renderMap();
             }
         }
@@ -410,21 +405,34 @@
         }
 
         // ===============================================
-        // โหลดข้อมูลแผนที่เมื่อเปิดหน้าจอ
+        // สร้างแผนที่ ESRI 
         // ===============================================
         document.addEventListener('DOMContentLoaded', () => {
-            // สั่งโหลดข้อมูล API แบบขนานไปกับการสร้างแผนที่
-            loadData();
-
             try {
+                // รอแผนที่สร้างเสร็จก่อน ค่อยให้ระบบโหลดข้อมูล API
                 map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
-                L.control.zoom({ position: 'bottomright' }).addTo(map);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { 
-                    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 
-                }).addTo(map);
-                markersLayer = L.layerGroup().addTo(map);
+                
+                map.whenReady(() => {
+                    L.control.zoom({ position: 'bottomright' }).addTo(map);
+                    
+                    // ใช้แผนที่ ESRI แบบเดิมที่เสถียรและโหลดไวที่สุด
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
+                        attribution: '&copy; Esri', 
+                        maxZoom: 19 
+                    }).addTo(map);
+                    
+                    markersLayer = L.layerGroup().addTo(map);
+
+                    // สร้างแผนที่เสร็จแล้วค่อยไปโหลด API
+                    loadData();
+                });
+
+                // ตั้งเวลาทำลาย Loading แบบฉุกเฉิน (กันค้างเผื่อแผนที่โหลดไม่ขึ้น)
+                setTimeout(forceCloseLoading, 8000);
+
             } catch (error) {
                 console.error("Map Initialization Failed:", error);
+                forceCloseLoading();
             }
         });
     </script>
