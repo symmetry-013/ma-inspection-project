@@ -11,16 +11,25 @@ const { google } = require('googleapis');
 const axios = require('axios');
 
 const { generateInspectionPDF } = require('./pdfGenerator');
-// นำเข้าข้อมูลลุ่มน้ำและตารางอุปกรณ์จาก name_sv.js เพื่อให้ข้อมูลตรงกันทุกจุด 100%
 const { equipmentMap: svEquipmentMap, hardcodedBasins: svHardcodedBasins } = require('./name_sv');
+
+// นำเข้าข้อมูลอุปกรณ์จำลองจากระบบ MAM (ไฟล์ sv.js)
+let mamEquipmentData = [];
+try {
+    const svData = require('./sv');
+    mamEquipmentData = svData.mamEquipmentData || [];
+    console.log(`✅ โหลดข้อมูลจำลองอุปกรณ์ MAM (sv.js) สำเร็จ: ${mamEquipmentData.length} รายการ`);
+} catch (err) {
+    console.warn('⚠️ ไม่พบไฟล์ sv.js หรือโหลดข้อมูลไม่สำเร็จ:', err.message);
+}
 
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 const uploadDir = path.join(__dirname, 'uploads');
@@ -39,6 +48,12 @@ function getThaiFiscalYear(dateInput, explicitYear) {
     let thaiYear = d.getFullYear() + 543;
     if (d.getMonth() >= 9) thaiYear += 1;
     return String(thaiYear);
+}
+
+// ฟังก์ชันจัดรูปแบบรหัสสถานีให้เปรียบเทียบกันได้แม่นยำ (ตัดช่องว่างและวงเล็บต่อท้าย)
+function normalizeStationCode(code) {
+    if (!code) return '';
+    return String(code).trim().split('(')[0].trim().replace(/\s+/g, '').toUpperCase();
 }
 
 // ==========================================
@@ -66,6 +81,19 @@ const CalibrationSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 }, { strict: false, timestamps: true });
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
+
+// Schema สำหรับบันทึกผลการตรวจสอบอุปกรณ์รายชิ้นจากระบบ MAM
+const EquipmentCheckSchema = new mongoose.Schema({
+    contractYear: String,
+    period: String,
+    basin: String,
+    station_code: String,
+    station_name: String,
+    items: Array,
+    inspector_note: String,
+    timestamp: { type: Date, default: Date.now }
+}, { strict: false, timestamps: true });
+const EquipmentCheck = mongoose.model('EquipmentCheck', EquipmentCheckSchema);
 
 const OAuthToken = mongoose.model('OAuthToken', new mongoose.Schema({
     key: { type: String, unique: true, default: 'google_drive' },
@@ -315,7 +343,6 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
         const basin = formData.code || 'ไม่ระบุลุ่มน้ำ';
         const station = formData.id_name || 'ไม่ระบุสถานี';
         
-        // สร้างโฟลเดอร์ ปีงบประมาณ > งวดที่ > ลุ่มน้ำ > รหัสสถานี
         const targetFolderId = await getTargetFolderId([yearFolder, term, basin, station]);
 
         const photos = [];
@@ -366,7 +393,6 @@ app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req,
         const basin = formData.myData0 || 'ไม่ระบุลุ่มน้ำ';
         const station = formData.myData1 || 'ไม่ระบุสถานี';
         
-        // สร้างโฟลเดอร์ ปีงบประมาณ > งวดที่ > ลุ่มน้ำ > รหัสสถานี
         const targetFolderId = await getTargetFolderId([yearFolder, term, basin, station]);
 
         const fileFields = ['myFile', 'myFile2', 'myFile3', 'myFile4', 'myFile5', 'myFile6', 'myFile7', 'myFile8'];
@@ -401,8 +427,136 @@ app.get('/api/calibrations', async (req, res) => {
     }
 });
 
+// ==========================================
+// 7. API: ระบบตรวจสอบอุปกรณ์ประจำสถานีจาก MAM (sv.js)
+// ==========================================
+
+// 7.1 ดึงรายชื่อสถานีทั้งหมดที่มีในไฟล์ sv.js ตามลุ่มน้ำ
+app.get('/api/mam/stations', (req, res) => {
+    try {
+        const { basin } = req.query;
+        let filtered = mamEquipmentData;
+        if (basin && basin !== 'ALL') {
+            filtered = filtered.filter(item => item.basin === basin || item.original_basin === basin);
+        }
+        const stationMap = {};
+        filtered.forEach(item => {
+            if (item.station_code && !stationMap[item.station_code]) {
+                stationMap[item.station_code] = item.station_name || item.station_code;
+            }
+        });
+        res.status(200).json({ success: true, stations: stationMap });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 7.2 ดึงรายการอุปกรณ์ของสถานีจาก sv.js พร้อมประวัติการตรวจล่าสุดในงวด/ปีงบนั้น
+app.get('/api/mam/equipment', async (req, res) => {
+    try {
+        const { basin, station, year, period } = req.query;
+        if (!station) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสสถานี' });
+        }
+
+        const normQueryStation = normalizeStationCode(station);
+
+        // ค้นหาอุปกรณ์จาก sv.js (รองรับทั้งรหัสตรงตัว และรหัสที่มีวงเล็บต่อท้าย)
+        let items = mamEquipmentData.filter(item => {
+            const matchExact = String(item.station_code).trim().toUpperCase() === String(station).trim().toUpperCase();
+            const matchNorm = normalizeStationCode(item.station_code) === normQueryStation;
+            return matchExact || matchNorm;
+        });
+
+        // ถ้าระบุลุ่มน้ำมาด้วย และมีหลายสถานีชื่อซ้ำกัน ให้กรองลุ่มน้ำซ้ำอีกครั้ง
+        if (basin && basin !== 'ALL' && items.length > 0) {
+            const basinFiltered = items.filter(item => item.basin === basin || item.original_basin === basin);
+            if (basinFiltered.length > 0) items = basinFiltered;
+        }
+
+        // ตรวจสอบว่าเคยบันทึกผลการตรวจอุปกรณ์ของสถานีนี้ใน ปีงบประมาณ และ งวด นี้หรือยัง
+        let savedRecord = null;
+        if (year && period) {
+            savedRecord = await EquipmentCheck.findOne({
+                contractYear: String(year).trim(),
+                period: String(period).trim(),
+                station_code: String(station).trim()
+            }).sort({ timestamp: -1 }).lean();
+        }
+
+        res.status(200).json({
+            success: true,
+            count: items.length,
+            data: items,
+            savedRecord: savedRecord
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 7.3 บันทึกผลการตรวจสอบอุปกรณ์รายชิ้นลง MongoDB (และอัปเดตหรือสร้างใหม่ได้)
+app.post('/api/mam/equipment-check', async (req, res) => {
+    try {
+        const { contractYear, period, basin, station_code, station_name, items, inspector_note } = req.body;
+        if (!station_code || !Array.isArray(items)) {
+            return res.status(400).json({ success: false, message: 'ข้อมูลสถานีหรือรายการอุปกรณ์ไม่ครบถ้วน' });
+        }
+
+        const now = new Date();
+        const yearVal = getThaiFiscalYear(now, contractYear);
+
+        const recordData = {
+            contractYear: yearVal,
+            period: period || 'งวดที่1',
+            basin: basin || '-',
+            station_code: station_code,
+            station_name: station_name || station_code,
+            items: items,
+            inspector_note: inspector_note || '',
+            timestamp: now
+        };
+
+        // บันทึกข้อมูลการตรวจอุปกรณ์ลงคอลเลกชัน EquipmentCheck
+        const saved = await EquipmentCheck.findOneAndUpdate(
+            {
+                contractYear: recordData.contractYear,
+                period: recordData.period,
+                station_code: recordData.station_code
+            },
+            recordData,
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'บันทึกผลการตรวจสอบอุปกรณ์จากระบบ MAM เรียบร้อยแล้ว',
+            data: saved
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 7.4 ดึงประวัติการตรวจอุปกรณ์จาก MAM ทั้งหมด
+app.get('/api/mam/equipment-checks', async (req, res) => {
+    try {
+        const { year, period, basin, station } = req.query;
+        const query = {};
+        if (year && year !== 'ALL' && year !== 'all') query.contractYear = String(year);
+        if (period && period !== 'ALL' && period !== 'all') query.period = String(period);
+        if (basin && basin !== 'ALL' && basin !== 'all') query.basin = String(basin);
+        if (station && station !== 'ALL' && station !== 'all') query.station_code = String(station);
+
+        const records = await EquipmentCheck.find(query).sort({ timestamp: -1 }).lean();
+        res.status(200).json({ success: true, data: records });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // ===============================================
-// 7. การสร้าง PDF (ใช้งานร่วมกับ name_sv.js / constants.js)
+// 8. การสร้าง PDF (ใช้งานร่วมกับ name_sv.js / constants.js)
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -430,7 +584,6 @@ app.get('/api/report/pdf', async (req, res) => {
             calibrationData = calibrationData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
         }
 
-        // ดึง equipmentMap จาก name_sv.js เป็นหลักเพื่อความสอดคล้อง
         const fallbackEquipmentMap = svEquipmentMap || {
             clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
             online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
@@ -465,7 +618,7 @@ app.get('/api/report/pdf', async (req, res) => {
 });
 
 // ==========================================
-// 8. Webhook (สำหรับทีมรับจ้าง MAM)
+// 9. Webhook (สำหรับทีมรับจ้าง MAM)
 // ==========================================
 app.post('/webhook/update-station', async (req, res) => {
     try {
