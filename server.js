@@ -75,9 +75,11 @@ function formatPeriodLabel(periodInput) {
     return `งวดที่${num}`;
 }
 
-// Middleware ตรวจสอบสิทธิ์สำหรับ /api/inspections และ /api/mam/*
-const ADMIN_KEY = process.env.ADMIN_KEY || 'MAM_Secret_2026';
-const CRON_SECRET = process.env.CRON_SECRET || ADMIN_KEY;
+// ==========================================
+// แก้ไข: Hardcode รหัสผ่านสำหรับสั่ง Sync และจัดการ Middleware ให้ชัดเจน
+// ==========================================
+const ADMIN_KEY = 'MAM_Secret_2026';
+const CRON_SECRET = 'MAM_Secret_2026';
 
 function checkApiAuth(req, res, next) {
     if (process.env.REQUIRE_API_AUTH !== 'true') {
@@ -482,6 +484,7 @@ app.get('/api/calibrations', checkApiAuth, async (req, res) => {
 // 7. API: ระบบเชื่อมต่อข้อมูล MAM (mam_equipment & mam_tor_tasks)
 // ==========================================
 
+// 7.1 สั่งซิงก์ไฟล์ CSV จากระบบ MAM เข้าสู่ MongoDB
 app.all('/api/mam/sync', async (req, res) => {
     try {
         const key = req.headers['x-api-key'] ||
