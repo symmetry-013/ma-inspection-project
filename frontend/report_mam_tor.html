@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานผลตรวจรับงานตาม TOR (MAM)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- นำเข้าข้อมูลส่วนกลาง -->
+    <script src="constants.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc; 
+            color: #334155;
+            background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
+
+        .puffy-container {
+            background-color: #ffffff;
+            border-radius: 24px;
+            border: 4px solid #f1f5f9;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+        }
+
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+        }
+
+        .btn-puffy-violet {
+            background-color: #8b5cf6;
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 6px 0 #7c3aed;
+            transition: all 0.1s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-puffy-violet:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #7c3aed; }
+        .btn-puffy-violet:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; cursor: not-allowed; opacity: 0.7; }
+
+        .report-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .report-card:hover { border-color: #ddd6fe; box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.1); }
+        
+        .table-row-hover:hover { background-color: #f5f3ff; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+    
+    <!-- Header -->
+    <header class="bg-white/90 backdrop-blur-md border-b-4 border-violet-100 sticky top-0 z-50 py-3 shadow-sm">
+        <div class="container mx-auto px-4 flex justify-between items-center max-w-6xl">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-violet-500 hover:border-violet-200 transition-all shadow-sm active:translate-y-1 shrink-0">
+                    <i class="ph-bold ph-house text-2xl"></i>
+                </a>
+                <div class="hidden md:flex w-12 h-12 rounded-2xl bg-violet-100 border-2 border-violet-300 items-center justify-center shadow-sm">
+                    <i class="ph-fill ph-seal-check text-violet-500 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                        รายงานผลตรวจรับงาน TOR <span class="text-violet-500">(MAM)</span>
+                    </h1>
+                    <p class="text-xs font-bold text-slate-400">ระบบประมวลผลและสรุปผลการประเมินงานบำรุงรักษาและงานพิเศษตามสัญญา</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+        
+        <!-- ส่วนกรองข้อมูล (Filter) -->
+        <div class="puffy-container p-6 md:p-8 mb-8 border-t-8 border-t-violet-400">
+            <h2 class="text-base md:text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+                <i class="ph-bold ph-funnel text-violet-500 text-xl"></i> ตัวกรองรายงานผล TOR
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">ปีงบประมาณ</label>
+                    <select id="filterYear" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกปีงบประมาณ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">งวดงาน</label>
+                    <select id="filterPeriod" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกงวด --</option>
+                        <option value="1">งวดที่ 1</option>
+                        <option value="2">งวดที่ 2</option>
+                        <option value="3">งวดที่ 3</option>
+                        <option value="4">งวดที่ 4</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">กลุ่มลุ่มน้ำ</label>
+                    <select id="filterBasin" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกกลุ่มลุ่มน้ำ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">ค้นหารหัสสถานี</label>
+                    <input type="text" id="filterStation" placeholder="เช่น TM.164 (ปล่อยว่างเพื่อดูทั้งหมด)" class="w-full p-3 text-sm rounded-xl puffy-input uppercase">
+                </div>
+            </div>
+
+            <button type="button" onclick="fetchTorReports()" id="btnSearch" 
+                    class="btn-puffy-violet w-full font-extrabold py-3.5 text-sm md:text-base flex items-center justify-center gap-2">
+                <i class="ph-bold ph-magnifying-glass text-xl"></i> ค้นหารายงาน TOR
+            </button>
+        </div>
+
+        <!-- แถบสรุปภาพรวม (Summary Stats) -->
+        <div id="summaryStats" class="hidden grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-violet-50 text-violet-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-clipboard-text"></i></div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase">ตรวจรับแล้ว</span>
+                    <span id="statTotal" class="block text-2xl font-black text-slate-700">0 สถานี</span>
+                </div>
+            </div>
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-list-checks"></i></div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase">รายการประเมินรวม</span>
+                    <span id="statTasks" class="block text-2xl font-black text-slate-700">0 รายการ</span>
+                </div>
+            </div>
+            <div class="bg-white border-2 border-emerald-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-check-circle"></i></div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase">ผลประเมิน: ผ่าน</span>
+                    <span id="statPass" class="block text-2xl font-black text-emerald-600">0</span>
+                </div>
+            </div>
+            <div class="bg-white border-2 border-rose-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-x-circle"></i></div>
+                <div>
+                    <span class="block text-xs font-bold text-slate-400 uppercase">ผลประเมิน: ไม่ผ่าน</span>
+                    <span id="statFail" class="block text-2xl font-black text-rose-600">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงรายงาน (Report Container) -->
+        <div id="reportsContainer" class="space-y-6">
+            <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border-4 border-dashed border-slate-200">
+                <i class="ph-fill ph-magnifying-glass text-5xl mb-3 text-slate-300"></i>
+                <p class="font-bold text-slate-500">กรุณากดปุ่ม "ค้นหารายงาน TOR" เพื่อดูข้อมูล</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+            ? '' : 'https://ma-inspection-project.onrender.com';
+
+        const safeEscape = (str) => String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+        window.onload = () => {
+            const filterYear = document.getElementById("filterYear");
+            const startYear = 2568;
+            const currentYear = new Date().getFullYear() + 543 + (new Date().getMonth() >= 9 ? 1 : 0);
+            
+            for (let i = 0; i <= 10; i++) {
+                const y = startYear + i;
+                filterYear.innerHTML += `<option value="${y}">${y}</option>`;
+            }
+            filterYear.value = currentYear;
+
+            const filterBasin = document.getElementById("filterBasin");
+            if (typeof hardcodedBasins !== 'undefined') {
+                hardcodedBasins.forEach(b => {
+                    filterBasin.innerHTML += `<option value="${b}">${b}</option>`;
+                });
+            }
+            
+            fetchTorReports();
+        };
+
+        async function fetchTorReports() {
+            const year = document.getElementById("filterYear").value;
+            const period = document.getElementById("filterPeriod").value;
+            const basin = document.getElementById("filterBasin").value;
+            const station = document.getElementById("filterStation").value;
+            const btn = document.getElementById("btnSearch");
+            const container = document.getElementById("reportsContainer");
+            const stats = document.getElementById("summaryStats");
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังค้นหา...';
+            container.innerHTML = `<div class="py-16 text-center text-violet-500"><i class="ph-bold ph-spinner animate-spin text-4xl mb-2"></i><p class="font-bold">กำลังโหลดข้อมูลรายงาน TOR...</p></div>`;
+            stats.classList.add("hidden");
+
+            try {
+                const url = `${API_BASE}/api/mam/report/tor?year=${year}&period=${period}&basin=${encodeURIComponent(basin)}&station=${encodeURIComponent(station)}`;
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    renderTorReports(result.data);
+                } else {
+                    throw new Error(result.message || "ดึงรายงานไม่สำเร็จ");
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="bg-rose-50 border-2 border-rose-200 p-8 rounded-2xl text-center">
+                        <i class="ph-fill ph-warning-circle text-4xl text-rose-500 mb-2"></i>
+                        <p class="font-bold text-rose-600">${safeEscape(error.message)}</p>
+                    </div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph-bold ph-magnifying-glass text-xl"></i> ค้นหารายงาน TOR';
+            }
+        }
+
+        function getTorResultBadge(res) {
+            if (res === 'ผ่าน') return '<span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg text-xs font-extrabold border border-emerald-200 inline-flex items-center gap-1"><i class="ph-bold ph-check-circle"></i> ผ่าน</span>';
+            if (res === 'ไม่ผ่าน') return '<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-lg text-xs font-extrabold border border-rose-200 inline-flex items-center gap-1"><i class="ph-bold ph-x-circle"></i> ไม่ผ่าน</span>';
+            return `<span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-lg text-xs font-extrabold border border-amber-200 inline-flex items-center gap-1"><i class="ph-bold ph-clock"></i> ${safeEscape(res || 'รอดำเนินการ')}</span>`;
+        }
+
+        function renderTorReports(reports) {
+            const container = document.getElementById("reportsContainer");
+            const stats = document.getElementById("summaryStats");
+            
+            if (!reports || reports.length === 0) {
+                container.innerHTML = `
+                    <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border-4 border-dashed border-slate-200">
+                        <i class="ph-fill ph-empty text-5xl mb-3 text-slate-300"></i>
+                        <p class="font-bold text-slate-500 text-lg">ไม่พบข้อมูลรายงานการตรวจรับ TOR ตามเงื่อนไข</p>
+                    </div>`;
+                return;
+            }
+
+            let html = "";
+            let totalTasks = 0;
+            let totalPass = 0;
+            let totalFail = 0;
+
+            reports.forEach((report) => {
+                const dateStr = new Date(report.timestamp).toLocaleString('th-TH', { 
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                });
+
+                let passCount = 0, failCount = 0;
+                let evalHtml = "";
+
+                if (Array.isArray(report.evaluations)) {
+                    report.evaluations.forEach((ev, i) => {
+                        totalTasks++;
+                        const r = ev.result || 'รอดำเนินการ';
+                        if (r === 'ผ่าน') { passCount++; totalPass++; }
+                        else if (r === 'ไม่ผ่าน') { failCount++; totalFail++; }
+
+                        evalHtml += `
+                            <tr class="border-b border-slate-100 table-row-hover text-xs">
+                                <td class="p-3 text-center text-slate-400 font-bold">${i + 1}</td>
+                                <td class="p-3 font-bold text-slate-800">
+                                    ${safeEscape(ev.task_name)}
+                                    <span class="block text-[10px] text-slate-400 font-normal">ประเภท: ${safeEscape(ev.task_type)} (${safeEscape(ev.task_key)})</span>
+                                </td>
+                                <td class="p-3 text-center">${getTorResultBadge(r)}</td>
+                                <td class="p-3 text-slate-600 font-medium">${safeEscape(ev.comment || '-')}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                html += `
+                <div class="report-card bg-white">
+                    <div class="bg-slate-50 p-4 md:p-5 border-b border-slate-200 flex flex-col md:flex-row md:items-start justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="bg-violet-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded uppercase tracking-wider">ปี ${safeEscape(report.contractYear)} | งวดที่ ${safeEscape(report.period)}</span>
+                                <span class="bg-slate-200 text-slate-600 text-[10px] font-bold px-2.5 py-0.5 rounded">${safeEscape(report.basin)}</span>
+                            </div>
+                            <h3 class="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2">
+                                <i class="ph-fill ph-map-pin text-violet-500"></i> ${safeEscape(report.station_id)} - ${safeEscape(report.station_name)}
+                            </h3>
+                            <p class="text-xs font-bold text-slate-500 mt-1"><i class="ph-bold ph-calendar-blank"></i> บันทึกผลตรวจรับเมื่อ: ${dateStr}</p>
+                        </div>
+                        <div class="flex gap-3 bg-white p-2.5 rounded-xl border border-slate-200 shrink-0 shadow-sm">
+                            <div class="text-center px-3 border-r border-slate-100">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase">ผ่าน</span>
+                                <span class="block text-lg font-black text-emerald-600">${passCount}</span>
+                            </div>
+                            <div class="text-center px-3">
+                                <span class="block text-[10px] font-bold text-slate-400 uppercase">ไม่ผ่าน</span>
+                                <span class="block text-lg font-black text-rose-600">${failCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${report.committee_note ? `
+                    <div class="px-4 md:px-5 py-3 bg-violet-50/50 border-b border-violet-100 text-violet-900 text-xs font-bold flex items-start gap-2">
+                        <i class="ph-fill ph-chat-centered-text text-violet-500 text-base mt-0.5"></i>
+                        <span><b>ความเห็นคณะกรรมการ:</b> ${safeEscape(report.committee_note)}</span>
+                    </div>` : ''}
+
+                    <div class="overflow-x-auto p-1">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/80 text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                                    <th class="p-3 font-bold text-center w-10">#</th>
+                                    <th class="p-3 font-bold w-1/3">รายการตรวจสอบตาม TOR</th>
+                                    <th class="p-3 font-bold text-center w-36">ผลการประเมิน</th>
+                                    <th class="p-3 font-bold">ความเห็นกรรมการรายข้อ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${evalHtml || '<tr><td colspan="4" class="p-4 text-center text-xs text-slate-400">ไม่มีรายการประเมิน</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById("statTotal").textContent = `${reports.length} สถานี`;
+            document.getElementById("statTasks").textContent = `${totalTasks} รายการ`;
+            document.getElementById("statPass").textContent = totalPass;
+            document.getElementById("statFail").textContent = totalFail;
+            stats.classList.remove("hidden");
+            stats.classList.add("grid");
+
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
