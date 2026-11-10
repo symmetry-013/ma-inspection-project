@@ -12,15 +12,22 @@ const axios = require('axios');
 
 const { generateInspectionPDF } = require('./pdfGenerator');
 const { equipmentMap: svEquipmentMap, hardcodedBasins: svHardcodedBasins } = require('./name_sv');
+const {
+    Equipment: MamEquipment,
+    TorTask: MamTorTask,
+    MamSyncMeta,
+    cleanExcelFormulaEscape,
+    importFromMam
+} = require('./mamImporter');
 
-// นำเข้าข้อมูลอุปกรณ์จำลองจากระบบ MAM (ไฟล์ sv.js)
-let mamEquipmentData = [];
+// โหลดข้อมูลจำลองจาก sv.js เผื่อใช้เป็น Fallback ตอนที่ยังไม่ได้ซิงก์ CSV จริงจาก MAM
+let fallbackMamEquipment = [];
 try {
     const svData = require('./sv');
-    mamEquipmentData = svData.mamEquipmentData || [];
-    console.log(`✅ โหลดข้อมูลจำลองอุปกรณ์ MAM (sv.js) สำเร็จ: ${mamEquipmentData.length} รายการ`);
+    fallbackMamEquipment = svData.mamEquipmentData || [];
+    console.log(`✅ โหลดข้อมูลสำรอง (sv.js) สำเร็จ: ${fallbackMamEquipment.length} รายการ`);
 } catch (err) {
-    console.warn('⚠️ ไม่พบไฟล์ sv.js หรือโหลดข้อมูลไม่สำเร็จ:', err.message);
+    console.warn('ℹ️ ไม่พบไฟล์ sv.js (ระบบจะใช้ข้อมูลจาก MongoDB mam_equipment เป็นหลัก)');
 }
 
 const app = express();
@@ -38,7 +45,9 @@ if (!fs.existsSync(uploadDir)) {
 }
 app.use('/uploads', express.static(uploadDir));
 
-// ฟังก์ชันช่วยคำนวณปีงบประมาณไทย (ต.ค. - ก.ย.)
+// ==========================================
+// ฟังก์ชันช่วยเหลือทั่วไป (Helpers)
+// ==========================================
 function getThaiFiscalYear(dateInput, explicitYear) {
     if (explicitYear && String(explicitYear).trim() !== '' && explicitYear !== 'all' && explicitYear !== 'ALL') {
         return String(explicitYear).trim();
@@ -50,10 +59,44 @@ function getThaiFiscalYear(dateInput, explicitYear) {
     return String(thaiYear);
 }
 
-// ฟังก์ชันจัดรูปแบบรหัสสถานีให้เปรียบเทียบกันได้แม่นยำ (ตัดช่องว่างและวงเล็บต่อท้าย)
 function normalizeStationCode(code) {
     if (!code) return '';
     return String(code).trim().split('(')[0].trim().replace(/\s+/g, '').toUpperCase();
+}
+
+// แปลงคำว่า "งวดที่1" หรือ "งวดที่ 1" ให้เป็นเลข "1" สำหรับค้นหาใน mam_tor_tasks
+function parsePeriodNumber(periodInput) {
+    if (!periodInput) return '1';
+    const match = String(periodInput).match(/\d+/);
+    return match ? match[0] : String(periodInput).trim();
+}
+
+// แปลงเลขงวด "1" ให้เป็นรูปแบบ "งวดที่1"
+function formatPeriodLabel(periodInput) {
+    const num = parsePeriodNumber(periodInput);
+    return `งวดที่${num}`;
+}
+
+// Middleware ตรวจสอบสิทธิ์สำหรับ /api/inspections และ /api/mam/*
+// (เปิดใช้งานจริงได้ด้วยการตั้งค่า REQUIRE_API_AUTH=true ใน .env)
+const ADMIN_KEY = process.env.ADMIN_KEY || 'MAM_Secret_2026';
+const CRON_SECRET = process.env.CRON_SECRET || ADMIN_KEY;
+
+function checkApiAuth(req, res, next) {
+    if (process.env.REQUIRE_API_AUTH !== 'true') {
+        return next();
+    }
+    const token = req.headers['x-api-key'] ||
+                  (req.headers['authorization'] ? req.headers['authorization'].replace(/^Bearer\s+/i, '') : '') ||
+                  req.query.key;
+    if (token && (token === ADMIN_KEY || token === process.env.APP_ACCESS_KEY)) {
+        return next();
+    }
+    return res.status(401).json({
+        success: false,
+        error: 'Unauthorized: กรุณาระบุ API Key หรือเข้าสู่ระบบ',
+        code: 'UNAUTHORIZED'
+    });
 }
 
 // ==========================================
@@ -82,7 +125,7 @@ const CalibrationSchema = new mongoose.Schema({
 }, { strict: false, timestamps: true });
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
-// Schema สำหรับบันทึกผลการตรวจสอบอุปกรณ์รายชิ้นจากระบบ MAM
+// บันทึกผลการตรวจอุปกรณ์รายชิ้นของกรรมการ
 const EquipmentCheckSchema = new mongoose.Schema({
     contractYear: String,
     period: String,
@@ -94,6 +137,20 @@ const EquipmentCheckSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 }, { strict: false, timestamps: true });
 const EquipmentCheck = mongoose.model('EquipmentCheck', EquipmentCheckSchema);
+
+// บันทึกผลการตรวจรับงานตาม TOR ของกรรมการ
+const TorCheckSchema = new mongoose.Schema({
+    contractYear: String,
+    period: String,
+    basin: String,
+    station_id: String,
+    station_name: String,
+    mam_record_id: String,
+    evaluations: Array,
+    committee_note: String,
+    timestamp: { type: Date, default: Date.now }
+}, { strict: false, timestamps: true });
+const TorCheck = mongoose.model('TorCheck', TorCheckSchema);
 
 const OAuthToken = mongoose.model('OAuthToken', new mongoose.Schema({
     key: { type: String, unique: true, default: 'google_drive' },
@@ -108,7 +165,6 @@ const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive'];
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `https://ma-inspection-project.onrender.com/auth/google/callback`;
-const ADMIN_KEY = process.env.ADMIN_KEY || 'MAM_Secret_2026'; 
 const GOOGLE_DRIVE_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '1YYa-Cu1vu-Ei9a0qpJMFOTJxmQPN2srv';
 
 let driveAuthorized = false;
@@ -363,7 +419,7 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     }
 });
 
-app.get('/api/inspections', async (req, res) => {
+app.get('/api/inspections', checkApiAuth, async (req, res) => {
     try {
         const data = await Inspection.find().sort({ timestamp: -1, createdAt: -1 }).lean();
         res.status(200).json({ success: true, data: data });
@@ -418,7 +474,7 @@ app.post('/api/calibration', upload.fields(calibrationUploadFields), async (req,
     }
 });
 
-app.get('/api/calibrations', async (req, res) => {
+app.get('/api/calibrations', checkApiAuth, async (req, res) => {
     try {
         const data = await Calibration.find().sort({ timestamp: -1, createdAt: -1 }).lean();
         res.status(200).json({ success: true, data: data });
@@ -428,66 +484,188 @@ app.get('/api/calibrations', async (req, res) => {
 });
 
 // ==========================================
-// 7. API: ระบบตรวจสอบอุปกรณ์ประจำสถานีจาก MAM (sv.js)
+// 7. API: ระบบเชื่อมต่อข้อมูล MAM (mam_equipment & mam_tor_tasks)
 // ==========================================
 
-// 7.1 ดึงรายชื่อสถานีทั้งหมดที่มีในไฟล์ sv.js ตามลุ่มน้ำ
-app.get('/api/mam/stations', (req, res) => {
+// 7.1 สั่งซิงก์ไฟล์ CSV จากระบบ MAM เข้าสู่ MongoDB (รองรับการเรียกจาก Cron ภายนอกเวลา 07:00 น.)
+app.all('/api/mam/sync', async (req, res) => {
+    try {
+        const key = req.headers['x-api-key'] ||
+                    (req.headers['authorization'] ? req.headers['authorization'].replace(/^Bearer\s+/i, '') : '') ||
+                    req.query.key;
+
+        if (key !== CRON_SECRET && key !== ADMIN_KEY) {
+            return res.status(401).json({ success: false, message: 'Forbidden: Invalid Sync Key' });
+        }
+
+        const year = req.query.year || req.body?.year || getThaiFiscalYear(new Date());
+        const force = req.query.force === 'true' || req.body?.force === true;
+
+        const result = await importFromMam(year, { force });
+        res.status(200).json({
+            success: true,
+            message: `ซิงก์ข้อมูลจากระบบ MAM ปีสัญญา ${year} สำเร็จ`,
+            result
+        });
+    } catch (error) {
+        console.error('❌ MAM Sync Error:', error.message);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ดูสถานะการซิงก์ล่าสุด
+app.get('/api/mam/sync-status', checkApiAuth, async (req, res) => {
+    try {
+        const meta = await MamSyncMeta.find().lean();
+        const equipCount = await MamEquipment.countDocuments();
+        const taskCount = await MamTorTask.countDocuments();
+        res.status(200).json({
+            success: true,
+            collections: { mam_equipment: equipCount, mam_tor_tasks: taskCount },
+            meta
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 7.2 ดึงรายชื่อสถานีตามลุ่มน้ำ (อ่านจาก mam_equipment เป็นหลัก หากว่างให้ใช้ sv.js)
+app.get('/api/mam/stations', checkApiAuth, async (req, res) => {
     try {
         const { basin } = req.query;
-        let filtered = mamEquipmentData;
-        if (basin && basin !== 'ALL') {
-            filtered = filtered.filter(item => item.basin === basin || item.original_basin === basin);
-        }
         const stationMap = {};
-        filtered.forEach(item => {
-            if (item.station_code && !stationMap[item.station_code]) {
-                stationMap[item.station_code] = item.station_name || item.station_code;
+
+        const dbCount = await MamEquipment.estimatedDocumentCount();
+        if (dbCount > 0) {
+            const query = (basin && basin !== 'ALL') ? { basin: String(basin).trim() } : {};
+            const docs = await MamEquipment.find(query, { station_id: 1, station_name: 1 }).lean();
+            docs.forEach(item => {
+                const stId = cleanExcelFormulaEscape(item.station_id);
+                const stName = cleanExcelFormulaEscape(item.station_name);
+                if (stId && !stationMap[stId]) {
+                    stationMap[stId] = stName || stId;
+                }
+            });
+        } else {
+            // Fallback จากไฟล์ sv.js กรณีที่ยังไม่ได้นำเข้าจาก MAM จริง
+            let filtered = fallbackMamEquipment;
+            if (basin && basin !== 'ALL') {
+                filtered = filtered.filter(item => item.basin === basin || item.original_basin === basin);
             }
-        });
+            filtered.forEach(item => {
+                const stId = item.station_id || item.station_code;
+                if (stId && !stationMap[stId]) {
+                    stationMap[stId] = item.station_name || stId;
+                }
+            });
+        }
+
         res.status(200).json({ success: true, stations: stationMap });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 });
 
-// 7.2 ดึงรายการอุปกรณ์ของสถานีจาก sv.js พร้อมประวัติการตรวจล่าสุดในงวด/ปีงบนั้น
-app.get('/api/mam/equipment', async (req, res) => {
+// 7.3 ดึงรายการอุปกรณ์ประจำสถานี (ตามสเปกหน้า 7: อ่านจาก mam_equipment ใช้ id จาก equipment_id)
+app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
     try {
         const { basin, station, year, period } = req.query;
         if (!station) {
-            return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสสถานี' });
+            return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสสถานี (station)' });
         }
 
-        const normQueryStation = normalizeStationCode(station);
+        const rawStation = String(station).trim();
+        const normStation = normalizeStationCode(rawStation);
+        let mappedItems = [];
+        let dataSource = 'mam_equipment';
 
-        // ค้นหาอุปกรณ์จาก sv.js (รองรับทั้งรหัสตรงตัว และรหัสที่มีวงเล็บต่อท้าย)
-        let items = mamEquipmentData.filter(item => {
-            const matchExact = String(item.station_code).trim().toUpperCase() === String(station).trim().toUpperCase();
-            const matchNorm = normalizeStationCode(item.station_code) === normQueryStation;
-            return matchExact || matchNorm;
-        });
+        const dbCount = await MamEquipment.estimatedDocumentCount();
+        if (dbCount > 0) {
+            // ค้นหาจากคอลเลกชัน mam_equipment ตามสเปก
+            let dbDocs = await MamEquipment.find({
+                $or: [
+                    { station_id: rawStation },
+                    { station_id: new RegExp(`^${ normStation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }`, 'i') }
+                ]
+            }).lean();
 
-        // ถ้าระบุลุ่มน้ำมาด้วย และมีหลายสถานีชื่อซ้ำกัน ให้กรองลุ่มน้ำซ้ำอีกครั้ง
-        if (basin && basin !== 'ALL' && items.length > 0) {
-            const basinFiltered = items.filter(item => item.basin === basin || item.original_basin === basin);
-            if (basinFiltered.length > 0) items = basinFiltered;
+            if (basin && basin !== 'ALL' && dbDocs.length > 0) {
+                const byBasin = dbDocs.filter(d => d.basin === basin);
+                if (byBasin.length > 0) dbDocs = byBasin;
+            }
+
+            // แปลงฟิลด์ตามสเปกหน้า 7: ใช้ id จาก equipment_id และรองรับทั้ง station_id / station_code
+            mappedItems = dbDocs.map(doc => ({
+                id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
+                equipment_id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
+                station_id: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
+                station_code: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
+                station_name: cleanExcelFormulaEscape(doc.station_name || doc.station_id || ''),
+                basin: cleanExcelFormulaEscape(doc.basin || ''),
+                sub_basin: cleanExcelFormulaEscape(doc.sub_basin || '-'),
+                location_point: cleanExcelFormulaEscape(doc.location_point || '-') || '-',
+                category: cleanExcelFormulaEscape(doc.category || '-') || '-',
+                brand: cleanExcelFormulaEscape(doc.brand || '-') || '-',
+                model: cleanExcelFormulaEscape(doc.model || '-') || '-',
+                serial_number: cleanExcelFormulaEscape(doc.serial_number || '-') || '-',
+                mam_status_code: doc.mam_status_code !== undefined ? String(doc.mam_status_code).trim() : '',
+                mam_status: cleanExcelFormulaEscape(doc.mam_status || 'ไม่ทราบ') || 'ไม่ทราบ',
+                install_date: cleanExcelFormulaEscape(doc.install_date || '-') || '-',
+                mam_remark: cleanExcelFormulaEscape(doc.mam_remark || ''),
+                generated_at: doc.generated_at || ''
+            }));
+        } else {
+            // Fallback จาก sv.js สำหรับทดสอบก่อนเชื่อมต่อระบบ MAM จริง
+            dataSource = 'sv_fallback';
+            let rawItems = fallbackMamEquipment.filter(item => {
+                const code = item.station_id || item.station_code || '';
+                const matchExact = String(code).trim().toUpperCase() === rawStation.toUpperCase();
+                const matchNorm = normalizeStationCode(code) === normStation;
+                return matchExact || matchNorm;
+            });
+
+            if (basin && basin !== 'ALL' && rawItems.length > 0) {
+                const byBasin = rawItems.filter(item => item.basin === basin || item.original_basin === basin);
+                if (byBasin.length > 0) rawItems = byBasin;
+            }
+
+            mappedItems = rawItems.map(doc => ({
+                id: cleanExcelFormulaEscape(String(doc.equipment_id || doc.id || '')),
+                equipment_id: cleanExcelFormulaEscape(String(doc.equipment_id || doc.id || '')),
+                station_id: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
+                station_code: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
+                station_name: cleanExcelFormulaEscape(doc.station_name || doc.station_code || ''),
+                basin: cleanExcelFormulaEscape(doc.basin || ''),
+                sub_basin: cleanExcelFormulaEscape(doc.sub_basin || '-'),
+                location_point: cleanExcelFormulaEscape(doc.location_point || '-') || '-',
+                category: cleanExcelFormulaEscape(doc.category || '-') || '-',
+                brand: cleanExcelFormulaEscape(doc.brand || '-') || '-',
+                model: cleanExcelFormulaEscape(doc.model || '-') || '-',
+                serial_number: cleanExcelFormulaEscape(doc.serial_number || '-') || '-',
+                mam_status_code: doc.mam_status === 'ใช้งานได้' ? '0' : (doc.mam_status === 'ใช้งานไม่ได้' ? '1' : ''),
+                mam_status: cleanExcelFormulaEscape(doc.mam_status || 'ไม่ทราบ') || 'ไม่ทราบ',
+                install_date: cleanExcelFormulaEscape(doc.install_date || '-') || '-',
+                mam_remark: cleanExcelFormulaEscape(doc.mam_remark || ''),
+                generated_at: doc.generated_at || ''
+            }));
         }
 
-        // ตรวจสอบว่าเคยบันทึกผลการตรวจอุปกรณ์ของสถานีนี้ใน ปีงบประมาณ และ งวด นี้หรือยัง
+        // ดึงประวัติผลการตรวจอุปกรณ์ของสถานีนี้ในงวดและปีงบที่เลือก
         let savedRecord = null;
         if (year && period) {
+            const formattedPeriod = formatPeriodLabel(period);
             savedRecord = await EquipmentCheck.findOne({
                 contractYear: String(year).trim(),
-                period: String(period).trim(),
-                station_code: String(station).trim()
+                period: { $in: [String(period).trim(), formattedPeriod, parsePeriodNumber(period)] },
+                station_code: { $in: [rawStation, normStation] }
             }).sort({ timestamp: -1 }).lean();
         }
 
         res.status(200).json({
             success: true,
-            count: items.length,
-            data: items,
+            source: dataSource,
+            count: mappedItems.length,
+            data: mappedItems,
             savedRecord: savedRecord
         });
     } catch (error) {
@@ -495,8 +673,8 @@ app.get('/api/mam/equipment', async (req, res) => {
     }
 });
 
-// 7.3 บันทึกผลการตรวจสอบอุปกรณ์รายชิ้นลง MongoDB (และอัปเดตหรือสร้างใหม่ได้)
-app.post('/api/mam/equipment-check', async (req, res) => {
+// 7.4 บันทึกผลการตรวจสอบอุปกรณ์รายชิ้นลง MongoDB
+app.post('/api/mam/equipment-check', checkApiAuth, async (req, res) => {
     try {
         const { contractYear, period, basin, station_code, station_name, items, inspector_note } = req.body;
         if (!station_code || !Array.isArray(items)) {
@@ -505,19 +683,19 @@ app.post('/api/mam/equipment-check', async (req, res) => {
 
         const now = new Date();
         const yearVal = getThaiFiscalYear(now, contractYear);
+        const periodLabel = formatPeriodLabel(period || 'งวดที่1');
 
         const recordData = {
             contractYear: yearVal,
-            period: period || 'งวดที่1',
+            period: periodLabel,
             basin: basin || '-',
-            station_code: station_code,
+            station_code: String(station_code).trim(),
             station_name: station_name || station_code,
             items: items,
             inspector_note: inspector_note || '',
             timestamp: now
         };
 
-        // บันทึกข้อมูลการตรวจอุปกรณ์ลงคอลเลกชัน EquipmentCheck
         const saved = await EquipmentCheck.findOneAndUpdate(
             {
                 contractYear: recordData.contractYear,
@@ -530,7 +708,7 @@ app.post('/api/mam/equipment-check', async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'บันทึกผลการตรวจสอบอุปกรณ์จากระบบ MAM เรียบร้อยแล้ว',
+            message: 'บันทึกผลการตรวจสอบอุปกรณ์ประจำสถานีเรียบร้อยแล้ว',
             data: saved
         });
     } catch (error) {
@@ -538,18 +716,251 @@ app.post('/api/mam/equipment-check', async (req, res) => {
     }
 });
 
-// 7.4 ดึงประวัติการตรวจอุปกรณ์จาก MAM ทั้งหมด
-app.get('/api/mam/equipment-checks', async (req, res) => {
+// 7.5 ดึงข้อมูลรายการงานตาม TOR จาก mam_tor_tasks (ตามสเปกหน้า 3-4 และหน้า 7)
+app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
     try {
         const { year, period, basin, station } = req.query;
-        const query = {};
-        if (year && year !== 'ALL' && year !== 'all') query.contractYear = String(year);
-        if (period && period !== 'ALL' && period !== 'all') query.period = String(period);
-        if (basin && basin !== 'ALL' && basin !== 'all') query.basin = String(basin);
-        if (station && station !== 'ALL' && station !== 'all') query.station_code = String(station);
+        if (!station) {
+            return res.status(400).json({ success: false, message: 'กรุณาระบุรหัสสถานี (station)' });
+        }
 
-        const records = await EquipmentCheck.find(query).sort({ timestamp: -1 }).lean();
-        res.status(200).json({ success: true, data: records });
+        const contractYear = String(year || getThaiFiscalYear(new Date())).trim();
+        const periodNum = parsePeriodNumber(period || '1');
+        const periodLabel = formatPeriodLabel(periodNum);
+        const rawStation = String(station).trim();
+        const normStation = normalizeStationCode(rawStation);
+
+        // 1. ค้นหาในคอลเลกชัน mam_tor_tasks
+        let rows = await MamTorTask.find({
+            contract_year: contractYear,
+            period: { $in: [periodNum, periodLabel] },
+            $or: [
+                { station_id: rawStation },
+                { station_id: new RegExp(`^${ normStation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }`, 'i') }
+            ]
+        }).lean();
+
+        let dataSource = 'mam_tor_tasks';
+
+        // 2. ถ้าใน mam_tor_tasks ยังไม่มีข้อมูล (เช่น รอทีม MAM เปิดระบบ) ให้สร้างโครงสร้างตามสเปกจากข้อมูล Inspection หรือค่าเริ่มต้นเพื่อใช้ทดสอบ
+        if (!rows || rows.length === 0) {
+            dataSource = 'fallback_simulation';
+            const insp = await Inspection.findOne({
+                saya: periodLabel,
+                id_name: { $in: [rawStation, normStation] }
+            }).sort({ timestamp: -1 }).lean();
+
+            const fallbackJobStatus = insp ? 'รออนุมัติ' : 'กำลังดำเนินงาน';
+            const fallbackJobCode = insp ? '2' : '1';
+            const fallbackCheckIn = insp && insp.timestamp ? new Date(insp.timestamp).toISOString().replace('T', ' ').substring(0, 23) : '';
+            const fallbackNote = insp ? (insp.note || '') : '';
+            const stationNameVal = insp ? (insp.name_id || rawStation) : rawStation;
+            const basinVal = basin || (insp ? insp.code : '-');
+
+            rows = [
+                {
+                    contract_year: contractYear,
+                    period: periodNum,
+                    basin: basinVal,
+                    sub_basin: '-',
+                    station_id: rawStation,
+                    station_name: stationNameVal,
+                    contract_id: 'SIM-01',
+                    contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
+                    mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
+                    job_status_code: fallbackJobCode,
+                    job_status: fallbackJobStatus,
+                    checked_in_at: fallbackCheckIn,
+                    contractor_note: fallbackNote,
+                    extra_works_status: (insp && Array.isArray(insp.extra_work_tor4) && insp.extra_work_tor4.length > 0) ? 'done' : 'not_started',
+                    task_type: 'general',
+                    task_key: 'step_2',
+                    task_name: 'ทำความสะอาด',
+                    field_status: '',
+                    quantity: '',
+                    unit: '',
+                    contract_required_quantity: '',
+                    description: '',
+                    generated_at: new Date().toISOString()
+                },
+                {
+                    contract_year: contractYear,
+                    period: periodNum,
+                    basin: basinVal,
+                    sub_basin: '-',
+                    station_id: rawStation,
+                    station_name: stationNameVal,
+                    contract_id: 'SIM-01',
+                    contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
+                    mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
+                    job_status_code: fallbackJobCode,
+                    job_status: fallbackJobStatus,
+                    checked_in_at: fallbackCheckIn,
+                    contractor_note: fallbackNote,
+                    extra_works_status: 'not_started',
+                    task_type: 'general',
+                    task_key: 'step_3',
+                    task_name: 'สอบเทียบ',
+                    field_status: '',
+                    quantity: '',
+                    unit: '',
+                    contract_required_quantity: '',
+                    description: '',
+                    generated_at: new Date().toISOString()
+                },
+                {
+                    contract_year: contractYear,
+                    period: periodNum,
+                    basin: basinVal,
+                    sub_basin: '-',
+                    station_id: rawStation,
+                    station_name: stationNameVal,
+                    contract_id: 'SIM-01',
+                    contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
+                    mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
+                    job_status_code: fallbackJobCode,
+                    job_status: fallbackJobStatus,
+                    checked_in_at: fallbackCheckIn,
+                    contractor_note: fallbackNote,
+                    extra_works_status: 'not_started',
+                    task_type: 'general',
+                    task_key: 'step_4',
+                    task_name: 'ตรวจสอบอุปกรณ์',
+                    field_status: '',
+                    quantity: '',
+                    unit: '',
+                    contract_required_quantity: '',
+                    description: '',
+                    generated_at: new Date().toISOString()
+                }
+            ];
+
+            // หากใน Inspection เดิมมี extra_work_tor4 ให้แปลงเป็นแถว task_type = 'extra' ตามสเปก
+            if (insp && Array.isArray(insp.extra_work_tor4)) {
+                insp.extra_work_tor4.forEach((ex, i) => {
+                    rows.push({
+                        contract_year: contractYear,
+                        period: periodNum,
+                        basin: basinVal,
+                        sub_basin: '-',
+                        station_id: rawStation,
+                        station_name: stationNameVal,
+                        contract_id: 'SIM-01',
+                        contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
+                        mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
+                        job_status_code: fallbackJobCode,
+                        job_status: fallbackJobStatus,
+                        checked_in_at: fallbackCheckIn,
+                        contractor_note: fallbackNote,
+                        extra_works_status: 'done',
+                        task_type: 'extra',
+                        task_key: ex.key || `extra_${i + 1}`,
+                        task_name: ex.name || `งานเพิ่มเติมรายการที่ ${i + 1}`,
+                        field_status: 'done',
+                        quantity: String(ex.quantity || '1'),
+                        unit: ex.unit || 'งาน',
+                        contract_required_quantity: String(ex.contract_required_quantity || ''),
+                        description: ex.description || '',
+                        generated_at: new Date().toISOString()
+                    });
+                });
+            }
+        }
+
+        // ทำความสะอาดอักขระกันสูตร Excel ทุกแถว
+        const cleanedRows = rows.map(r => {
+            const obj = {};
+            for (const k of Object.keys(r)) {
+                if (k === '_id' || k === '__v') continue;
+                obj[k] = cleanExcelFormulaEscape(r[k]);
+            }
+            return obj;
+        });
+
+        const first = cleanedRows[0];
+        const generalTasks = cleanedRows
+            .filter(r => r.task_type === 'general')
+            .sort((a, b) => String(a.task_key).localeCompare(String(b.task_key)));
+        const extraTasks = cleanedRows.filter(r => r.task_type === 'extra');
+
+        // ค้นหาผลการประเมิน TOR ที่กรรมการเคยบันทึกไว้แล้ว (ถ้ามี)
+        const savedCheck = await TorCheck.findOne({
+            contractYear: contractYear,
+            period: { $in: [periodNum, periodLabel] },
+            station_id: { $in: [rawStation, normStation] }
+        }).sort({ timestamp: -1 }).lean();
+
+        res.status(200).json({
+            success: true,
+            source: dataSource,
+            summary: {
+                contract_year: first.contract_year,
+                period: first.period,
+                period_label: formatPeriodLabel(first.period),
+                basin: first.basin,
+                sub_basin: first.sub_basin || '-',
+                station_id: first.station_id,
+                station_name: first.station_name,
+                contract_id: first.contract_id || '-',
+                contract_name: first.contract_name || '-',
+                mam_record_id: first.mam_record_id || '-',
+                job_status_code: first.job_status_code ?? '',
+                job_status: first.job_status || '-',
+                checked_in_at: first.checked_in_at || '',
+                contractor_note: first.contractor_note || '',
+                extra_works_status: first.extra_works_status || '-',
+                generated_at: first.generated_at || ''
+            },
+            generalTasks,
+            extraTasks,
+            rows: cleanedRows,
+            savedCheck
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// 7.6 บันทึกผลการตรวจรับงานตาม TOR ลงใน MongoDB
+app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
+    try {
+        const { contractYear, period, basin, station_id, station_name, mam_record_id, evaluations, committee_note } = req.body;
+        if (!station_id || !Array.isArray(evaluations)) {
+            return res.status(400).json({ success: false, message: 'ข้อมูลการตรวจรับงานตาม TOR ไม่ครบถ้วน' });
+        }
+
+        const now = new Date();
+        const yearVal = getThaiFiscalYear(now, contractYear);
+        const periodNum = parsePeriodNumber(period || '1');
+
+        const recordData = {
+            contractYear: yearVal,
+            period: periodNum,
+            period_label: formatPeriodLabel(periodNum),
+            basin: basin || '-',
+            station_id: String(station_id).trim(),
+            station_name: station_name || station_id,
+            mam_record_id: mam_record_id || '',
+            evaluations: evaluations,
+            committee_note: committee_note || '',
+            timestamp: now
+        };
+
+        const saved = await TorCheck.findOneAndUpdate(
+            {
+                contractYear: recordData.contractYear,
+                period: recordData.period,
+                station_id: recordData.station_id
+            },
+            recordData,
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'บันทึกผลการตรวจรับงานตาม TOR เรียบร้อยแล้ว',
+            data: saved
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

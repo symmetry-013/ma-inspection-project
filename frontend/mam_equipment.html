@@ -156,7 +156,7 @@
             <div class="puffy-container p-6 md:p-8 border-t-8 border-t-sky-400">
                 <h2 class="text-lg md:text-xl font-bold text-slate-800 mb-5 flex flex-wrap items-center gap-2 border-b-2 border-slate-100 pb-3">
                     <i class="ph-fill ph-magnifying-glass text-sky-500 text-2xl"></i> เลือกสถานีที่ต้องการตรวจสอบอุปกรณ์
-                    <span class="text-[11px] md:text-xs font-extrabold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full ml-1 border border-emerald-200">เชื่อมโยงข้อมูล sv.js (MAM)</span>
+                    <span class="text-[11px] md:text-xs font-extrabold bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full ml-1 border border-emerald-200">mam_equipment</span>
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -264,7 +264,6 @@
     </main>
 
     <script>
-        // กำหนด URL เซิร์ฟเวอร์อัตโนมัติ (รองรับทั้งรันบนเครื่อง Localhost และบน Render)
         const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
             ? '' 
             : 'https://ma-inspection-project.onrender.com';
@@ -289,7 +288,7 @@
             return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        // 1. ตั้งค่าปีงบประมาณ (เริ่มต้นที่ 2568 - 2578 และเลือกปีงบปัจจุบันให้อัตโนมัติ)
+        // 1. ตั้งค่าปีงบประมาณ
         const startYear = 2568;
         const totalYears = 10;
         const currentDate = new Date();
@@ -305,7 +304,7 @@
         }
         contractYearSelect.value = (currentThaiFiscalYear >= startYear && currentThaiFiscalYear <= startYear + totalYears) ? currentThaiFiscalYear : 2569;
 
-        // 2. ตั้งค่ากลุ่มลุ่มน้ำจาก constants.js
+        // 2. เติมลุ่มน้ำ (กรองสถานีทดสอบ MOCK ออก)
         if (typeof hardcodedBasins !== 'undefined') {
             hardcodedBasins.forEach(b => {
                 const opt = document.createElement("option");
@@ -315,7 +314,6 @@
             });
         }
 
-        // 3. เมื่อเลือกกลุ่มลุ่มน้ำ ให้โหลดรหัสสถานี (รวมจาก constants.js และจาก sv.js บนเซิร์ฟเวอร์)
         basinSelect.addEventListener("change", async () => {
             const selectedBasin = basinSelect.value;
             stationSelect.innerHTML = '<option value="" disabled selected>-- เลือกรหัสสถานี --</option>';
@@ -326,7 +324,11 @@
 
             const mergedStations = {};
             if (typeof stationsData !== 'undefined' && stationsData[selectedBasin]) {
-                Object.assign(mergedStations, stationsData[selectedBasin]);
+                for (let code in stationsData[selectedBasin]) {
+                    if (!/^MOCK[_-]/i.test(code)) {
+                        mergedStations[code] = stationsData[selectedBasin][code];
+                    }
+                }
             }
 
             try {
@@ -335,20 +337,20 @@
                     const data = await res.json();
                     if (data.success && data.stations) {
                         for (let code in data.stations) {
-                            if (!mergedStations[code]) {
+                            if (!/^MOCK[_-]/i.test(code) && !mergedStations[code]) {
                                 mergedStations[code] = data.stations[code];
                             }
                         }
                     }
                 }
             } catch (e) {
-                console.warn("ดึงรายชื่อสถานีเพิ่มเติมจากเซิร์ฟเวอร์ไม่สำเร็จ ใช้ข้อมูลจาก constants.js แทน");
+                console.warn("ดึงรายชื่อสถานีไม่สำเร็จ ใช้ข้อมูลจาก constants.js");
             }
 
-            const stationCodes = Object.keys(mergedStations);
-            if (stationCodes.length > 0) {
+            const codes = Object.keys(mergedStations);
+            if (codes.length > 0) {
                 stationSelect.disabled = false;
-                stationCodes.forEach(code => {
+                codes.forEach(code => {
                     const opt = document.createElement("option");
                     opt.value = code;
                     opt.textContent = code;
@@ -389,15 +391,13 @@
                 </div>`;
         }
 
-        // แปลงสถานะจากไฟล์ CSV เดิม มาเป็นค่าเริ่มต้นของปุ่ม Radio (ใช้งานได้ / ชำรุด / ไม่ทราบ)
         function mapInitialStatus(mamStatus) {
             const s = String(mamStatus || '').trim();
-            if (s === 'ใช้งานได้' || s === 'ปกติ' || s === 'P') return 'ใช้งานได้';
-            if (s === 'ใช้งานไม่ได้' || s === 'ชำรุด' || s === 'เสีย' || s === 'O') return 'ชำรุด';
+            if (s === 'ใช้งานได้' || s === 'ปกติ' || s === 'P' || s === '0') return 'ใช้งานได้';
+            if (s === 'ใช้งานไม่ได้' || s === 'ชำรุด' || s === 'เสีย' || s === 'O' || s === '1') return 'ชำรุด';
             return 'ไม่ทราบ';
         }
 
-        // ดึงข้อมูลอุปกรณ์จาก Backend (sv.js)
         async function fetchMamEquipment() {
             const year = contractYearSelect.value;
             const period = periodSelect.value;
@@ -408,12 +408,12 @@
 
             btnFetchEquip.disabled = true;
             btnSubmit.disabled = true;
-            btnFetchEquip.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังค้นหาอุปกรณ์ของสถานี...';
+            btnFetchEquip.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังค้นหาอุปกรณ์...';
             
             equipmentContainer.innerHTML = `
                 <div class="py-16 flex flex-col items-center justify-center text-sky-500 bg-sky-50 rounded-2xl border-2 border-sky-100 text-center px-4">
                     <i class="ph-bold ph-spinner animate-spin text-4xl md:text-5xl mb-4"></i>
-                    <p class="font-bold text-sm md:text-base">กำลังดึงข้อมูลอุปกรณ์ของสถานี ${safeEscape(stationCode)} (${safeEscape(basin)})...</p>
+                    <p class="font-bold text-sm md:text-base">กำลังดึงข้อมูลอุปกรณ์สถานี ${safeEscape(stationCode)} (${safeEscape(basin)})...</p>
                 </div>`;
 
             try {
@@ -434,11 +434,9 @@
                                 <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-3">
                                     <i class="ph-fill ph-warning-circle text-4xl text-amber-500"></i>
                                 </div>
-                                <p class="font-extrabold text-amber-700 text-base md:text-lg">ไม่พบรายการอุปกรณ์ของสถานี ${safeEscape(stationCode)} ในฐานข้อมูล MAM</p>
-                                <p class="text-xs md:text-sm mt-1 text-amber-600 font-medium">กรุณาตรวจสอบรหัสสถานีหรือลุ่มน้ำอีกครั้ง</p>
+                                <p class="font-extrabold text-amber-700 text-base md:text-lg">ไม่พบรายการอุปกรณ์ของสถานี ${safeEscape(stationCode)} ในฐานข้อมูล</p>
                             </div>`;
                     } else {
-                        // อัปเดตชื่อสถานีตามไฟล์หากยังว่าง
                         if (currentEquipmentList[0].station_name) {
                             stationNameInput.value = currentEquipmentList[0].station_name;
                         }
@@ -459,20 +457,19 @@
                         <p class="text-xs md:text-sm mt-1 text-rose-500 font-medium">${safeEscape(error.message)}</p>
                     </div>`;
             } finally {
-                btnFetchEquip.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-2xl"></i> ดึงรายการอุปกรณ์ประจำสถานีใหม่';
+                btnFetchEquip.innerHTML = '<i class="ph-bold ph-cloud-arrow-down text-2xl"></i> ดึงรายการอุปกรณ์ประจำสถานีจากระบบ MAM';
                 btnFetchEquip.disabled = false;
             }
         }
 
         function getMamBadgeHtml(statusText) {
             const s = String(statusText || '-').trim();
-            if (s === 'ใช้งานได้') {
-                return `<span class="bg-emerald-100 text-emerald-700 border-2 border-emerald-200 font-extrabold px-3 py-1 rounded-xl text-xs inline-flex items-center gap-1"><i class="ph-fill ph-check-circle text-base"></i> ${safeEscape(s)}</span>`;
-            } else if (s === 'ใช้งานไม่ได้' || s === 'ชำรุด') {
-                return `<span class="bg-rose-100 text-rose-700 border-2 border-rose-200 font-extrabold px-3 py-1 rounded-xl text-xs inline-flex items-center gap-1"><i class="ph-fill ph-x-circle text-base"></i> ${safeEscape(s)}</span>`;
-            } else {
-                return `<span class="bg-amber-100 text-amber-700 border-2 border-amber-200 font-extrabold px-3 py-1 rounded-xl text-xs inline-flex items-center gap-1"><i class="ph-fill ph-info text-base"></i> ${safeEscape(s)}</span>`;
+            if (s === 'ใช้งานได้' || s === '0') {
+                return `<span class="bg-emerald-100 text-emerald-700 border-2 border-emerald-200 font-extrabold px-3 py-1 rounded-xl text-xs inline-flex items-center gap-1"><i class="ph-fill ph-check-circle text-base"></i> ใช้งานได้</span>`;
+            } else if (s === 'ใช้งานไม่ได้' || s === 'ชำรุด' || s === '1') {
+                return `<span class="bg-rose-100 text-rose-700 border-2 border-rose-200 font-extrabold px-3 py-1 rounded-xl text-xs inline-flex items-center gap-1"><i class="ph-fill ph-x-circle text-base"></i> ใช้งานไม่ได้</span>`;
             }
+            return `<span class="bg-amber-100 text-amber-700 border-2 border-amber-200 font-extrabold px-3 py-1 rounded-xl text-xs inline-flex items-center gap-1"><i class="ph-fill ph-info text-base"></i> ${safeEscape(s)}</span>`;
         }
 
         function renderEquipmentCards(items, savedRecord) {
@@ -485,7 +482,7 @@
             const savedMap = {};
             if (savedRecord && Array.isArray(savedRecord.items)) {
                 savedRecord.items.forEach(it => {
-                    savedMap[it.id] = it;
+                    savedMap[it.id || it.equipment_id] = it;
                 });
                 document.getElementById("inspectorNote").value = savedRecord.inspector_note || "";
             } else {
@@ -500,13 +497,14 @@
                 <div class="mb-5 bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 text-emerald-800 flex items-center justify-between flex-wrap gap-2">
                     <div class="flex items-center gap-2.5">
                         <i class="ph-fill ph-SealCheck text-emerald-500 text-2xl"></i>
-                        <span class="text-xs md:text-sm font-bold">สถานีนี้เคยบันทึกผลตรวจใน <b>ปีงบ ${safeEscape(savedRecord.contractYear)} (${safeEscape(savedRecord.period)})</b> แล้วเมื่อ ${saveDate} (สามารถแก้ไขและบันทึกทับได้)</span>
+                        <span class="text-xs md:text-sm font-bold">สถานีนี้เคยบันทึกผลตรวจใน <b>ปีงบ ${safeEscape(savedRecord.contractYear)} (${safeEscape(savedRecord.period)})</b> แล้วเมื่อ ${saveDate}</span>
                     </div>
                 </div>`;
             }
 
             items.forEach((item, idx) => {
-                const prevSaved = savedMap[item.id];
+                const equipKey = item.id || item.equipment_id || idx;
+                const prevSaved = savedMap[equipKey];
                 const defaultChoice = prevSaved ? prevSaved.inspected_status : mapInitialStatus(item.mam_status);
                 const defaultRemark = prevSaved ? (prevSaved.inspected_remark || '') : '';
 
@@ -516,22 +514,20 @@
 
                 html += `
                 <div class="equip-card p-4 md:p-5 mb-4" data-equip-index="${idx}">
-                    <!-- หัวข้ออุปกรณ์ -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-3 border-b-2 border-slate-100">
                         <div class="flex items-start gap-2.5">
                             <span class="bg-sky-500 text-white font-extrabold px-2.5 py-1 rounded-xl text-xs shrink-0 mt-0.5">#${idx + 1}</span>
                             <div>
                                 <h3 class="text-base md:text-lg font-extrabold text-slate-800 leading-snug">${safeEscape(item.category)}</h3>
-                                <p class="text-xs font-bold text-slate-400">ID อ้างอิง MAM: ${safeEscape(item.id)} | จุดติดตั้ง: <span class="text-slate-600">${safeEscape(item.location_point)}</span></p>
+                                <p class="text-xs font-bold text-slate-400">ID อุปกรณ์: ${safeEscape(equipKey)} | จุดติดตั้ง: <span class="text-slate-600">${safeEscape(item.location_point)}</span></p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 self-start sm:self-center">
-                            <span class="text-xs font-bold text-slate-500">สถานะตามไฟล์เดิม:</span>
+                            <span class="text-xs font-bold text-slate-500">สถานะเดิม:</span>
                             ${getMamBadgeHtml(item.mam_status)}
                         </div>
                     </div>
 
-                    <!-- ตารางรายละเอียดอุปกรณ์จากไฟล์ CSV -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs mb-4">
                         <div>
                             <span class="text-slate-400 font-bold block text-[10px] uppercase">ยี่ห้อ (Brand)</span>
@@ -551,11 +547,10 @@
                         </div>
                         ${item.mam_remark ? `
                         <div class="col-span-2 sm:col-span-4 pt-1.5 border-t border-slate-200/80 text-rose-600 font-bold">
-                            <i class="ph-fill ph-ChatCircleText mr-1"></i> หมายเหตุเดิมในไฟล์: ${safeEscape(item.mam_remark)}
+                            <i class="ph-fill ph-ChatCircleText mr-1"></i> หมายเหตุเดิม: ${safeEscape(item.mam_remark)}
                         </div>` : ''}
                     </div>
 
-                    <!-- ปุ่มกดเลือกสถานะการตรวจสอบหน้างาน (ใช้งานได้ / ชำรุด / ไม่ทราบ) -->
                     <div class="mb-3">
                         <span class="text-xs font-extrabold text-slate-600 block mb-2 uppercase flex items-center gap-1">
                             <i class="ph-bold ph-hand-pointing text-sky-500 text-base"></i> เลือกสถานะตรวจสอบจริงหน้างาน:
@@ -585,7 +580,6 @@
                         </div>
                     </div>
 
-                    <!-- ช่องหมายเหตุรายชิ้น -->
                     <div>
                         <input type="text" id="equip_remark_${idx}" value="${safeEscape(defaultRemark)}" placeholder="ระบุหมายเหตุอุปกรณ์ชิ้นนี้ (ถ้ามี)..." 
                                class="w-full p-2.5 md:p-3 text-xs md:text-sm rounded-xl puffy-input">
@@ -655,17 +649,16 @@
 
             const confirmResult = await Swal.fire({
                 title: 'ยืนยันการบันทึกผลตรวจอุปกรณ์?',
-                html: `สถานี <b>${safeEscape(stationCode)} (${safeEscape(stationName)})</b><br>ปีงบประมาณ ${safeEscape(year)} - ${safeEscape(period)}<br>จำนวนอุปกรณ์ทั้งหมด ${checkedItems.length} รายการ`,
+                html: `สถานี <b>${safeEscape(stationCode)} (${safeEscape(stationName)})</b><br>ปีงบประมาณ ${safeEscape(year)} - ${safeEscape(period)}`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
                 cancelButtonColor: '#94a3b8',
-                confirmButtonText: 'ยืนยันบันทึกข้อมูล',
+                confirmButtonText: 'ยืนยันบันทึก',
                 cancelButtonText: 'ยกเลิก',
                 customClass: {
                     popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                    title: 'font-prompt font-extrabold text-slate-800 text-lg md:text-xl',
-                    htmlContainer: 'font-prompt font-medium text-slate-600 text-sm',
+                    title: 'font-prompt font-extrabold text-slate-800 text-lg',
                     confirmButton: 'font-prompt font-bold rounded-xl px-5 py-2.5',
                     cancelButton: 'font-prompt font-bold rounded-xl px-5 py-2.5'
                 }
@@ -675,13 +668,9 @@
 
             Swal.fire({
                 title: 'กำลังบันทึกข้อมูล... 🚀',
-                text: 'กรุณารอสักครู่',
                 allowOutsideClick: false,
                 didOpen: () => Swal.showLoading(),
-                customClass: {
-                    popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white',
-                    title: 'font-prompt font-extrabold text-emerald-600'
-                }
+                customClass: { popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white' }
             });
 
             try {
@@ -704,11 +693,10 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'บันทึกผลสำเร็จ! 🎉',
-                        text: result.message || 'บันทึกข้อมูลการตรวจสอบอุปกรณ์เรียบร้อยแล้ว',
+                        text: result.message || 'บันทึกข้อมูลเรียบร้อยแล้ว',
                         confirmButtonColor: '#10b981',
                         customClass: {
                             popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                            title: 'font-prompt font-extrabold text-emerald-600',
                             confirmButton: 'font-prompt font-bold rounded-xl px-6'
                         }
                     });
@@ -723,7 +711,6 @@
                     confirmButtonColor: '#f43f5e',
                     customClass: {
                         popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                        title: 'font-prompt font-extrabold text-rose-600',
                         confirmButton: 'font-prompt font-bold rounded-xl px-6'
                     }
                 });
