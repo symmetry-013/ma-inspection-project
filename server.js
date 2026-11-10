@@ -64,21 +64,18 @@ function normalizeStationCode(code) {
     return String(code).trim().split('(')[0].trim().replace(/\s+/g, '').toUpperCase();
 }
 
-// แปลงคำว่า "งวดที่1" หรือ "งวดที่ 1" ให้เป็นเลข "1" สำหรับค้นหาใน mam_tor_tasks
 function parsePeriodNumber(periodInput) {
     if (!periodInput) return '1';
     const match = String(periodInput).match(/\d+/);
     return match ? match[0] : String(periodInput).trim();
 }
 
-// แปลงเลขงวด "1" ให้เป็นรูปแบบ "งวดที่1"
 function formatPeriodLabel(periodInput) {
     const num = parsePeriodNumber(periodInput);
     return `งวดที่${num}`;
 }
 
 // Middleware ตรวจสอบสิทธิ์สำหรับ /api/inspections และ /api/mam/*
-// (เปิดใช้งานจริงได้ด้วยการตั้งค่า REQUIRE_API_AUTH=true ใน .env)
 const ADMIN_KEY = process.env.ADMIN_KEY || 'MAM_Secret_2026';
 const CRON_SECRET = process.env.CRON_SECRET || ADMIN_KEY;
 
@@ -125,7 +122,6 @@ const CalibrationSchema = new mongoose.Schema({
 }, { strict: false, timestamps: true });
 const Calibration = mongoose.model('Calibration', CalibrationSchema);
 
-// บันทึกผลการตรวจอุปกรณ์รายชิ้นของกรรมการ
 const EquipmentCheckSchema = new mongoose.Schema({
     contractYear: String,
     period: String,
@@ -138,7 +134,6 @@ const EquipmentCheckSchema = new mongoose.Schema({
 }, { strict: false, timestamps: true });
 const EquipmentCheck = mongoose.model('EquipmentCheck', EquipmentCheckSchema);
 
-// บันทึกผลการตรวจรับงานตาม TOR ของกรรมการ
 const TorCheckSchema = new mongoose.Schema({
     contractYear: String,
     period: String,
@@ -487,7 +482,6 @@ app.get('/api/calibrations', checkApiAuth, async (req, res) => {
 // 7. API: ระบบเชื่อมต่อข้อมูล MAM (mam_equipment & mam_tor_tasks)
 // ==========================================
 
-// 7.1 สั่งซิงก์ไฟล์ CSV จากระบบ MAM เข้าสู่ MongoDB (รองรับการเรียกจาก Cron ภายนอกเวลา 07:00 น.)
 app.all('/api/mam/sync', async (req, res) => {
     try {
         const key = req.headers['x-api-key'] ||
@@ -513,7 +507,6 @@ app.all('/api/mam/sync', async (req, res) => {
     }
 });
 
-// ดูสถานะการซิงก์ล่าสุด
 app.get('/api/mam/sync-status', checkApiAuth, async (req, res) => {
     try {
         const meta = await MamSyncMeta.find().lean();
@@ -529,7 +522,6 @@ app.get('/api/mam/sync-status', checkApiAuth, async (req, res) => {
     }
 });
 
-// 7.2 ดึงรายชื่อสถานีตามลุ่มน้ำ (อ่านจาก mam_equipment เป็นหลัก หากว่างให้ใช้ sv.js)
 app.get('/api/mam/stations', checkApiAuth, async (req, res) => {
     try {
         const { basin } = req.query;
@@ -547,7 +539,6 @@ app.get('/api/mam/stations', checkApiAuth, async (req, res) => {
                 }
             });
         } else {
-            // Fallback จากไฟล์ sv.js กรณีที่ยังไม่ได้นำเข้าจาก MAM จริง
             let filtered = fallbackMamEquipment;
             if (basin && basin !== 'ALL') {
                 filtered = filtered.filter(item => item.basin === basin || item.original_basin === basin);
@@ -566,7 +557,6 @@ app.get('/api/mam/stations', checkApiAuth, async (req, res) => {
     }
 });
 
-// 7.3 ดึงรายการอุปกรณ์ประจำสถานี (ตามสเปกหน้า 7: อ่านจาก mam_equipment ใช้ id จาก equipment_id)
 app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
     try {
         const { basin, station, year, period } = req.query;
@@ -581,7 +571,6 @@ app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
 
         const dbCount = await MamEquipment.estimatedDocumentCount();
         if (dbCount > 0) {
-            // ค้นหาจากคอลเลกชัน mam_equipment ตามสเปก
             let dbDocs = await MamEquipment.find({
                 $or: [
                     { station_id: rawStation },
@@ -594,7 +583,6 @@ app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
                 if (byBasin.length > 0) dbDocs = byBasin;
             }
 
-            // แปลงฟิลด์ตามสเปกหน้า 7: ใช้ id จาก equipment_id และรองรับทั้ง station_id / station_code
             mappedItems = dbDocs.map(doc => ({
                 id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
                 equipment_id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
@@ -615,7 +603,6 @@ app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
                 generated_at: doc.generated_at || ''
             }));
         } else {
-            // Fallback จาก sv.js สำหรับทดสอบก่อนเชื่อมต่อระบบ MAM จริง
             dataSource = 'sv_fallback';
             let rawItems = fallbackMamEquipment.filter(item => {
                 const code = item.station_id || item.station_code || '';
@@ -650,7 +637,6 @@ app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
             }));
         }
 
-        // ดึงประวัติผลการตรวจอุปกรณ์ของสถานีนี้ในงวดและปีงบที่เลือก
         let savedRecord = null;
         if (year && period) {
             const formattedPeriod = formatPeriodLabel(period);
@@ -673,7 +659,6 @@ app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
     }
 });
 
-// 7.4 บันทึกผลการตรวจสอบอุปกรณ์รายชิ้นลง MongoDB
 app.post('/api/mam/equipment-check', checkApiAuth, async (req, res) => {
     try {
         const { contractYear, period, basin, station_code, station_name, items, inspector_note } = req.body;
@@ -716,7 +701,6 @@ app.post('/api/mam/equipment-check', checkApiAuth, async (req, res) => {
     }
 });
 
-// 7.5 ดึงข้อมูลรายการงานตาม TOR จาก mam_tor_tasks (ตามสเปกหน้า 3-4 และหน้า 7)
 app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
     try {
         const { year, period, basin, station } = req.query;
@@ -730,7 +714,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
         const rawStation = String(station).trim();
         const normStation = normalizeStationCode(rawStation);
 
-        // 1. ค้นหาในคอลเลกชัน mam_tor_tasks
         let rows = await MamTorTask.find({
             contract_year: contractYear,
             period: { $in: [periodNum, periodLabel] },
@@ -742,7 +725,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
 
         let dataSource = 'mam_tor_tasks';
 
-        // 2. ถ้าใน mam_tor_tasks ยังไม่มีข้อมูล (เช่น รอทีม MAM เปิดระบบ) ให้สร้างโครงสร้างตามสเปกจากข้อมูล Inspection หรือค่าเริ่มต้นเพื่อใช้ทดสอบ
         if (!rows || rows.length === 0) {
             dataSource = 'fallback_simulation';
             const insp = await Inspection.findOne({
@@ -835,7 +817,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
                 }
             ];
 
-            // หากใน Inspection เดิมมี extra_work_tor4 ให้แปลงเป็นแถว task_type = 'extra' ตามสเปก
             if (insp && Array.isArray(insp.extra_work_tor4)) {
                 insp.extra_work_tor4.forEach((ex, i) => {
                     rows.push({
@@ -867,7 +848,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
             }
         }
 
-        // ทำความสะอาดอักขระกันสูตร Excel ทุกแถว
         const cleanedRows = rows.map(r => {
             const obj = {};
             for (const k of Object.keys(r)) {
@@ -883,7 +863,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
             .sort((a, b) => String(a.task_key).localeCompare(String(b.task_key)));
         const extraTasks = cleanedRows.filter(r => r.task_type === 'extra');
 
-        // ค้นหาผลการประเมิน TOR ที่กรรมการเคยบันทึกไว้แล้ว (ถ้ามี)
         const savedCheck = await TorCheck.findOne({
             contractYear: contractYear,
             period: { $in: [periodNum, periodLabel] },
@@ -921,7 +900,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
     }
 });
 
-// 7.6 บันทึกผลการตรวจรับงานตาม TOR ลงใน MongoDB
 app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
     try {
         const { contractYear, period, basin, station_id, station_name, mam_record_id, evaluations, committee_note } = req.body;
