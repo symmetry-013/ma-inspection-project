@@ -68,7 +68,6 @@ function formatPeriodLabel(periodInput) {
 // ==========================================
 // การตรวจสอบสิทธิ์ (Auth) 
 // ==========================================
-// รหัสผ่านสำหรับการรัน Sync กำหนดไว้ตรงนี้
 const ADMIN_KEY = 'MAM_Secret_2026';
 const CRON_SECRET = 'MAM_Secret_2026';
 
@@ -673,7 +672,6 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
 
         let dataSource = 'mam_tor_tasks';
 
-        // ลบ Fallback จำลองออก ใช้ข้อมูลจากฐานข้อมูล MAM จริงเท่านั้น
         if (!rows || rows.length === 0) {
             return res.status(404).json({ 
                 success: false, 
@@ -772,6 +770,57 @@ app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
             message: 'บันทึกผลการตรวจรับงานตาม TOR เรียบร้อยแล้ว',
             data: saved
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ==========================================
+// 7.7 API สำหรับหน้ารายงานผลการตรวจสอบอุปกรณ์ (NEW)
+// ==========================================
+app.get('/api/mam/report/equipment', checkApiAuth, async (req, res) => {
+    try {
+        const { year, period, basin, station } = req.query;
+        let query = {};
+
+        if (year && year !== 'all' && year !== 'ALL') query.contractYear = String(year).trim();
+        if (period && period !== 'all' && period !== 'ALL') {
+            const pLabel = formatPeriodLabel(period);
+            query.period = { $in: [String(period).trim(), pLabel, parsePeriodNumber(period)] };
+        }
+        if (basin && basin !== 'all' && basin !== 'ALL') query.basin = basin;
+        if (station && station.trim() !== '' && station !== 'all' && station !== 'ALL') {
+            query.station_code = new RegExp(station.trim(), 'i');
+        }
+
+        const data = await EquipmentCheck.find(query).sort({ timestamp: -1 }).lean();
+        res.status(200).json({ success: true, count: data.length, data });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// ==========================================
+// 7.8 API สำหรับหน้ารายงานผลการตรวจรับงาน TOR (NEW)
+// ==========================================
+app.get('/api/mam/report/tor', checkApiAuth, async (req, res) => {
+    try {
+        const { year, period, basin, station } = req.query;
+        let query = {};
+
+        if (year && year !== 'all' && year !== 'ALL') query.contractYear = String(year).trim();
+        if (period && period !== 'all' && period !== 'ALL') {
+            const pNum = parsePeriodNumber(period);
+            const pLabel = formatPeriodLabel(period);
+            query.period = { $in: [pNum, pLabel] };
+        }
+        if (basin && basin !== 'all' && basin !== 'ALL') query.basin = basin;
+        if (station && station.trim() !== '' && station !== 'all' && station !== 'ALL') {
+            query.station_id = new RegExp(station.trim(), 'i');
+        }
+
+        const data = await TorCheck.find(query).sort({ timestamp: -1 }).lean();
+        res.status(200).json({ success: true, count: data.length, data });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
