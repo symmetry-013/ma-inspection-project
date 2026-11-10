@@ -827,16 +827,20 @@ app.get('/api/mam/report/tor', checkApiAuth, async (req, res) => {
 });
 
 // ===============================================
-// 8. การสร้าง PDF (ใช้งานร่วมกับ name_sv.js / constants.js)
+// 8. การสร้าง PDF (รวม 4 ส่วน: ตารางสรุป + สอบเทียบ + ประวัติครุภัณฑ์ MAM 12 หมวด 4 งวด + ใบตรวจรับรายสถานี)
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
         const year = req.query.year || 'all';
         const term = req.query.term || 'all';
         const basin = req.query.basin || 'all';
+        const station = req.query.station || 'all';
 
         let query = {};
         let calibQuery = {};
+        let equipCheckQuery = {};
+        let torCheckQuery = {};
+        let mamEquipQuery = {};
         
         if (term !== 'all') {
             query.saya = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
@@ -845,10 +849,32 @@ app.get('/api/report/pdf', async (req, res) => {
         if (basin !== 'all') {
             query.code = basin;
             calibQuery.myData0 = basin;
+            equipCheckQuery.basin = basin;
+            torCheckQuery.basin = basin;
+            mamEquipQuery.basin = basin;
+        }
+        if (station !== 'all' && String(station).trim() !== '') {
+            const stReg = new RegExp(String(station).trim(), 'i');
+            query.id_name = stReg;
+            calibQuery.myData1 = stReg;
+            equipCheckQuery.station_code = stReg;
+            torCheckQuery.station_id = stReg;
+            mamEquipQuery.station_id = stReg;
         }
 
-        let inspectionData = await Inspection.find(query).lean();
-        let calibrationData = await Calibration.find(calibQuery).lean();
+        if (year !== 'all' && year !== 'ALL') {
+            equipCheckQuery.contractYear = String(year).trim();
+            torCheckQuery.contractYear = String(year).trim();
+        }
+
+        // ดึงข้อมูลพร้อมกันทุกคอลเลกชัน
+        let [inspectionData, calibrationData, equipmentChecks, torChecks, mamEquipments] = await Promise.all([
+            Inspection.find(query).lean(),
+            Calibration.find(calibQuery).lean(),
+            EquipmentCheck.find(equipCheckQuery).sort({ timestamp: -1 }).lean(),
+            TorCheck.find(torCheckQuery).sort({ timestamp: -1 }).lean(),
+            MamEquipment.find(mamEquipQuery).lean()
+        ]);
 
         if (year !== 'all' && year !== 'ALL') {
             inspectionData = inspectionData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
@@ -879,7 +905,13 @@ app.get('/api/report/pdf', async (req, res) => {
             svHardcodedBasins || [], 
             fetchImageBufferDirectly, 
             extractDriveId, 
-            fixThaiVowels
+            fixThaiVowels,
+            {
+                equipmentChecks,
+                torChecks,
+                mamEquipments,
+                contractYear: (year !== 'all' && year !== 'ALL') ? String(year) : getThaiFiscalYear(new Date())
+            }
         );
 
     } catch (error) {
