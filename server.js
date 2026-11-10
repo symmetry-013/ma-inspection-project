@@ -240,7 +240,28 @@ app.get('/auth/google/callback', async (req, res) => {
 });
 
 // ==========================================
-// 4. ฟังก์ชันจัดการโฟลเดอร์และรูปภาพ Google Drive
+// 4. API: ล็อกอินใช้งานระบบ (สำหรับกรรมการ)
+// ==========================================
+const APP_LOGIN_USER = process.env.APP_LOGIN_USER || 'tele_app';
+const APP_LOGIN_PASS = process.env.APP_LOGIN_PASS || 'Rid_tele';
+
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body || {};
+    if (String(username).trim() === APP_LOGIN_USER && String(password) === APP_LOGIN_PASS) {
+        return res.status(200).json({
+            success: true,
+            message: 'เข้าสู่ระบบสำเร็จ',
+            user: APP_LOGIN_USER
+        });
+    }
+    return res.status(401).json({
+        success: false,
+        message: 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง'
+    });
+});
+
+// ==========================================
+// 5. ฟังก์ชันจัดการโฟลเดอร์และรูปภาพ Google Drive
 // ==========================================
 const folderCache = new Map();
 
@@ -363,7 +384,7 @@ async function fetchImageBufferDirectly(fileId) {
 }
 
 // ==========================================
-// 5. API: รับ-ส่งข้อมูลตรวจสอบสถานี (Inspection)
+// 6. API: รับ-ส่งข้อมูลตรวจสอบสถานี (Inspection)
 // ==========================================
 app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     try {
@@ -416,7 +437,7 @@ app.get('/api/inspections', checkApiAuth, async (req, res) => {
 });
 
 // ==========================================
-// 6. API: รับ-ส่งข้อมูลสอบเทียบ (Calibration)
+// 7. API: รับ-ส่งข้อมูลสอบเทียบ (Calibration)
 // ==========================================
 const calibrationUploadFields = [
     { name: 'myFile', maxCount: 1 }, { name: 'myFile2', maxCount: 1 },
@@ -471,10 +492,10 @@ app.get('/api/calibrations', checkApiAuth, async (req, res) => {
 });
 
 // ==========================================
-// 7. API: ระบบเชื่อมต่อข้อมูล MAM (mam_equipment & mam_tor_tasks)
+// 8. API: ระบบเชื่อมต่อข้อมูล MAM (mam_equipment & mam_tor_tasks)
 // ==========================================
 
-// 7.1 สั่งซิงก์ไฟล์ CSV จากระบบ MAM เข้าสู่ MongoDB
+// 8.1 สั่งซิงก์ไฟล์ CSV จากระบบ MAM เข้าสู่ MongoDB
 app.all('/api/mam/sync', async (req, res) => {
     try {
         const key = req.headers['x-api-key'] ||
@@ -776,7 +797,7 @@ app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
 });
 
 // ==========================================
-// 7.7 API สำหรับหน้ารายงานผลการตรวจสอบอุปกรณ์ (NEW)
+// 8.1 API สำหรับหน้ารายงานผลการตรวจสอบอุปกรณ์ (NEW)
 // ==========================================
 app.get('/api/mam/report/equipment', checkApiAuth, async (req, res) => {
     try {
@@ -801,7 +822,7 @@ app.get('/api/mam/report/equipment', checkApiAuth, async (req, res) => {
 });
 
 // ==========================================
-// 7.8 API สำหรับหน้ารายงานผลการตรวจรับงาน TOR (NEW)
+// 8.2 API สำหรับหน้ารายงานผลการตรวจรับงาน TOR (NEW)
 // ==========================================
 app.get('/api/mam/report/tor', checkApiAuth, async (req, res) => {
     try {
@@ -827,7 +848,7 @@ app.get('/api/mam/report/tor', checkApiAuth, async (req, res) => {
 });
 
 // ===============================================
-// 8. การสร้าง PDF (รวม 4 ส่วน: ตารางสรุป + สอบเทียบ + ประวัติครุภัณฑ์ MAM 12 หมวด 4 งวด + ใบตรวจรับรายสถานี)
+// 9. การสร้าง PDF (รวม 4 ส่วนครบถ้วนตามตัวอย่างรายงาน)
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -867,7 +888,6 @@ app.get('/api/report/pdf', async (req, res) => {
             torCheckQuery.contractYear = String(year).trim();
         }
 
-        // ดึงข้อมูลพร้อมกันทุกคอลเลกชัน
         let [inspectionData, calibrationData, equipmentChecks, torChecks, mamEquipments] = await Promise.all([
             Inspection.find(query).lean(),
             Calibration.find(calibQuery).lean(),
@@ -921,7 +941,7 @@ app.get('/api/report/pdf', async (req, res) => {
 });
 
 // ==========================================
-// 9. Webhook (สำหรับทีมรับจ้าง MAM)
+// 10. Webhook (สำหรับทีมรับจ้าง MAM)
 // ==========================================
 app.post('/webhook/update-station', async (req, res) => {
     try {

@@ -78,150 +78,405 @@
         .bank-app-btn:hover .bank-icon {
             transform: scale(1.08);
         }
+
+        /* สไตล์หน้าล็อกอิน */
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #ec4899;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
+        }
+
+        .btn-puffy-pink {
+            background-color: #ec4899;
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 6px 0 #be185d;
+            transition: all 0.1s ease;
+        }
+        .btn-puffy-pink:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 #be185d;
+        }
+        .btn-puffy-pink:disabled {
+            background-color: #94a3b8;
+            box-shadow: 0 6px 0 #64748b;
+            cursor: not-allowed;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col justify-between p-4 md:p-8">
 
-    <!-- Header -->
-    <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 py-4 px-6 rounded-2xl shadow-sm max-w-4xl mx-auto w-full mb-6">
-        <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 rounded-2xl bg-pink-100 border-2 border-pink-300 flex items-center justify-center shadow-sm">
-                    <i class="ph-fill ph-waves text-pink-500 text-2xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-base md:text-xl font-extrabold text-slate-800 tracking-tight">
-                        ศูนย์ปฏิบัติการสนาม <span class="text-pink-500">MAM System</span>
-                    </h1>
-                    <p class="text-[11px] font-bold text-slate-400">ระบบตรวจสอบอุปกรณ์และตรวจรับงานสถานีโทรมาตร</p>
-                </div>
-            </div>
-            <div class="hidden sm:block text-xs font-extrabold bg-pink-50 text-pink-600 px-3.5 py-2 rounded-xl border border-pink-200">
-                ปีงบ 2569
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container mx-auto max-w-4xl flex-grow w-full">
-        <div class="puffy-container p-5 md:p-8 border-t-8 border-t-pink-400">
+    <!-- ========================================== -->
+    <!-- หน้าจอล็อกอิน (แสดงก่อนเข้าใช้งานหน้าแรก) -->
+    <!-- ========================================== -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-amber-50/95 backdrop-blur-md">
+        <div id="loginCard" class="puffy-container w-full max-w-md p-6 md:p-8 border-t-8 border-t-pink-500">
             
-            <div class="text-center mb-6">
-                <h2 class="text-lg md:text-2xl font-black text-slate-800 mb-1">เมนูหลักการปฏิบัติงาน</h2>
-                <p class="text-xs md:text-sm font-bold text-slate-400">เลือกทำรายการตรวจสอบ บันทึกข้อมูล หรือเรียกดูรายงานประจำสถานี</p>
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-16 h-16 rounded-3xl bg-pink-100 border-4 border-pink-200 flex items-center justify-center shadow-sm mb-3">
+                    <i class="ph-fill ph-shield-check text-pink-500 text-4xl"></i>
+                </div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider bg-pink-50 text-pink-600 px-3 py-1 rounded-full border border-pink-200 mb-2">
+                    เฉพาะคณะกรรมการและผู้ได้รับอนุญาต
+                </span>
+                <h2 class="text-xl md:text-2xl font-black text-slate-800">เข้าสู่ระบบปฏิบัติการสนาม</h2>
+                <p class="text-xs font-bold text-slate-400 mt-1">ระบบตรวจสอบอุปกรณ์และตรวจรับงานสถานีโทรมาตร</p>
             </div>
 
-            <!-- ตารางปุ่มเมนูสไตล์แอปธนาคาร (Grid 3 หรือ 4 คอลัมน์บนมือถือ) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 md:gap-5">
-                
-                <!-- 1. ตรวจรับงานตาม TOR -->
-                <a href="tor_inspection.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-pink-50 text-pink-500 border-2 border-pink-200 group-hover:bg-pink-500 group-hover:text-white">
-                        <i class="ph-fill ph-seal-check"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-pink-600">ตรวจรับงาน TOR</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">ระบบ MAM</span>
-                </a>
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs font-extrabold text-slate-600 block mb-1.5">
+                        <i class="ph-bold ph-user text-pink-500"></i> ชื่อผู้ใช้งาน (Username)
+                    </label>
+                    <input type="text" id="usernameInput" required autocomplete="username" placeholder="กรอกชื่อผู้ใช้งาน"
+                           class="w-full p-3.5 text-sm rounded-2xl puffy-input">
+                </div>
 
-                <!-- 2. ตรวจสอบอุปกรณ์ MAM -->
-                <a href="mam_equipment.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-sky-50 text-sky-500 border-2 border-sky-200 group-hover:bg-sky-500 group-hover:text-white">
-                        <i class="ph-fill ph-cpu"></i>
+                <div>
+                    <label class="text-xs font-extrabold text-slate-600 block mb-1.5">
+                        <i class="ph-bold ph-lock-key text-pink-500"></i> รหัสผ่าน (Password)
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="passwordInput" required autocomplete="current-password" placeholder="กรอกรหัสผ่าน"
+                               class="w-full p-3.5 pr-12 text-sm rounded-2xl puffy-input">
+                        <button type="button" onclick="togglePassword()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-pink-500">
+                            <i id="eyeIcon" class="ph-bold ph-eye text-xl"></i>
+                        </button>
                     </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-sky-600">เช็คอุปกรณ์ MAM</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">ทะเบียนสถานี</span>
-                </a>
+                </div>
 
-                <!-- 3. รายงานผลตรวจสอบอุปกรณ์ (NEW) -->
-                <a href="report_mam_equipment.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-emerald-50 text-emerald-500 border-2 border-emerald-200 group-hover:bg-emerald-500 group-hover:text-white">
-                        <i class="ph-fill ph-chart-bar"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-emerald-600">รายงานอุปกรณ์</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลเช็ค MAM</span>
-                </a>
+                <div class="flex items-center justify-between pt-1">
+                    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="rememberMe" checked class="w-4 h-4 accent-pink-500 rounded cursor-pointer">
+                        <span class="text-xs font-bold text-slate-500">จดจำการเข้าสู่ระบบในเครื่องนี้</span>
+                    </label>
+                </div>
 
-                <!-- 4. รายงานผล TOR (NEW) -->
-                <a href="report_mam_tor.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-violet-50 text-violet-500 border-2 border-violet-200 group-hover:bg-violet-500 group-hover:text-white">
-                        <i class="ph-fill ph-clipboard-text"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-violet-600">รายงานผล TOR</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลตรวจรับ</span>
-                </a>
+                <!-- ข้อความแจ้งเตือนเมื่อรหัสผิด -->
+                <div id="loginError" class="hidden bg-rose-50 border-2 border-rose-200 text-rose-600 text-xs font-bold p-3 rounded-xl flex items-center gap-2">
+                    <i class="ph-fill ph-warning-circle text-lg shrink-0"></i>
+                    <span id="loginErrorText">ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง</span>
+                </div>
 
-                <!-- 5. ตรวจสอบอุปกรณ์สนาม -->
-                <a href="inspection.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-teal-50 text-teal-500 border-2 border-teal-200 group-hover:bg-teal-500 group-hover:text-white">
-                        <i class="ph-fill ph-wrench"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-teal-600">ตรวจอุปกรณ์สนาม</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">บันทึกหน้างาน</span>
-                </a>
+                <button type="submit" id="btnLogin" class="btn-puffy-pink w-full font-extrabold py-3.5 text-sm md:text-base flex items-center justify-center gap-2 mt-2">
+                    <i class="ph-bold ph-sign-in text-xl"></i> เข้าสู่ระบบ
+                </button>
+            </form>
 
-                <!-- 6. สอบเทียบค่าระดับน้ำ/ฝน -->
-                <a href="calibration.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-purple-50 text-purple-500 border-2 border-purple-200 group-hover:bg-purple-500 group-hover:text-white">
-                        <i class="ph-fill ph-ruler"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-purple-600">สอบเทียบระดับน้ำ</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">ค่ามาตรฐาน</span>
-                </a>
-
-                <!-- 7. ติดตามการตรวจงาน -->
-                <a href="tracking.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-orange-50 text-orange-500 border-2 border-orange-200 group-hover:bg-orange-500 group-hover:text-white">
-                        <i class="ph-fill ph-compass"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-orange-600">ติดตามการตรวจงาน</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">สถานะความคืบหน้า</span>
-                </a>
-
-                <!-- 8. ผลตรวจสอบอุปกรณ์สนาม -->
-                <a href="report_inspection.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-amber-50 text-amber-500 border-2 border-amber-200 group-hover:bg-amber-500 group-hover:text-white">
-                        <i class="ph-fill ph-file-text"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-amber-600">ผลตรวจสนาม</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายงานย้อนหลัง</span>
-                </a>
-
-                <!-- 9. ผลสอบเทียบระดับน้ำ -->
-                <a href="report_calibration.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-yellow-50 text-yellow-600 border-2 border-yellow-200 group-hover:bg-yellow-500 group-hover:text-white">
-                        <i class="ph-fill ph-chart-bar"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-yellow-600">ผลสอบเทียบ</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายงานทางสถิติ</span>
-                </a>
-
-                <!-- 10. สรุปผลอุปกรณ์ชำรุด -->
-                <a href="defects.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-rose-50 text-rose-500 border-2 border-rose-200 group-hover:bg-rose-500 group-hover:text-white">
-                        <i class="ph-fill ph-warning"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-rose-600">อุปกรณ์ชำรุด</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">รอซ่อมแซม</span>
-                </a>
-
-                <!-- 11. ออกรายงานสรุป PDF -->
-                <a href="report_summary.html" class="bank-app-btn group">
-                    <div class="bank-icon bg-cyan-50 text-cyan-500 border-2 border-cyan-200 group-hover:bg-cyan-500 group-hover:text-white">
-                        <i class="ph-fill ph-file-pdf"></i>
-                    </div>
-                    <span class="text-xs font-extrabold text-slate-700 group-hover:text-cyan-600">ออกรายงาน PDF</span>
-                    <span class="text-[10px] text-slate-400 font-medium mt-0.5">ดาวน์โหลดอัตโนมัติ</span>
-                </a>
-
+            <div class="mt-6 pt-4 border-t border-slate-100 text-center">
+                <p class="text-[11px] font-bold text-slate-400">
+                    ฝ่ายติดตามและพยากรณ์สถานการณ์น้ำ กรมชลประทาน
+                </p>
             </div>
-
         </div>
-    </main>
+    </div>
 
-    <!-- Footer -->
-    <footer class="py-6 text-center text-xs text-slate-400 font-bold max-w-4xl mx-auto w-full">
-        ฝ่ายติดตามและพยากรณ์สถานการณ์น้ำ | กรมชลประทาน &copy; 2026
-    </footer>
+    <!-- ========================================== -->
+    <!-- เนื้อหาหน้าหลัก (แสดงหลังล็อกอินผ่านแล้ว) -->
+    <!-- ========================================== -->
+    <div id="appContent" class="hidden flex-col justify-between min-h-[calc(100vh-4rem)] w-full">
+        
+        <!-- Header -->
+        <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 py-4 px-5 rounded-2xl shadow-sm max-w-4xl mx-auto w-full mb-6">
+            <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center space-x-3">
+                    <div class="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-pink-100 border-2 border-pink-300 flex items-center justify-center shadow-sm shrink-0">
+                        <i class="ph-fill ph-waves text-pink-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm md:text-xl font-extrabold text-slate-800 tracking-tight">
+                            ศูนย์ปฏิบัติการสนาม <span class="text-pink-500">MAM System</span>
+                        </h1>
+                        <p class="text-[10px] md:text-[11px] font-bold text-slate-400">ระบบตรวจสอบอุปกรณ์และตรวจรับงานสถานีโทรมาตร</p>
+                    </div>
+                </div>
+
+                <!-- แถบแสดงผู้ใช้งานและปุ่มออกจากระบบ -->
+                <div class="flex items-center gap-2">
+                    <span class="hidden sm:inline-flex items-center gap-1.5 text-xs font-extrabold bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl border border-emerald-200">
+                        <i class="ph-fill ph-check-circle"></i> <span id="displayUser">tele_app</span>
+                    </span>
+                    <button type="button" onclick="handleLogout()" title="ออกจากระบบ"
+                            class="inline-flex items-center gap-1.5 text-xs font-extrabold bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white px-3 py-2 rounded-xl border border-rose-200 transition-all shadow-sm active:translate-y-0.5">
+                        <i class="ph-bold ph-sign-out text-base"></i>
+                        <span class="hidden md:inline">ออกจากระบบ</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto max-w-4xl flex-grow w-full">
+            <div class="puffy-container p-5 md:p-8 border-t-8 border-t-pink-400">
+                
+                <div class="text-center mb-6">
+                    <h2 class="text-lg md:text-2xl font-black text-slate-800 mb-1">เมนูหลักการปฏิบัติงาน</h2>
+                    <p class="text-xs md:text-sm font-bold text-slate-400">เลือกทำรายการตรวจสอบ บันทึกข้อมูล หรือเรียกดูรายงานประจำสถานี</p>
+                </div>
+
+                <!-- ตารางปุ่มเมนูสไตล์แอปธนาคาร -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 md:gap-5">
+                    
+                    <!-- 1. ตรวจรับงานตาม TOR -->
+                    <a href="tor_inspection.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-pink-50 text-pink-500 border-2 border-pink-200 group-hover:bg-pink-500 group-hover:text-white">
+                            <i class="ph-fill ph-seal-check"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-pink-600">ตรวจรับงาน TOR</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ระบบ MAM</span>
+                    </a>
+
+                    <!-- 2. ตรวจสอบอุปกรณ์ MAM -->
+                    <a href="mam_equipment.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-sky-50 text-sky-500 border-2 border-sky-200 group-hover:bg-sky-500 group-hover:text-white">
+                            <i class="ph-fill ph-cpu"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-sky-600">เช็คอุปกรณ์ MAM</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ทะเบียนสถานี</span>
+                    </a>
+
+                    <!-- 3. รายงานผลตรวจสอบอุปกรณ์ -->
+                    <a href="report_mam_equipment.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-emerald-50 text-emerald-500 border-2 border-emerald-200 group-hover:bg-emerald-500 group-hover:text-white">
+                            <i class="ph-fill ph-chart-bar"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-emerald-600">รายงานอุปกรณ์</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลเช็ค MAM</span>
+                    </a>
+
+                    <!-- 4. รายงานผล TOR -->
+                    <a href="report_mam_tor.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-violet-50 text-violet-500 border-2 border-violet-200 group-hover:bg-violet-500 group-hover:text-white">
+                            <i class="ph-fill ph-clipboard-text"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-violet-600">รายงานผล TOR</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลตรวจรับ</span>
+                    </a>
+
+                    <!-- 5. ตรวจสอบอุปกรณ์สนาม -->
+                    <a href="inspection.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-teal-50 text-teal-500 border-2 border-teal-200 group-hover:bg-teal-500 group-hover:text-white">
+                            <i class="ph-fill ph-wrench"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-teal-600">ตรวจอุปกรณ์สนาม</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">บันทึกหน้างาน</span>
+                    </a>
+
+                    <!-- 6. สอบเทียบค่าระดับน้ำ/ฝน -->
+                    <a href="calibration.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-purple-50 text-purple-500 border-2 border-purple-200 group-hover:bg-purple-500 group-hover:text-white">
+                            <i class="ph-fill ph-ruler"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-purple-600">สอบเทียบระดับน้ำ</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ค่ามาตรฐาน</span>
+                    </a>
+
+                    <!-- 7. ติดตามการตรวจงาน -->
+                    <a href="tracking.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-orange-50 text-orange-500 border-2 border-orange-200 group-hover:bg-orange-500 group-hover:text-white">
+                            <i class="ph-fill ph-compass"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-orange-600">ติดตามการตรวจงาน</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">สถานะความคืบหน้า</span>
+                    </a>
+
+                    <!-- 8. ผลตรวจสอบอุปกรณ์สนาม -->
+                    <a href="report_inspection.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-amber-50 text-amber-500 border-2 border-amber-200 group-hover:bg-amber-500 group-hover:text-white">
+                            <i class="ph-fill ph-file-text"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-amber-600">ผลตรวจสนาม</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายงานย้อนหลัง</span>
+                    </a>
+
+                    <!-- 9. ผลสอบเทียบระดับน้ำ -->
+                    <a href="report_calibration.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-yellow-50 text-yellow-600 border-2 border-yellow-200 group-hover:bg-yellow-500 group-hover:text-white">
+                            <i class="ph-fill ph-chart-bar"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-yellow-600">ผลสอบเทียบ</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายงานทางสถิติ</span>
+                    </a>
+
+                    <!-- 10. สรุปผลอุปกรณ์ชำรุด -->
+                    <a href="defects.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-rose-50 text-rose-500 border-2 border-rose-200 group-hover:bg-rose-500 group-hover:text-white">
+                            <i class="ph-fill ph-warning"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-rose-600">อุปกรณ์ชำรุด</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">รอซ่อมแซม</span>
+                    </a>
+
+                    <!-- 11. ออกรายงานสรุป PDF -->
+                    <a href="report_summary.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-cyan-50 text-cyan-500 border-2 border-cyan-200 group-hover:bg-cyan-500 group-hover:text-white">
+                            <i class="ph-fill ph-file-pdf"></i>
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-cyan-600">ออกรายงาน PDF</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ดาวน์โหลดอัตโนมัติ</span>
+                    </a>
+
+                </div>
+
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-6 text-center text-xs text-slate-400 font-bold max-w-4xl mx-auto w-full">
+            ฝ่ายติดตามและพยากรณ์สถานการณ์น้ำ | กรมชลประทาน &copy; 2026
+        </footer>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- สคริปต์จัดการการเข้าสู่ระบบ (รองรับหลายเครื่องพร้อมกัน) -->
+    <!-- ========================================== -->
+    <script>
+        const AUTH_STORAGE_KEY = 'rid_tele_auth_session';
+        const VALID_USER = 'tele_app';
+        const VALID_PASS = 'Rid_tele';
+
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+            ? '' : 'https://ma-inspection-project.onrender.com';
+
+        // ตรวจสอบสถานะการล็อกอินเมื่อเปิดหน้าเว็บ
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSession = localStorage.getItem(AUTH_STORAGE_KEY) || sessionStorage.getItem(AUTH_STORAGE_KEY);
+            if (savedSession) {
+                try {
+                    const parsed = JSON.parse(savedSession);
+                    if (parsed && parsed.authenticated === true && parsed.username === VALID_USER) {
+                        unlockApp(parsed.username);
+                        return;
+                    }
+                } catch (e) {
+                    clearAuthStorage();
+                }
+            }
+            showLoginModal();
+        });
+
+        function togglePassword() {
+            const pwdInput = document.getElementById('passwordInput');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.classList.replace('ph-eye', 'ph-eye-slash');
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.classList.replace('ph-eye-slash', 'ph-eye');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+            const remember = document.getElementById('rememberMe').checked;
+            const errorBox = document.getElementById('loginError');
+            const errorText = document.getElementById('loginErrorText');
+            const loginCard = document.getElementById('loginCard');
+            const btnLogin = document.getElementById('btnLogin');
+
+            errorBox.classList.add('hidden');
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังตรวจสอบ...';
+
+            let isSuccess = false;
+
+            // 1. พยายามตรวจสอบผ่าน API เซิร์ฟเวอร์ก่อน (ถ้ามี Endpoint /api/login)
+            try {
+                const res = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.success) {
+                        isSuccess = true;
+                    }
+                } else if (res.status === 404) {
+                    // กรณีเซิร์ฟเวอร์ยังไม่ได้อัปเดต Endpoint /api/login ให้ตรวจสอบฝั่ง Client
+                    if (username === VALID_USER && password === VALID_PASS) {
+                        isSuccess = true;
+                    }
+                }
+            } catch (err) {
+                // กรณีออฟไลน์หรือเซิร์ฟเวอร์กำลังตื่น ให้เช็คกับค่าที่กำหนด
+                if (username === VALID_USER && password === VALID_PASS) {
+                    isSuccess = true;
+                }
+            }
+
+            btnLogin.disabled = false;
+            btnLogin.innerHTML = '<i class="ph-bold ph-sign-in text-xl"></i> เข้าสู่ระบบ';
+
+            if (isSuccess) {
+                const sessionPayload = JSON.stringify({
+                    authenticated: true,
+                    username: username,
+                    loginAt: new Date().toISOString()
+                });
+
+                if (remember) {
+                    localStorage.setItem(AUTH_STORAGE_KEY, sessionPayload);
+                } else {
+                    sessionStorage.setItem(AUTH_STORAGE_KEY, sessionPayload);
+                }
+
+                unlockApp(username);
+            } else {
+                errorText.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง';
+                errorBox.classList.remove('hidden');
+                loginCard.classList.remove('animate-shake');
+                void loginCard.offsetWidth; // รีเซ็ต Animation
+                loginCard.classList.add('animate-shake');
+            }
+        }
+
+        function unlockApp(username) {
+            document.getElementById('displayUser').textContent = username || VALID_USER;
+            document.getElementById('loginModal').classList.add('hidden');
+            const appContent = document.getElementById('appContent');
+            appContent.classList.remove('hidden');
+            appContent.classList.add('flex');
+        }
+
+        function showLoginModal() {
+            document.getElementById('appContent').classList.add('hidden');
+            document.getElementById('appContent').classList.remove('flex');
+            document.getElementById('loginModal').classList.remove('hidden');
+            document.getElementById('usernameInput').focus();
+        }
+
+        function clearAuthStorage() {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            sessionStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+
+        function handleLogout() {
+            clearAuthStorage();
+            document.getElementById('passwordInput').value = '';
+            showLoginModal();
+        }
+    </script>
 
 </body>
 </html>
