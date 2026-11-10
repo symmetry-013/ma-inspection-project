@@ -20,16 +20,6 @@ const {
     importFromMam
 } = require('./mamImporter');
 
-// โหลดข้อมูลจำลองจาก sv.js เผื่อใช้เป็น Fallback ตอนที่ยังไม่ได้ซิงก์ CSV จริงจาก MAM
-let fallbackMamEquipment = [];
-try {
-    const svData = require('./sv');
-    fallbackMamEquipment = svData.mamEquipmentData || [];
-    console.log(`✅ โหลดข้อมูลสำรอง (sv.js) สำเร็จ: ${fallbackMamEquipment.length} รายการ`);
-} catch (err) {
-    console.warn('ℹ️ ไม่พบไฟล์ sv.js (ระบบจะใช้ข้อมูลจาก MongoDB mam_equipment เป็นหลัก)');
-}
-
 const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
@@ -76,8 +66,9 @@ function formatPeriodLabel(periodInput) {
 }
 
 // ==========================================
-// แก้ไข: Hardcode รหัสผ่านสำหรับสั่ง Sync และจัดการ Middleware ให้ชัดเจน
+// การตรวจสอบสิทธิ์ (Auth) 
 // ==========================================
+// รหัสผ่านสำหรับการรัน Sync กำหนดไว้ตรงนี้
 const ADMIN_KEY = 'MAM_Secret_2026';
 const CRON_SECRET = 'MAM_Secret_2026';
 
@@ -498,6 +489,7 @@ app.all('/api/mam/sync', async (req, res) => {
         const year = req.query.year || req.body?.year || getThaiFiscalYear(new Date());
         const force = req.query.force === 'true' || req.body?.force === true;
 
+        console.log(`[SYNC] เริ่มต้นซิงก์ข้อมูลจาก MAM สำหรับปีงบประมาณ ${year}...`);
         const result = await importFromMam(year, { force });
         res.status(200).json({
             success: true,
@@ -541,17 +533,6 @@ app.get('/api/mam/stations', checkApiAuth, async (req, res) => {
                     stationMap[stId] = stName || stId;
                 }
             });
-        } else {
-            let filtered = fallbackMamEquipment;
-            if (basin && basin !== 'ALL') {
-                filtered = filtered.filter(item => item.basin === basin || item.original_basin === basin);
-            }
-            filtered.forEach(item => {
-                const stId = item.station_id || item.station_code;
-                if (stId && !stationMap[stId]) {
-                    stationMap[stId] = item.station_name || stId;
-                }
-            });
         }
 
         res.status(200).json({ success: true, stations: stationMap });
@@ -572,73 +553,37 @@ app.get('/api/mam/equipment', checkApiAuth, async (req, res) => {
         let mappedItems = [];
         let dataSource = 'mam_equipment';
 
-        const dbCount = await MamEquipment.estimatedDocumentCount();
-        if (dbCount > 0) {
-            let dbDocs = await MamEquipment.find({
-                $or: [
-                    { station_id: rawStation },
-                    { station_id: new RegExp(`^${ normStation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }`, 'i') }
-                ]
-            }).lean();
+        let dbDocs = await MamEquipment.find({
+            $or: [
+                { station_id: rawStation },
+                { station_id: new RegExp(`^${ normStation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }`, 'i') }
+            ]
+        }).lean();
 
-            if (basin && basin !== 'ALL' && dbDocs.length > 0) {
-                const byBasin = dbDocs.filter(d => d.basin === basin);
-                if (byBasin.length > 0) dbDocs = byBasin;
-            }
-
-            mappedItems = dbDocs.map(doc => ({
-                id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
-                equipment_id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
-                station_id: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
-                station_code: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
-                station_name: cleanExcelFormulaEscape(doc.station_name || doc.station_id || ''),
-                basin: cleanExcelFormulaEscape(doc.basin || ''),
-                sub_basin: cleanExcelFormulaEscape(doc.sub_basin || '-'),
-                location_point: cleanExcelFormulaEscape(doc.location_point || '-') || '-',
-                category: cleanExcelFormulaEscape(doc.category || '-') || '-',
-                brand: cleanExcelFormulaEscape(doc.brand || '-') || '-',
-                model: cleanExcelFormulaEscape(doc.model || '-') || '-',
-                serial_number: cleanExcelFormulaEscape(doc.serial_number || '-') || '-',
-                mam_status_code: doc.mam_status_code !== undefined ? String(doc.mam_status_code).trim() : '',
-                mam_status: cleanExcelFormulaEscape(doc.mam_status || 'ไม่ทราบ') || 'ไม่ทราบ',
-                install_date: cleanExcelFormulaEscape(doc.install_date || '-') || '-',
-                mam_remark: cleanExcelFormulaEscape(doc.mam_remark || ''),
-                generated_at: doc.generated_at || ''
-            }));
-        } else {
-            dataSource = 'sv_fallback';
-            let rawItems = fallbackMamEquipment.filter(item => {
-                const code = item.station_id || item.station_code || '';
-                const matchExact = String(code).trim().toUpperCase() === rawStation.toUpperCase();
-                const matchNorm = normalizeStationCode(code) === normStation;
-                return matchExact || matchNorm;
-            });
-
-            if (basin && basin !== 'ALL' && rawItems.length > 0) {
-                const byBasin = rawItems.filter(item => item.basin === basin || item.original_basin === basin);
-                if (byBasin.length > 0) rawItems = byBasin;
-            }
-
-            mappedItems = rawItems.map(doc => ({
-                id: cleanExcelFormulaEscape(String(doc.equipment_id || doc.id || '')),
-                equipment_id: cleanExcelFormulaEscape(String(doc.equipment_id || doc.id || '')),
-                station_id: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
-                station_code: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
-                station_name: cleanExcelFormulaEscape(doc.station_name || doc.station_code || ''),
-                basin: cleanExcelFormulaEscape(doc.basin || ''),
-                sub_basin: cleanExcelFormulaEscape(doc.sub_basin || '-'),
-                location_point: cleanExcelFormulaEscape(doc.location_point || '-') || '-',
-                category: cleanExcelFormulaEscape(doc.category || '-') || '-',
-                brand: cleanExcelFormulaEscape(doc.brand || '-') || '-',
-                model: cleanExcelFormulaEscape(doc.model || '-') || '-',
-                serial_number: cleanExcelFormulaEscape(doc.serial_number || '-') || '-',
-                mam_status_code: doc.mam_status === 'ใช้งานได้' ? '0' : (doc.mam_status === 'ใช้งานไม่ได้' ? '1' : ''),
-                mam_status: cleanExcelFormulaEscape(doc.mam_status || 'ไม่ทราบ') || 'ไม่ทราบ',
-                install_date: cleanExcelFormulaEscape(doc.install_date || '-') || '-',
-                mam_remark: cleanExcelFormulaEscape(doc.mam_remark || ''),
-                generated_at: doc.generated_at || ''
-            }));
+        if (basin && basin !== 'ALL' && dbDocs.length > 0) {
+            const byBasin = dbDocs.filter(d => d.basin === basin);
+            if (byBasin.length > 0) dbDocs = byBasin;
         }
+
+        mappedItems = dbDocs.map(doc => ({
+            id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
+            equipment_id: cleanExcelFormulaEscape(doc.equipment_id || doc.id || ''),
+            station_id: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
+            station_code: cleanExcelFormulaEscape(doc.station_id || doc.station_code || ''),
+            station_name: cleanExcelFormulaEscape(doc.station_name || doc.station_id || ''),
+            basin: cleanExcelFormulaEscape(doc.basin || ''),
+            sub_basin: cleanExcelFormulaEscape(doc.sub_basin || '-'),
+            location_point: cleanExcelFormulaEscape(doc.location_point || '-') || '-',
+            category: cleanExcelFormulaEscape(doc.category || '-') || '-',
+            brand: cleanExcelFormulaEscape(doc.brand || '-') || '-',
+            model: cleanExcelFormulaEscape(doc.model || '-') || '-',
+            serial_number: cleanExcelFormulaEscape(doc.serial_number || '-') || '-',
+            mam_status_code: doc.mam_status_code !== undefined ? String(doc.mam_status_code).trim() : '',
+            mam_status: cleanExcelFormulaEscape(doc.mam_status || 'ไม่ทราบ') || 'ไม่ทราบ',
+            install_date: cleanExcelFormulaEscape(doc.install_date || '-') || '-',
+            mam_remark: cleanExcelFormulaEscape(doc.mam_remark || ''),
+            generated_at: doc.generated_at || ''
+        }));
 
         let savedRecord = null;
         if (year && period) {
@@ -728,127 +673,12 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
 
         let dataSource = 'mam_tor_tasks';
 
+        // ลบ Fallback จำลองออก ใช้ข้อมูลจากฐานข้อมูล MAM จริงเท่านั้น
         if (!rows || rows.length === 0) {
-            dataSource = 'fallback_simulation';
-            const insp = await Inspection.findOne({
-                saya: periodLabel,
-                id_name: { $in: [rawStation, normStation] }
-            }).sort({ timestamp: -1 }).lean();
-
-            const fallbackJobStatus = insp ? 'รออนุมัติ' : 'กำลังดำเนินงาน';
-            const fallbackJobCode = insp ? '2' : '1';
-            const fallbackCheckIn = insp && insp.timestamp ? new Date(insp.timestamp).toISOString().replace('T', ' ').substring(0, 23) : '';
-            const fallbackNote = insp ? (insp.note || '') : '';
-            const stationNameVal = insp ? (insp.name_id || rawStation) : rawStation;
-            const basinVal = basin || (insp ? insp.code : '-');
-
-            rows = [
-                {
-                    contract_year: contractYear,
-                    period: periodNum,
-                    basin: basinVal,
-                    sub_basin: '-',
-                    station_id: rawStation,
-                    station_name: stationNameVal,
-                    contract_id: 'SIM-01',
-                    contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
-                    mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
-                    job_status_code: fallbackJobCode,
-                    job_status: fallbackJobStatus,
-                    checked_in_at: fallbackCheckIn,
-                    contractor_note: fallbackNote,
-                    extra_works_status: (insp && Array.isArray(insp.extra_work_tor4) && insp.extra_work_tor4.length > 0) ? 'done' : 'not_started',
-                    task_type: 'general',
-                    task_key: 'step_2',
-                    task_name: 'ทำความสะอาด',
-                    field_status: '',
-                    quantity: '',
-                    unit: '',
-                    contract_required_quantity: '',
-                    description: '',
-                    generated_at: new Date().toISOString()
-                },
-                {
-                    contract_year: contractYear,
-                    period: periodNum,
-                    basin: basinVal,
-                    sub_basin: '-',
-                    station_id: rawStation,
-                    station_name: stationNameVal,
-                    contract_id: 'SIM-01',
-                    contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
-                    mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
-                    job_status_code: fallbackJobCode,
-                    job_status: fallbackJobStatus,
-                    checked_in_at: fallbackCheckIn,
-                    contractor_note: fallbackNote,
-                    extra_works_status: 'not_started',
-                    task_type: 'general',
-                    task_key: 'step_3',
-                    task_name: 'สอบเทียบ',
-                    field_status: '',
-                    quantity: '',
-                    unit: '',
-                    contract_required_quantity: '',
-                    description: '',
-                    generated_at: new Date().toISOString()
-                },
-                {
-                    contract_year: contractYear,
-                    period: periodNum,
-                    basin: basinVal,
-                    sub_basin: '-',
-                    station_id: rawStation,
-                    station_name: stationNameVal,
-                    contract_id: 'SIM-01',
-                    contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
-                    mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
-                    job_status_code: fallbackJobCode,
-                    job_status: fallbackJobStatus,
-                    checked_in_at: fallbackCheckIn,
-                    contractor_note: fallbackNote,
-                    extra_works_status: 'not_started',
-                    task_type: 'general',
-                    task_key: 'step_4',
-                    task_name: 'ตรวจสอบอุปกรณ์',
-                    field_status: '',
-                    quantity: '',
-                    unit: '',
-                    contract_required_quantity: '',
-                    description: '',
-                    generated_at: new Date().toISOString()
-                }
-            ];
-
-            if (insp && Array.isArray(insp.extra_work_tor4)) {
-                insp.extra_work_tor4.forEach((ex, i) => {
-                    rows.push({
-                        contract_year: contractYear,
-                        period: periodNum,
-                        basin: basinVal,
-                        sub_basin: '-',
-                        station_id: rawStation,
-                        station_name: stationNameVal,
-                        contract_id: 'SIM-01',
-                        contract_name: `สัญญาบำรุงรักษาสถานีโทรมาตร ปีงบประมาณ ${contractYear}`,
-                        mam_record_id: `SIM-${contractYear}-${periodNum}-${normStation}`,
-                        job_status_code: fallbackJobCode,
-                        job_status: fallbackJobStatus,
-                        checked_in_at: fallbackCheckIn,
-                        contractor_note: fallbackNote,
-                        extra_works_status: 'done',
-                        task_type: 'extra',
-                        task_key: ex.key || `extra_${i + 1}`,
-                        task_name: ex.name || `งานเพิ่มเติมรายการที่ ${i + 1}`,
-                        field_status: 'done',
-                        quantity: String(ex.quantity || '1'),
-                        unit: ex.unit || 'งาน',
-                        contract_required_quantity: String(ex.contract_required_quantity || ''),
-                        description: ex.description || '',
-                        generated_at: new Date().toISOString()
-                    });
-                });
-            }
+            return res.status(404).json({ 
+                success: false, 
+                message: `ไม่พบข้อมูลงาน TOR ของสถานี ${rawStation} ในระบบ MAM (ปีงบ ${contractYear} งวด ${periodLabel})` 
+            });
         }
 
         const cleanedRows = rows.map(r => {
