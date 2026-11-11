@@ -2,8 +2,8 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dashboard แสดงผลสอบเทียบ | 3D Cartoon Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานผลสอบเทียบค่าระดับน้ำและน้ำฝน</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,53 +14,32 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- นำเข้า Constants -->
+    <!-- นำเข้าข้อมูลส่วนกลาง (hardcodedBasins, stationsData) -->
     <script src="constants.js"></script>
-    
+
     <script>
-        tailwind.config = { 
-            theme: { 
-                extend: { 
-                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
-                    colors: { 
-                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
-                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' },
-                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
-                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
-                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e' }
-                    }
-                } 
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
             }
         }
     </script>
+
     <style>
         body {
             background-color: #fffbeb; 
             color: #334155;
             background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
             background-size: 24px 24px;
-            -webkit-overflow-scrolling: touch;
         }
-        
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: #fef08a; border-radius: 8px; }
-        ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 8px; border: 2px solid #fffbeb; }
 
         .puffy-container {
             background-color: #ffffff;
-            border-radius: 24px;
+            border-radius: 28px;
             border: 4px solid #f8fafc;
             box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
-            margin-bottom: 24px;
-        }
-
-        .result-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border-top-width: 8px;
-        }
-        .result-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05);
         }
 
         .puffy-input {
@@ -72,393 +51,508 @@
         }
         .puffy-input:focus {
             outline: none;
-            border-color: #38bdf8;
+            border-color: #10b981;
             background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
         }
 
-        .btn-puffy-blue {
-            background-color: #38bdf8;
+        .btn-puffy-emerald {
+            background-color: #10b981;
             color: white;
             border-radius: 16px;
-            box-shadow: 0 6px 0 #0284c7;
-            transition: all 0.15s ease;
-            font-weight: 700;
-            border: 4px solid #bae6fd;
+            box-shadow: 0 6px 0 #059669;
+            transition: all 0.1s ease;
         }
-        .btn-puffy-blue:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #0284c7; }
-        .btn-puffy-blue:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; border-color: #cbd5e1; cursor: not-allowed; opacity: 0.8; }
+        .btn-puffy-emerald:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #059669; }
+        .btn-puffy-emerald:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; cursor: not-allowed; opacity: 0.7; }
 
-        .polaroid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; margin-top: 16px; }
-        .polaroid { 
-            background: #ffffff; padding: 10px 10px 16px 10px; 
-            border: 2px solid #e2e8f0; border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
+        .calib-card {
+            background: #ffffff;
+            border: 3px solid #f1f5f9;
+            border-radius: 24px;
+            box-shadow: 0 8px 20px -5px rgba(0,0,0,0.04);
+            overflow: hidden;
         }
-        .polaroid:hover { transform: scale(1.05) rotate(-2deg); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-color: #cbd5e1; z-index: 10; position: relative; }
-        .polaroid-img-wrapper { aspect-ratio: 1; overflow: hidden; border-radius: 8px; border: 2px solid #f1f5f9; background: #f8fafc; }
-        .polaroid-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-        
-        .table-custom { border-collapse: separate; border-spacing: 0; width: 100%; border-radius: 16px; border: 2px solid #e2e8f0; overflow: hidden; }
-        .table-custom th, .table-custom td { padding: 12px 16px; border-bottom: 2px solid #f1f5f9; text-align: center; }
-        .table-custom th { background-color: #f8fafc; font-weight: 700; color: #475569; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; }
-        .table-custom td { font-size: 0.95rem; font-weight: 600; color: #334155; }
-        .table-custom tr:last-child td { border-bottom: none; }
-        .table-custom tr:hover td { background-color: #f8fafc; }
 
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .photo-box {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 10px;
+            transition: all 0.2s ease;
+        }
+        .photo-box:hover {
+            border-color: #a7f3d0;
+            box-shadow: 0 6px 15px -3px rgba(16, 185, 129, 0.12);
+        }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col font-sans">
-    
+<body class="antialiased min-h-screen flex flex-col pb-12">
+
     <!-- Header -->
-    <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
-        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
+    <header class="bg-white/95 backdrop-blur-md border-b-4 border-emerald-100 sticky top-0 z-40 py-3.5 shadow-sm">
+        <div class="container mx-auto px-4 flex justify-between items-center max-w-5xl">
             <div class="flex items-center space-x-3 md:space-x-4">
-                <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1">
+                <a href="index.html" class="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1 shrink-0">
                     <i class="ph-bold ph-caret-left text-2xl"></i>
                 </a>
-                <div class="hidden md:flex w-12 h-12 rounded-2xl bg-emerald-100 border-2 border-emerald-300 items-center justify-center shadow-sm">
-                    <i class="ph-fill ph-chart-bar text-emerald-500 text-2xl"></i>
+                <div class="hidden sm:flex w-12 h-12 rounded-2xl bg-emerald-100 border-2 border-emerald-300 items-center justify-center shadow-sm shrink-0">
+                    <i class="ph-fill ph-ruler text-emerald-600 text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight">
-                        รายงาน <span class="text-emerald-500">ผลสอบเทียบ</span>
+                    <h1 class="text-lg md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                        รายงาน <span class="text-emerald-600">ผลสอบเทียบ</span>
                     </h1>
+                    <p class="text-[11px] md:text-xs font-bold text-slate-400">
+                        ข้อมูลการสอบเทียบค่าระดับน้ำและน้ำฝนพร้อมภาพประกอบหน้างาน
+                    </p>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow max-w-5xl mx-auto w-full px-4 py-8">
-        
-        <!-- ตัวกรองการค้นหา (เพิ่มปีงบประมาณ) -->
-        <div class="puffy-container p-6 border-t-8 border-t-sky-400 fade-in">
-            <h2 class="text-lg font-bold text-sky-600 mb-4 flex items-center gap-2 border-b-2 border-sky-100 pb-3">
-                <i class="ph-fill ph-magnifying-glass text-2xl"></i> ค้นหาข้อมูลผลสอบเทียบ
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow space-y-6">
+
+        <!-- ตัวกรองข้อมูล (เชื่อมกับ constants.js) -->
+        <div class="puffy-container p-5 md:p-7 border-t-8 border-t-emerald-500">
+            <h2 class="text-sm md:text-base font-extrabold text-slate-700 mb-4 flex items-center gap-2 border-b-2 border-slate-100 pb-2.5">
+                <i class="ph-bold ph-funnel text-emerald-600 text-lg"></i> กรองข้อมูลรายงานผลสอบเทียบ
             </h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div class="space-y-1.5">
-                    <label class="text-sm font-bold text-slate-600">ปีงบประมาณ</label>
-                    <select id="myDataYear" class="w-full p-3.5 rounded-xl puffy-input">
-                        <option value="">ทั้งหมด (ทุกปีงบประมาณ)</option>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">ปีงบประมาณ</label>
+                    <select id="filterYear" onchange="applyFilters()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกปีงบประมาณ --</option>
                     </select>
                 </div>
-                <div class="space-y-1.5">
-                    <label class="text-sm font-bold text-slate-600">งวดตรวจงาน MA</label>
-                    <select id="myDataPeriod" class="w-full p-3.5 rounded-xl puffy-input">
-                        <option value="">ทั้งหมด (ทุกงวด)</option>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">งวดการตรวจสอบ</label>
+                    <select id="filterPeriod" onchange="applyFilters()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกงวด --</option>
                         <option value="งวดที่1">งวดที่ 1</option>
                         <option value="งวดที่2">งวดที่ 2</option>
                         <option value="งวดที่3">งวดที่ 3</option>
                         <option value="งวดที่4">งวดที่ 4</option>
                     </select>
                 </div>
-                <div class="space-y-1.5">
-                    <label class="text-sm font-bold text-slate-600">กลุ่มลุ่มน้ำ</label>
-                    <select id="myData0" class="w-full p-3.5 rounded-xl puffy-input">
-                        <option value="">ทั้งหมด (ทุกลุ่มน้ำ)</option>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">กลุ่มลุ่มน้ำ</label>
+                    <select id="filterBasin" onchange="onBasinChange()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกกลุ่มลุ่มน้ำ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">เลือกสถานี</label>
+                    <select id="filterStation" onchange="applyFilters()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกสถานี --</option>
                     </select>
                 </div>
             </div>
-            <div class="mt-6 flex justify-end">
-                <button onclick="fetchData()" id="searchBtn" class="btn-puffy-blue px-8 py-3.5 flex items-center justify-center gap-2 w-full md:w-auto text-lg">
-                    <i class="ph-bold ph-cloud-arrow-down text-2xl"></i> ดึงข้อมูล
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <span id="recordCountBadge" class="text-xs font-extrabold bg-emerald-50 text-emerald-700 px-3.5 py-2 rounded-xl border border-emerald-200">
+                    กำลังโหลดข้อมูล...
+                </span>
+                <button type="button" onclick="loadCalibrations()" id="btnRefresh"
+                        class="btn-puffy-emerald px-5 py-2.5 text-xs md:text-sm font-extrabold flex items-center gap-2">
+                    <i class="ph-bold ph-arrows-clockwise text-base"></i> รีเฟรชข้อมูลล่าสุด
                 </button>
             </div>
         </div>
 
-        <!-- สถานะ Loading / แจ้งเตือน -->
-        <div id="loadingIndicator" class="hidden flex flex-col items-center justify-center py-12 fade-in">
-            <i class="ph-bold ph-spinner animate-spin text-5xl text-sky-500 mb-4"></i>
-            <p class="text-slate-500 font-bold text-sm" id="loadingText">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>
-        </div>
-        
-        <div id="errorMessage" class="hidden bg-rose-50 border-2 border-rose-200 text-rose-700 p-5 rounded-2xl mb-6 flex gap-3 items-start fade-in">
-            <i class="ph-fill ph-warning-circle text-3xl mt-0.5"></i>
-            <div>
-                <h3 class="font-extrabold text-lg">แจ้งเตือน</h3>
-                <p class="text-sm mt-1 font-medium" id="errorText"></p>
-            </div>
-        </div>
-
-        <!-- ช่องค้นหาภายในเครื่อง (Local Search) -->
-        <div id="localSearchContainer" class="hidden puffy-container p-4 md:p-5 mb-6 border-t-8 border-t-emerald-400 fade-in flex items-center gap-3">
-            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center shrink-0 border-2 border-emerald-200">
-                <i class="ph-bold ph-magnifying-glass text-emerald-500 text-xl"></i>
-            </div>
-            <div class="flex-grow">
-                <input type="text" id="localSearchInput" class="w-full p-3 rounded-xl puffy-input text-sm" placeholder="พิมพ์ชื่อหรือรหัสสถานีเพื่อกรองรายการด้านล่าง..." onkeyup="filterLocalData()">
-            </div>
-        </div>
-
-        <!-- พื้นที่แสดงผลการ์ด -->
-        <div id="resultsContainer" class="fade-in space-y-6">
-            <div class="puffy-container py-16 text-center border-dashed border-slate-300" id="emptyState">
-                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
-                    <i class="ph-fill ph-folder-open text-4xl text-slate-300"></i>
-                </div>
-                <h3 class="text-xl font-extrabold text-slate-600">กรุณาเลือกเงื่อนไข</h3>
-                <p class="text-slate-400 font-medium text-sm mt-1">แล้วกดปุ่ม "ดึงข้อมูล" เพื่อดูรายงาน</p>
+        <!-- พื้นที่แสดงรายการรายงานผลสอบเทียบ -->
+        <div id="calibrationListContainer" class="space-y-6">
+            <div class="py-16 text-center text-emerald-600 bg-white rounded-3xl border-4 border-slate-100">
+                <i class="ph-bold ph-spinner animate-spin text-4xl mb-2"></i>
+                <p class="font-extrabold text-sm">กำลังดึงข้อมูลผลสอบเทียบ...</p>
             </div>
         </div>
 
     </main>
 
-    <script>
-        let globalFetchedData = [];
-        const BASE_URL = 'https://ma-inspection-project.onrender.com';
-        
-        const fallbackBasins = [
-            "โขงเหนือ", "โขงอีสาน", "ชี", "มูล", "ปิง", "วัง", "ยม", "น่าน", "เจ้าพระยา",
-            "ป่าสัก", "สะแกกรัง", "ท่าจีน", "แม่กลอง", "บางปะกง", "ชายทะเลฝั่งตะวันออก",
-            "เพชรบุรี-ประจวบคีรีขันธ์", "ภาคใต้ฝั่งตะวันตก", "ภาคใต้ฝั่งตะวันออกตอนบน",
-            "ภาคใต้ฝั่งตะวันออกตอนล่าง", "ทะเลสาบสงขลา", "สาละวิน", "โตนเลสาป", "KRC"
-        ];
+    <!-- Modal สำหรับกดขยายดูรูปภาพขนาดใหญ่ -->
+    <div id="imageModal" onclick="closeImageModal()" class="fixed inset-0 z-50 hidden bg-slate-900/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="relative max-w-3xl w-full bg-white rounded-3xl p-3 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center px-3 py-2 border-b border-slate-100 mb-2">
+                <span id="modalCaption" class="font-extrabold text-sm text-slate-700">ภาพประกอบการสอบเทียบ</span>
+                <button type="button" onclick="closeImageModal()" class="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center font-bold hover:bg-rose-500 hover:text-white transition-all">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
+            <img id="modalImg" src="" alt="Preview" class="w-full max-h-[75vh] object-contain rounded-2xl bg-slate-50">
+        </div>
+    </div>
 
-        const safeEscapeHtml = (unsafe) => {
-            if (typeof escapeHtml === 'function') return escapeHtml(unsafe);
-            return (unsafe || '').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    <script>
+        // =========================================================================
+        // แก้ไขปัญหา APK: ใน WebView ของ Android ค่า hostname มักเป็น localhost
+        // จึงต้องบังคับชี้ไปที่เซิร์ฟเวอร์ Render เสมอ ยกเว้นเปิดเทสบนคอมพิวเตอร์พอร์ต 3000/5000
+        // =========================================================================
+        const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                             && (window.location.port === '3000' || window.location.port === '5000');
+        const API_BASE = isLocalPcDev ? '' : 'https://ma-inspection-project.onrender.com';
+
+        let allCalibrations = [];
+
+        const safeEscape = (str) => {
+            if (typeof escapeHtml === 'function') return escapeHtml(str);
+            return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        function getFiscalYearFromDate(dateStr, explicitYear) {
-            if (explicitYear && String(explicitYear).trim() !== '') return String(explicitYear).trim();
-            const d = dateStr ? new Date(dateStr) : new Date();
-            if (isNaN(d.getTime())) return String(new Date().getFullYear() + 543);
-            let thaiYear = d.getFullYear() + 543;
-            if (d.getMonth() >= 9) thaiYear += 1;
-            return String(thaiYear);
-        }
-
-        function initFilters() {
-            // เติมปีงบประมาณ
-            const yearSelect = document.getElementById("myDataYear");
-            const startYear = 2568;
-            const totalYears = 10;
-            for (let i = 0; i <= totalYears; i++) {
-                let opt = document.createElement("option");
-                opt.value = startYear + i;
-                opt.textContent = `ปีงบประมาณ ${startYear + i}`;
-                yearSelect.appendChild(opt);
+        // คำนวณปีงบประมาณไทยจากวันที่บันทึก
+        function getFiscalYear(item) {
+            if (item.contractYear && String(item.contractYear).trim() !== '') {
+                return String(item.contractYear).trim();
             }
-
-            // เติมลุ่มน้ำ
-            const basinSelect = document.getElementById("myData0");
-            const basinsToUse = (typeof hardcodedBasins !== 'undefined') ? hardcodedBasins : fallbackBasins;
-            basinsToUse.forEach(basin => { 
-                let opt = document.createElement("option"); 
-                opt.value = basin; 
-                opt.textContent = basin; 
-                basinSelect.appendChild(opt); 
-            });
-        }
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initFilters);
-        } else {
-            initFilters();
+            const d = new Date(item.timestamp || item.createdAt);
+            if (isNaN(d.getTime())) return '';
+            let y = d.getFullYear() + 543;
+            if (d.getMonth() >= 9) y += 1;
+            return String(y);
         }
 
-        function parseImageInfo(imagePath) {
-            if (!imagePath || imagePath.trim() === '') return null;
-            let path = imagePath.trim();
-            let fileId = null;
+        // ดึง File ID ของ Google Drive ออกจากลิงก์ทุกรูปแบบ
+        function extractDriveFileId(rawUrl) {
+            if (!rawUrl) return null;
+            const str = String(rawUrl).trim();
+            const m1 = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (m1) return m1[1];
+            const m2 = str.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (m2) return m2[1];
+            const m3 = str.match(/\/api\/images\/([a-zA-Z0-9_-]+)/);
+            if (m3) return m3[1];
+            return null;
+        }
 
-            if (path.includes('/api/images/')) {
-                const parts = path.split('/api/images/');
-                fileId = parts[parts.length - 1].replace(/\//g, '');
-            } else if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
-                const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                if (matchFileD) {
-                    fileId = matchFileD[1];
-                } else {
-                    const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                    if (matchId) fileId = matchId[1];
-                }
-            }
+        // =========================================================================
+        // แก้ปัญหารูปขึ้น Image Error บน APK:
+        // แปลงลิงก์รูปทั้งหมดให้วิ่งผ่าน Proxy ของเซิร์ฟเวอร์ (/api/images/:fileId) เป็นหลัก
+        // =========================================================================
+        function resolveDriveImageUrl(rawUrl) {
+            if (!rawUrl || String(rawUrl).trim() === '') return '';
+            const clean = String(rawUrl).trim();
+            const fileId = extractDriveFileId(clean);
 
             if (fileId) {
-                return {
-                    href: `https://drive.google.com/file/d/${fileId}/view`,
-                    src: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
-                };
+                return `${API_BASE}/api/images/${fileId}`;
             }
-
-            if (/^https?:\/\//i.test(path)) {
-                return { href: path, src: path };
+            if (clean.startsWith('/')) {
+                return `${API_BASE}${clean}`;
             }
-            
-            let normalizedPath = path.replace(/\\/g, '/');
-            let cleanPath = normalizedPath.startsWith('/') ? normalizedPath.substring(1) : normalizedPath;
-            let encodedPath = cleanPath.split('/').map(part => encodeURIComponent(part)).join('/');
-            const fullUrl = `${BASE_URL}/${encodedPath}`;
-            
-            return { href: fullUrl, src: fullUrl };
+            if (!clean.startsWith('http')) {
+                return `${API_BASE}/${clean}`;
+            }
+            return clean;
         }
 
-        async function fetchData() {
-            const emptyState = document.getElementById('emptyState');
-            if (emptyState) emptyState.classList.add('hidden');
-            
-            document.getElementById('errorMessage').classList.add('hidden');
-            document.getElementById('resultsContainer').innerHTML = '';
-            document.getElementById('localSearchContainer').classList.add('hidden');
-            document.getElementById('localSearchInput').value = ''; 
-            document.getElementById('loadingIndicator').classList.remove('hidden');
-            
-            const btn = document.getElementById('searchBtn');
-            const originalBtnHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังดึงข้อมูล...';
+        // กรณี Proxy โหลดไม่ทัน ให้สลับไปใช้ lh3.googleusercontent.com หรือ thumbnail สำรองอัตโนมัติ
+        function handleImageFallback(imgEl, rawUrl) {
+            const fileId = extractDriveFileId(rawUrl);
+            const step = parseInt(imgEl.getAttribute('data-fallback-step') || '0', 10);
 
-            const filterYear = document.getElementById('myDataYear').value;
-            const filterPeriod = document.getElementById('myDataPeriod').value;
-            const filterBasin = document.getElementById('myData0').value;
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/calibrations`);
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    const textKeys = ['contractYear','myDataPeriod','myData0','myData1','myData2','myData3','myData4','myData5','myData6','myData7','myData8','myData9','myData10','myData11','myData12','myData13','myData14'];
-                    
-                    result.data.forEach(it => {
-                        textKeys.forEach(k => { 
-                            if (typeof it[k] === 'string') {
-                                it[k] = safeEscapeHtml(it[k]); 
-                            }
-                        });
-                        it._computedYear = getFiscalYearFromDate(it.timestamp || it.createdAt, it.contractYear);
-                    });
-                    
-                    let filteredData = result.data;
-                    if (filterYear) filteredData = filteredData.filter(item => item._computedYear === String(filterYear));
-                    if (filterPeriod) filteredData = filteredData.filter(item => item.myDataPeriod === filterPeriod);
-                    if (filterBasin) filteredData = filteredData.filter(item => item.myData0 === filterBasin);
-
-                    globalFetchedData = filteredData;
-                    
-                    if (globalFetchedData.length > 0) {
-                        document.getElementById('localSearchContainer').classList.remove('hidden');
-                    }
-                    
-                    renderCards(globalFetchedData);
-                } else {
-                    throw new Error(result.message || 'ไม่สามารถดึงข้อมูลจากฐานข้อมูลได้');
-                }
-            } catch (error) {
-                document.getElementById('errorText').innerText = error.message;
-                document.getElementById('errorMessage').classList.remove('hidden');
-            } finally {
-                document.getElementById('loadingIndicator').classList.add('hidden');
-                btn.disabled = false;
-                btn.innerHTML = originalBtnHtml;
-            }
-        }
-
-        function filterLocalData() {
-            const searchTerm = document.getElementById('localSearchInput').value.toLowerCase().trim();
-            if (searchTerm === "") {
-                renderCards(globalFetchedData);
+            if (fileId && step === 0) {
+                imgEl.setAttribute('data-fallback-step', '1');
+                imgEl.src = `https://lh3.googleusercontent.com/d/${fileId}=w800`;
                 return;
             }
-            const filteredData = globalFetchedData.filter(item => 
-                (item.myData1 || "").toLowerCase().includes(searchTerm) || 
-                (item.myData2 || "").toLowerCase().includes(searchTerm)
-            );
-            renderCards(filteredData);
+            if (fileId && step === 1) {
+                imgEl.setAttribute('data-fallback-step', '2');
+                imgEl.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+                return;
+            }
+
+            // หากลองครบทุกทางแล้วยังโหลดไม่ได้ ให้แสดงกล่องแจ้งเตือนที่สวยงามแทนคำว่า Image Error
+            imgEl.style.display = 'none';
+            const parent = imgEl.parentElement;
+            if (parent && !parent.querySelector('.img-fallback-placeholder')) {
+                const ph = document.createElement('div');
+                ph.className = 'img-fallback-placeholder w-full h-36 rounded-xl bg-slate-100 flex flex-col items-center justify-center text-slate-400 p-2 text-center';
+                ph.innerHTML = '<i class="ph-fill ph-image-broken text-3xl mb-1"></i><span class="text-[11px] font-bold">ไม่มีรูปภาพ</span>';
+                parent.insertBefore(ph, imgEl);
+            }
         }
 
-        function renderCards(dataItems) {
-            const container = document.getElementById('resultsContainer');
-            if (dataItems.length === 0) {
+        function openImageModal(src, caption) {
+            if (!src) return;
+            document.getElementById('modalImg').src = src;
+            document.getElementById('modalCaption').textContent = caption || 'ภาพประกอบการสอบเทียบ';
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+            document.getElementById('modalImg').src = '';
+        }
+
+        // ค้นหาชื่อสถานีจาก constants.js
+        function lookupStationName(code, basin) {
+            if (!code || typeof stationsData === 'undefined') return '';
+            const c = String(code).trim();
+            if (basin && stationsData[basin] && stationsData[basin][c]) {
+                return stationsData[basin][c];
+            }
+            for (const bKey of Object.keys(stationsData)) {
+                if (stationsData[bKey] && stationsData[bKey][c]) {
+                    return stationsData[bKey][c];
+                }
+            }
+            return '';
+        }
+
+        function populateStationsDropdown(selectedBasin) {
+            const stationSelect = document.getElementById('filterStation');
+            stationSelect.innerHTML = '<option value="all">-- ทุกสถานี --</option>';
+
+            if (typeof stationsData === 'undefined') return;
+
+            if (selectedBasin && selectedBasin !== 'all') {
+                const map = stationsData[selectedBasin] || {};
+                Object.keys(map).forEach(code => {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = `${code} - ${map[code]}`;
+                    stationSelect.appendChild(opt);
+                });
+            } else {
+                const added = new Set();
+                Object.keys(stationsData).forEach(bKey => {
+                    const map = stationsData[bKey] || {};
+                    Object.keys(map).forEach(code => {
+                        if (!added.has(code)) {
+                            added.add(code);
+                            const opt = document.createElement('option');
+                            opt.value = code;
+                            opt.textContent = `[${bKey}] ${code} - ${map[code]}`;
+                            stationSelect.appendChild(opt);
+                        }
+                    });
+                });
+            }
+        }
+
+        function onBasinChange() {
+            const basin = document.getElementById('filterBasin').value;
+            populateStationsDropdown(basin);
+            applyFilters();
+        }
+
+        window.onload = () => {
+            const filterYear = document.getElementById('filterYear');
+            const startYear = 2568;
+            for (let i = 0; i <= 10; i++) {
+                const y = startYear + i;
+                filterYear.innerHTML += `<option value="${y}">${y}</option>`;
+            }
+
+            const filterBasin = document.getElementById('filterBasin');
+            if (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) {
+                hardcodedBasins.forEach(b => {
+                    filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
+                });
+            } else if (typeof stationsData !== 'undefined') {
+                Object.keys(stationsData).forEach(b => {
+                    filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
+                });
+            }
+
+            populateStationsDropdown('all');
+            loadCalibrations();
+        };
+
+        async function loadCalibrations() {
+            const container = document.getElementById('calibrationListContainer');
+            const btn = document.getElementById('btnRefresh');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/calibrations`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("เซิร์ฟเวอร์กำลังตื่นตัว (Cold Start) กรุณารอ 10 วินาทีแล้วกดรีเฟรชอีกครั้ง");
+                }
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    allCalibrations = Array.isArray(result.data) ? result.data : [];
+                    applyFilters();
+                } else {
+                    throw new Error(result.message || 'ดึงข้อมูลผลสอบเทียบไม่สำเร็จ');
+                }
+            } catch (error) {
                 container.innerHTML = `
-                <div class="puffy-container py-16 text-center border-dashed border-slate-300 fade-in">
-                    <div class="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
-                        <i class="ph-fill ph-magnifying-glass text-4xl text-rose-300"></i>
-                    </div>
-                    <h3 class="text-xl font-extrabold text-slate-600">ไม่พบข้อมูลที่ค้นหา</h3>
-                </div>`;
+                    <div class="bg-rose-50 border-2 border-rose-200 p-8 rounded-2xl text-center">
+                        <i class="ph-fill ph-warning-circle text-4xl text-rose-500 mb-2"></i>
+                        <p class="font-extrabold text-rose-700">${safeEscape(error.message)}</p>
+                    </div>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function applyFilters() {
+            const year = document.getElementById('filterYear').value;
+            const period = document.getElementById('filterPeriod').value;
+            const basin = document.getElementById('filterBasin').value;
+            const station = document.getElementById('filterStation').value;
+
+            const filtered = allCalibrations.filter(item => {
+                if (year !== 'all' && getFiscalYear(item) !== year) return false;
+                if (period !== 'all') {
+                    const pNum = period.replace(/\D/g, '');
+                    const itemP = String(item.myDataPeriod || '').replace(/\s+/g, '');
+                    if (!itemP.includes(pNum) && itemP !== period) return false;
+                }
+                if (basin !== 'all' && item.myData0 !== basin) return false;
+                if (station !== 'all') {
+                    const st1 = String(item.myData1 || '').trim().toUpperCase();
+                    const stFilter = String(station).trim().toUpperCase();
+                    if (st1 !== stFilter && !st1.startsWith(stFilter)) return false;
+                }
+                return true;
+            });
+
+            document.getElementById('recordCountBadge').textContent = `พบข้อมูลทั้งหมด ${filtered.length} รายการ`;
+            renderCalibrations(filtered);
+        }
+
+        function renderCalibrations(list) {
+            const container = document.getElementById('calibrationListContainer');
+            if (!list || list.length === 0) {
+                container.innerHTML = `
+                    <div class="py-16 text-center bg-white rounded-3xl border-4 border-dashed border-slate-200 text-slate-400">
+                        <i class="ph-fill ph-empty text-5xl mb-2 text-slate-300"></i>
+                        <p class="font-extrabold text-slate-500">ไม่พบข้อมูลผลสอบเทียบตามเงื่อนไขที่เลือก</p>
+                    </div>`;
                 return;
             }
 
             let html = '';
-            const imageColsMap = [
-                { field: 'myFileUrl', label: "เสาวัดระดับ 1" }, { field: 'myFileUrl2', label: "RTU 1" }, { field: 'myFileUrl3', label: "Website 1" },
-                { field: 'myFileUrl4', label: "เสาวัดระดับ 2" }, { field: 'myFileUrl5', label: "RTU 2" }, { field: 'myFileUrl6', label: "Website 2" },
-                { field: 'myFileUrl7', label: "น้ำฝน RTU" }, { field: 'myFileUrl8', label: "น้ำฝน Website" }
-            ];
-
-            const colors = ['border-t-sky-400', 'border-t-emerald-400', 'border-t-violet-400', 'border-t-amber-400', 'border-t-rose-400'];
-
-            dataItems.forEach((item, index) => {
-                const dateObj = new Date(item.createdAt || item.timestamp);
-                const dateStr = !isNaN(dateObj.getTime()) ? dateObj.toLocaleString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
-                const fiscalYear = item._computedYear || getFiscalYearFromDate(item.timestamp || item.createdAt, item.contractYear);
-                
-                let imagesHtml = ''; let hasImage = false;
-                
-                imageColsMap.forEach(col => {
-                    const imgInfo = parseImageInfo(item[col.field]);
-                    if (imgInfo) {
-                        hasImage = true;
-                        imagesHtml += `
-                        <div class="polaroid">
-                            <a href="${imgInfo.href}" target="_blank" class="polaroid-img-wrapper block mb-2">
-                                <img src="${imgInfo.src}" alt="${col.label}" loading="lazy" onerror="this.onerror=null; this.src='https://placehold.co/400x400/f1f5f9/64748b?text=Image+Error';">
-                            </a>
-                            <p class="text-center text-[10px] font-bold text-slate-600 mb-0 uppercase">${col.label}</p>
-                        </div>`;
-                    }
+            list.forEach((item) => {
+                const dateStr = new Date(item.timestamp || item.createdAt).toLocaleString('th-TH', {
+                    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
-                
-                if (!hasImage) {
-                    imagesHtml = `<div class="bg-slate-50 w-full p-4 rounded-xl text-center border-2 border-dashed border-slate-200 text-slate-400 font-bold text-sm"><i class="ph-fill ph-image-slash text-2xl block mb-1 text-slate-300"></i>ไม่มีรูปภาพแนบสำหรับรายงานนี้</div>`;
-                }
 
-                const cardColor = colors[index % colors.length];
+                const stCode = item.myData1 || '-';
+                const basinName = item.myData0 || '-';
+                const stName = lookupStationName(stCode, basinName) || item.myData2 || stCode;
+                const fiscalYear = getFiscalYear(item);
+                const periodLabel = item.myDataPeriod || 'ไม่ระบุงวด';
+
+                // จัดการรายการรูปภาพทั้งหมดของสถานีนี้
+                const photoConfigs = [
+                    { label: 'เสาวัดระดับ 1', rawUrl: item.myFileUrl, val: item.myData4 ? `${item.myData4} ม.รสม.` : '' },
+                    { label: 'RTU 1', rawUrl: item.myFileUrl2, val: item.myData5 ? `${item.myData5} ม.รสม.` : '' },
+                    { label: 'WEBSITE 1', rawUrl: item.myFileUrl3, val: item.myData6 ? `${item.myData6} ม.รสม.` : '' },
+                    { label: 'เสาวัดระดับ 2', rawUrl: item.myFileUrl4, val: item.myData8 ? `${item.myData8} ม.รสม.` : '' },
+                    { label: 'RTU 2', rawUrl: item.myFileUrl5, val: item.myData9 ? `${item.myData9} ม.รสม.` : '' },
+                    { label: 'WEBSITE 2', rawUrl: item.myFileUrl6, val: item.myData10 ? `${item.myData10} ม.รสม.` : '' },
+                    { label: 'น้ำฝน RTU', rawUrl: item.myFileUrl7, val: item.myData12 ? `${item.myData12} มม.` : '' },
+                    { label: 'น้ำฝน WEBSITE', rawUrl: item.myFileUrl8, val: item.myData13 ? `${item.myData13} มม.` : '' }
+                ].filter(p => p.rawUrl && String(p.rawUrl).trim() !== '');
+
+                let photosHtml = '';
+                photoConfigs.forEach(p => {
+                    const resolvedUrl = resolveDriveImageUrl(p.rawUrl);
+                    photosHtml += `
+                    <div class="photo-box flex flex-col items-center text-center">
+                        <div class="w-full h-36 rounded-xl overflow-hidden bg-slate-50 mb-2 flex items-center justify-center cursor-pointer"
+                             onclick="openImageModal('${safeEscape(resolvedUrl)}', '${safeEscape(stCode + ' - ' + p.label)}')">
+                            <img src="${safeEscape(resolvedUrl)}"
+                                 alt="${safeEscape(p.label)}"
+                                 loading="lazy"
+                                 onerror="handleImageFallback(this, '${safeEscape(p.rawUrl)}')"
+                                 class="w-full h-full object-cover hover:scale-105 transition-transform">
+                        </div>
+                        <span class="text-xs font-extrabold text-slate-700">${safeEscape(p.label)}</span>
+                        ${p.val ? `<span class="text-[11px] font-bold text-emerald-600 mt-0.5">${safeEscape(p.val)}</span>` : ''}
+                    </div>`;
+                });
 
                 html += `
-                    <div class="puffy-container result-card ${cardColor} p-5 md:p-6 fade-in" style="animation-delay: ${0.05 * (index % 5)}s;">
-                        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5 border-b-2 border-slate-100 pb-4">
-                            <div>
-                                <div class="flex flex-wrap items-center gap-2 mb-2">
-                                    <span class="bg-emerald-100 text-emerald-700 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase flex items-center gap-1"><i class="ph-bold ph-map-trifold"></i> ลุ่มน้ำ ${item.myData0 || '-'}</span>
-                                    <span class="bg-sky-100 text-sky-700 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase border border-sky-200">ปีงบ ${fiscalYear}</span>
-                                    <span class="bg-slate-100 text-slate-600 font-bold text-[10px] px-2.5 py-1 rounded-lg uppercase border border-slate-200">${item.myDataPeriod || '-'}</span>
+                <div class="calib-card">
+                    <!-- หัวการ์ด -->
+                    <div class="bg-slate-50 p-4 md:p-5 border-b border-slate-200 flex flex-wrap justify-between items-start gap-3">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                <span class="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded uppercase">
+                                    ปี ${safeEscape(fiscalYear)} | ${safeEscape(periodLabel)}
+                                </span>
+                                <span class="bg-slate-200 text-slate-700 text-[10px] font-bold px-2.5 py-0.5 rounded">
+                                    ลุ่มน้ำ${safeEscape(basinName)}
+                                </span>
+                            </div>
+                            <h3 class="text-base md:text-xl font-black text-slate-800 flex items-center gap-2">
+                                <i class="ph-fill ph-map-pin text-emerald-500"></i> ${safeEscape(stCode)} — ${safeEscape(stName)}
+                            </h3>
+                            <p class="text-xs font-bold text-slate-400 mt-1">
+                                <i class="ph-bold ph-clock"></i> บันทึกเมื่อ: ${dateStr}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 md:p-6 space-y-5">
+                        <!-- ตารางสรุปค่าสอบเทียบระดับน้ำและน้ำฝน -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- ระดับน้ำ -->
+                            <div class="p-4 rounded-2xl bg-sky-50/60 border-2 border-sky-100">
+                                <h4 class="text-xs font-extrabold text-sky-800 uppercase mb-2.5 flex items-center gap-1.5">
+                                    <i class="ph-fill ph-waves text-sky-500 text-base"></i> 1. ผลสอบเทียบระดับน้ำ (ม.รสม.)
+                                </h4>
+                                <div class="text-xs space-y-1.5 font-semibold text-slate-600">
+                                    <div class="flex justify-between border-b border-sky-100 pb-1">
+                                        <span>ครั้งที่ 1 (เสา / RTU / Web):</span>
+                                        <span class="font-extrabold text-slate-800">${safeEscape(item.myData4 || '-')} / ${safeEscape(item.myData5 || '-')} / ${safeEscape(item.myData6 || '-')}</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-sky-100 pb-1">
+                                        <span>ครั้งที่ 2 (เสา / RTU / Web):</span>
+                                        <span class="font-extrabold text-slate-800">${safeEscape(item.myData8 || '-')} / ${safeEscape(item.myData9 || '-')} / ${safeEscape(item.myData10 || '-')}</span>
+                                    </div>
+                                    <div class="pt-1 text-slate-700">
+                                        <b>หมายเหตุระดับน้ำ:</b> ${safeEscape(item.myData7 || '-')}
+                                    </div>
                                 </div>
-                                <h3 class="text-xl md:text-2xl font-extrabold text-slate-800">${item.myData2 || item.myData1 || 'ไม่ระบุชื่อสถานี'}</h3>
-                                <p class="text-sky-500 font-bold text-sm mt-0.5"><i class="ph-bold ph-tag"></i> รหัส: ${item.myData1 || '-'}</p>
                             </div>
-                            <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-right md:text-center w-full md:w-auto">
-                                <p class="mb-0 text-slate-400 font-bold text-[10px] uppercase">วันที่บันทึก</p>
-                                <p class="mb-0 font-bold text-slate-700 text-sm flex items-center justify-end md:justify-center gap-1"><i class="ph-bold ph-calendar-blank text-slate-400"></i> ${dateStr}</p>
+
+                            <!-- น้ำฝน -->
+                            <div class="p-4 rounded-2xl bg-amber-50/60 border-2 border-amber-100">
+                                <h4 class="text-xs font-extrabold text-amber-800 uppercase mb-2.5 flex items-center gap-1.5">
+                                    <i class="ph-fill ph-cloud-rain text-amber-500 text-base"></i> 2. ผลสอบเทียบน้ำฝน (มม.)
+                                </h4>
+                                <div class="text-xs space-y-1.5 font-semibold text-slate-600">
+                                    <div class="flex justify-between border-b border-amber-100 pb-1">
+                                        <span>จำนวนเคาะกระบอกน้ำฝน:</span>
+                                        <span class="font-extrabold text-slate-800">${safeEscape(item.myData11 || '-')} ครั้ง</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-amber-100 pb-1">
+                                        <span>ค่าระดับน้ำฝน (RTU / Web):</span>
+                                        <span class="font-extrabold text-slate-800">${safeEscape(item.myData12 || '-')} / ${safeEscape(item.myData13 || '-')} มม.</span>
+                                    </div>
+                                    <div class="pt-1 text-slate-700">
+                                        <b>หมายเหตุฝน:</b> ${safeEscape(item.myData14 || '-')}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="overflow-x-auto mb-5">
-                            <table class="table-custom min-w-full">
-                                <thead>
-                                    <tr><th colspan="4" class="text-center bg-slate-100/50 text-slate-700 text-sm py-3"><i class="ph-bold ph-map-pin text-rose-500 mr-1"></i> ที่ตั้งอาคาร: <span class="font-extrabold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg ml-1">${item.myData3 || '-'}</span></th></tr>
-                                    <tr><th width="31%" class="text-left"><i class="ph-bold ph-list-bullets mr-1 text-slate-400"></i> หัวข้อ</th><th width="23%">เสาวัด/จำนวนเคาะ</th><th width="23%" class="text-sky-600 bg-sky-50/50">RTU</th><th width="23%" class="text-violet-600 bg-violet-50/50">Website</th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center shrink-0">1</div> ระดับน้ำ ครั้งที่ 1</div></td><td>${item.myData4 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData5 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData6 || '-'}</td></tr>
-                                    ${item.myData7 ? `<tr><td colspan="4" class="text-left text-sky-700 bg-sky-50/30 text-xs py-2 px-4"><span class="font-bold mr-1">หมายเหตุ (1):</span> ${item.myData7}</td></tr>` : ''}
-                                    
-                                    <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shrink-0">2</div> ระดับน้ำ ครั้งที่ 2</div></td><td>${item.myData8 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData9 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData10 || '-'}</td></tr>
-                                    
-                                    <tr><td class="text-left font-bold text-slate-600 text-sm"><div class="flex items-center gap-1.5"><div class="w-6 h-6 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center shrink-0"><i class="ph-bold ph-cloud-rain"></i></div> ค่าน้ำฝน</div></td><td class="font-extrabold text-amber-600 bg-amber-50/30">${item.myData11 || '-'}</td><td class="text-sky-600 bg-sky-50/50">${item.myData12 || '-'}</td><td class="text-violet-600 bg-violet-50/50">${item.myData13 || '-'}</td></tr>
-                                    ${item.myData14 ? `<tr><td colspan="4" class="text-left text-amber-700 bg-amber-50/30 text-xs py-2 px-4 rounded-b-xl"><span class="font-bold mr-1">หมายเหตุฝน:</span> ${item.myData14}</td></tr>` : ''}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <div><p class="mb-1 text-slate-700 font-bold text-sm flex items-center gap-1.5"><i class="ph-fill ph-image text-sky-500 text-lg"></i> ภาพประกอบการสอบเทียบ</p><div class="polaroid-grid">${imagesHtml}</div></div>
-                    </div>`;
+
+                        <!-- ภาพประกอบการสอบเทียบ -->
+                        ${photosHtml ? `
+                        <div>
+                            <h4 class="text-xs md:text-sm font-extrabold text-slate-700 mb-3 flex items-center gap-2">
+                                <i class="ph-fill ph-images text-sky-500 text-lg"></i> ภาพประกอบการสอบเทียบ (แตะที่รูปเพื่อขยาย)
+                            </h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                                ${photosHtml}
+                            </div>
+                        </div>` : ''}
+                    </div>
+                </div>`;
             });
+
             container.innerHTML = html;
         }
     </script>

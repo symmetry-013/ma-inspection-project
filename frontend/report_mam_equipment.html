@@ -14,7 +14,7 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- นำเข้าข้อมูลส่วนกลาง -->
+    <!-- นำเข้าข้อมูลส่วนกลาง (hardcodedBasins, stationsData) -->
     <script src="constants.js"></script>
 
     <script>
@@ -86,7 +86,7 @@
         <div class="container mx-auto px-4 flex justify-between items-center max-w-6xl">
             <div class="flex items-center space-x-3 md:space-x-4">
                 <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-sky-500 hover:border-sky-200 transition-all shadow-sm active:translate-y-1 shrink-0">
-                    <i class="ph-bold ph-house text-2xl"></i>
+                    <i class="ph-bold ph-caret-left text-2xl"></i>
                 </a>
                 <div class="hidden md:flex w-12 h-12 rounded-2xl bg-sky-100 border-2 border-sky-300 items-center justify-center shadow-sm">
                     <i class="ph-fill ph-chart-bar text-sky-500 text-2xl"></i>
@@ -101,15 +101,15 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-6xl flex-grow">
+    <main class="container mx-auto px-4 py-6 md:py-8 max-w-6xl flex-grow">
         
-        <!-- ส่วนกรองข้อมูล (Filter) -->
-        <div class="puffy-container p-6 md:p-8 mb-8 border-t-8 border-t-sky-400">
+        <!-- ส่วนกรองข้อมูล (Filter เชื่อมกับ constants.js) -->
+        <div class="puffy-container p-5 md:p-8 mb-8 border-t-8 border-t-sky-400">
             <h2 class="text-base md:text-lg font-bold text-slate-700 mb-4 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
-                <i class="ph-bold ph-funnel text-sky-500 text-xl"></i> ตัวกรองรายงาน
+                <i class="ph-bold ph-funnel text-sky-500 text-xl"></i> ตัวกรองรายงานอุปกรณ์
             </h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                 <div>
                     <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">ปีงบประมาณ</label>
                     <select id="filterYear" class="w-full p-3 text-sm rounded-xl puffy-input">
@@ -128,50 +128,58 @@
                 </div>
                 <div>
                     <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">กลุ่มลุ่มน้ำ</label>
-                    <select id="filterBasin" class="w-full p-3 text-sm rounded-xl puffy-input">
+                    <select id="filterBasin" onchange="onBasinChange()" class="w-full p-3 text-sm rounded-xl puffy-input">
                         <option value="all">-- ทุกกลุ่มลุ่มน้ำ --</option>
                     </select>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">ค้นหารหัสสถานี</label>
-                    <input type="text" id="filterStation" placeholder="เช่น TM.164 (ปล่อยว่างเพื่อดูทั้งหมด)" class="w-full p-3 text-sm rounded-xl puffy-input uppercase">
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">เลือกสถานี (จาก constants.js)</label>
+                    <select id="filterStation" onchange="onStationChange()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกสถานี --</option>
+                    </select>
                 </div>
+            </div>
+
+            <!-- แถบแสดงชื่อสถานีที่เลือก -->
+            <div id="selectedStationBanner" class="hidden mb-5 p-3 rounded-xl bg-sky-50 border-2 border-sky-200 text-center">
+                <span class="text-xs font-bold text-sky-500 uppercase tracking-wider block">สถานีที่เลือกกรองข้อมูล</span>
+                <span id="selectedStationText" class="text-sm md:text-base font-extrabold text-sky-900">-</span>
             </div>
 
             <button type="button" onclick="fetchReports()" id="btnSearch" 
                     class="btn-puffy-blue w-full font-extrabold py-3.5 text-sm md:text-base flex items-center justify-center gap-2">
-                <i class="ph-bold ph-magnifying-glass text-xl"></i> ค้นหารายงาน
+                <i class="ph-bold ph-magnifying-glass text-xl"></i> ค้นหารายงานอุปกรณ์
             </button>
         </div>
 
         <!-- แถบสรุปภาพรวม (Summary Stats) -->
         <div id="summaryStats" class="hidden grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div class="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-files"></i></div>
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3 md:gap-4">
+                <div class="w-11 h-11 md:w-12 md:h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-files"></i></div>
                 <div>
-                    <span class="block text-xs font-bold text-slate-400 uppercase">รายงานที่พบ</span>
-                    <span id="statTotal" class="block text-2xl font-black text-slate-700">0</span>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">รายงานที่พบ</span>
+                    <span id="statTotal" class="block text-xl md:text-2xl font-black text-slate-700">0</span>
                 </div>
             </div>
-            <div class="bg-white border-2 border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-hard-drives"></i></div>
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3 md:gap-4">
+                <div class="w-11 h-11 md:w-12 md:h-12 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-hard-drives"></i></div>
                 <div>
-                    <span class="block text-xs font-bold text-slate-400 uppercase">อุปกรณ์ทั้งหมด</span>
-                    <span id="statItems" class="block text-2xl font-black text-slate-700">0</span>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">อุปกรณ์ทั้งหมด</span>
+                    <span id="statItems" class="block text-xl md:text-2xl font-black text-slate-700">0</span>
                 </div>
             </div>
-            <div class="bg-white border-2 border-emerald-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-check-circle"></i></div>
+            <div class="bg-white border-2 border-emerald-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3 md:gap-4">
+                <div class="w-11 h-11 md:w-12 md:h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-check-circle"></i></div>
                 <div>
-                    <span class="block text-xs font-bold text-slate-400 uppercase">สถานะ: ใช้งานได้</span>
-                    <span id="statWorking" class="block text-2xl font-black text-emerald-600">0</span>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">สถานะ: ใช้งานได้</span>
+                    <span id="statWorking" class="block text-xl md:text-2xl font-black text-emerald-600">0</span>
                 </div>
             </div>
-            <div class="bg-white border-2 border-rose-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-x-circle"></i></div>
+            <div class="bg-white border-2 border-rose-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3 md:gap-4">
+                <div class="w-11 h-11 md:w-12 md:h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl shrink-0"><i class="ph-fill ph-x-circle"></i></div>
                 <div>
-                    <span class="block text-xs font-bold text-slate-400 uppercase">สถานะ: ชำรุด</span>
-                    <span id="statBroken" class="block text-2xl font-black text-rose-600">0</span>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">สถานะ: ชำรุด</span>
+                    <span id="statBroken" class="block text-xl md:text-2xl font-black text-rose-600">0</span>
                 </div>
             </div>
         </div>
@@ -180,19 +188,98 @@
         <div id="reportsContainer" class="space-y-6">
             <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border-4 border-dashed border-slate-200">
                 <i class="ph-fill ph-magnifying-glass text-5xl mb-3 text-slate-300"></i>
-                <p class="font-bold text-slate-500">กรุณากดปุ่ม "ค้นหารายงาน" เพื่อดูข้อมูล</p>
+                <p class="font-bold text-slate-500">กรุณากดปุ่ม "ค้นหารายงานอุปกรณ์" เพื่อดูข้อมูล</p>
             </div>
         </div>
 
     </main>
 
     <script>
-        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-            ? '' : 'https://ma-inspection-project.onrender.com';
+        // =========================================================================
+        // แก้ไขปัญหา APK: ใน WebView ของ Android ค่า hostname มักเป็น localhost
+        // จึงต้องบังคับชี้ไปที่เซิร์ฟเวอร์ Render เสมอ ยกเว้นเปิดเทสบนคอมพิวเตอร์พอร์ต 3000/5000
+        // =========================================================================
+        const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                             && (window.location.port === '3000' || window.location.port === '5000');
+        const API_BASE = isLocalPcDev ? '' : 'https://ma-inspection-project.onrender.com';
 
-        const safeEscape = (str) => String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        const safeEscape = (str) => {
+            if (typeof escapeHtml === 'function') return escapeHtml(str);
+            return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        };
 
-        // 1. ตั้งค่าตัวกรองเริ่มต้น (ปี/ลุ่มน้ำ)
+        // ค้นหาชื่อสถานีจาก constants.js (stationsData)
+        function lookupStationNameFromConstants(stationCode, basinName) {
+            if (!stationCode || typeof stationsData === 'undefined') return '';
+            const cleanCode = String(stationCode).trim();
+            if (basinName && stationsData[basinName] && stationsData[basinName][cleanCode]) {
+                return stationsData[basinName][cleanCode];
+            }
+            for (const bKey of Object.keys(stationsData)) {
+                if (stationsData[bKey] && stationsData[bKey][cleanCode]) {
+                    return stationsData[bKey][cleanCode];
+                }
+            }
+            return '';
+        }
+
+        // โหลดรายการสถานีลง Dropdown ตามลุ่มน้ำที่เลือกจาก constants.js
+        function populateStationsDropdown(selectedBasin) {
+            const stationSelect = document.getElementById("filterStation");
+            stationSelect.innerHTML = '<option value="all">-- ทุกสถานี --</option>';
+
+            if (typeof stationsData === 'undefined') return;
+
+            if (selectedBasin && selectedBasin !== 'all') {
+                const basinStations = stationsData[selectedBasin] || {};
+                Object.keys(basinStations).forEach(code => {
+                    const name = basinStations[code];
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = `${code} - ${name}`;
+                    stationSelect.appendChild(opt);
+                });
+            } else {
+                const addedCodes = new Set();
+                Object.keys(stationsData).forEach(bKey => {
+                    const basinStations = stationsData[bKey] || {};
+                    Object.keys(basinStations).forEach(code => {
+                        if (!addedCodes.has(code)) {
+                            addedCodes.add(code);
+                            const name = basinStations[code];
+                            const opt = document.createElement('option');
+                            opt.value = code;
+                            opt.textContent = `[${bKey}] ${code} - ${name}`;
+                            stationSelect.appendChild(opt);
+                        }
+                    });
+                });
+            }
+        }
+
+        function onBasinChange() {
+            const basin = document.getElementById("filterBasin").value;
+            populateStationsDropdown(basin);
+            onStationChange();
+            fetchReports();
+        }
+
+        function onStationChange() {
+            const basin = document.getElementById("filterBasin").value;
+            const station = document.getElementById("filterStation").value;
+            const banner = document.getElementById("selectedStationBanner");
+            const textEl = document.getElementById("selectedStationText");
+
+            if (station && station !== 'all') {
+                const stName = lookupStationNameFromConstants(station, basin !== 'all' ? basin : null);
+                textEl.textContent = stName ? `${station} (${stName})` : station;
+                banner.classList.remove("hidden");
+            } else {
+                banner.classList.add("hidden");
+            }
+            fetchReports();
+        }
+
         window.onload = () => {
             const filterYear = document.getElementById("filterYear");
             const startYear = 2568;
@@ -205,16 +292,20 @@
             filterYear.value = currentYear;
 
             const filterBasin = document.getElementById("filterBasin");
-            if (typeof hardcodedBasins !== 'undefined') {
+            if (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) {
                 hardcodedBasins.forEach(b => {
-                    filterBasin.innerHTML += `<option value="${b}">${b}</option>`;
+                    filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
+                });
+            } else if (typeof stationsData !== 'undefined') {
+                Object.keys(stationsData).forEach(b => {
+                    filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
                 });
             }
             
-            fetchReports(); // โหลดข้อมูลตอนเปิดหน้าแรก
+            populateStationsDropdown('all');
+            fetchReports();
         };
 
-        // 2. ฟังก์ชันดึงรายงาน
         async function fetchReports() {
             const year = document.getElementById("filterYear").value;
             const period = document.getElementById("filterPeriod").value;
@@ -226,12 +317,23 @@
 
             btn.disabled = true;
             btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังค้นหา...';
-            container.innerHTML = `<div class="py-16 text-center text-sky-500"><i class="ph-bold ph-spinner animate-spin text-4xl mb-2"></i><p class="font-bold">กำลังโหลดข้อมูล...</p></div>`;
+            container.innerHTML = `<div class="py-16 text-center text-sky-500"><i class="ph-bold ph-spinner animate-spin text-4xl mb-2"></i><p class="font-bold">กำลังโหลดข้อมูลรายงานอุปกรณ์...</p></div>`;
             stats.classList.add("hidden");
 
             try {
-                const url = `${API_BASE}/api/mam/report/equipment?year=${year}&period=${period}&basin=${encodeURIComponent(basin)}&station=${encodeURIComponent(station)}`;
-                const response = await fetch(url);
+                const stationParam = (station && station !== 'all') ? station : '';
+                const url = `${API_BASE}/api/mam/report/equipment?year=${encodeURIComponent(year)}&period=${encodeURIComponent(period)}&basin=${encodeURIComponent(basin)}&station=${encodeURIComponent(stationParam)}`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("เซิร์ฟเวอร์กำลังตื่นตัว (Cold Start) หรือการเชื่อมต่อไม่ถูกต้อง กรุณารอ 10 วินาทีแล้วกดค้นหาอีกครั้ง");
+                }
+
                 const result = await response.json();
 
                 if (response.ok && result.success) {
@@ -247,7 +349,7 @@
                     </div>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="ph-bold ph-magnifying-glass text-xl"></i> ค้นหารายงาน';
+                btn.innerHTML = '<i class="ph-bold ph-magnifying-glass text-xl"></i> ค้นหารายงานอุปกรณ์';
             }
         }
 
@@ -257,7 +359,6 @@
             return `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 whitespace-nowrap"><i class="ph-bold ph-question"></i> ${safeEscape(status)}</span>`;
         }
 
-        // 3. ฟังก์ชันแสดงผลรายงาน
         function renderReports(reports) {
             const container = document.getElementById("reportsContainer");
             const stats = document.getElementById("summaryStats");
@@ -276,10 +377,14 @@
             let totalWorking = 0;
             let totalBroken = 0;
 
-            reports.forEach((report, index) => {
+            reports.forEach((report) => {
                 const dateStr = new Date(report.timestamp).toLocaleString('th-TH', { 
                     year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
                 });
+
+                const stCode = report.station_code || '-';
+                const constName = lookupStationNameFromConstants(stCode, report.basin);
+                const stName = constName || report.station_name || stCode;
 
                 let working = 0, broken = 0;
                 let itemsHtml = "";
@@ -313,7 +418,7 @@
                                 <span class="bg-slate-200 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded">${safeEscape(report.basin)}</span>
                             </div>
                             <h3 class="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2">
-                                <i class="ph-fill ph-map-pin text-rose-500"></i> ${safeEscape(report.station_code)} - ${safeEscape(report.station_name)}
+                                <i class="ph-fill ph-map-pin text-rose-500"></i> ${safeEscape(stCode)} - ${safeEscape(stName)}
                             </h3>
                             <p class="text-xs font-bold text-slate-500 mt-1"><i class="ph-bold ph-calendar-blank"></i> บันทึกเมื่อ: ${dateStr}</p>
                         </div>
@@ -355,7 +460,6 @@
                 </div>`;
             });
 
-            // อัปเดต Stats ด้านบน
             document.getElementById("statTotal").textContent = reports.length;
             document.getElementById("statItems").textContent = totalItems;
             document.getElementById("statWorking").textContent = totalWorking;

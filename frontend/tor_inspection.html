@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบตรวจรับงานตาม TOR (เชื่อมโยง MAM)</title>
+    <title>ตรวจรับงานตาม TOR (เชื่อมโยง MAM)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,26 +14,14 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- SweetAlert2 -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
-    
-    <!-- นำเข้าข้อมูลส่วนกลาง -->
+    <!-- นำเข้าข้อมูลส่วนกลาง (hardcodedBasins, stationsData) -->
     <script src="constants.js"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
-                    colors: {
-                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
-                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' },
-                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e', 600: '#e11d48' },
-                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
-                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
-                        pink: { 50: '#fdf2f8', 100: '#fce7f3', 400: '#f472b6', 500: '#ec4899', 600: '#db2777' }
-                    }
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
                 }
             }
         }
@@ -49,7 +37,7 @@
 
         .puffy-container {
             background-color: #ffffff;
-            border-radius: 24px;
+            border-radius: 28px;
             border: 4px solid #f8fafc;
             box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
         }
@@ -67,730 +55,573 @@
             background-color: #ffffff;
             box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
         }
-        .puffy-input:disabled {
-            background-color: #f1f5f9;
-            color: #94a3b8;
-            cursor: not-allowed;
-        }
 
         .btn-puffy-pink {
             background-color: #ec4899;
             color: white;
-            border-radius: 16px;
+            border-radius: 18px;
             box-shadow: 0 6px 0 #be185d;
             transition: all 0.1s ease;
-            border: 3px solid #fbcfe8;
         }
         .btn-puffy-pink:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #be185d; }
-        .btn-puffy-pink:disabled { background-color: #cbd5e1; box-shadow: 0 6px 0 #94a3b8; border-color: #e2e8f0; cursor: not-allowed; opacity: 0.8; }
+        .btn-puffy-pink:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; cursor: not-allowed; opacity: 0.7; }
 
-        .btn-puffy-emerald {
-            background-color: #10b981;
+        .btn-puffy-violet {
+            background-color: #8b5cf6;
             color: white;
-            border-radius: 16px;
-            box-shadow: 0 6px 0 #059669;
+            border-radius: 18px;
+            box-shadow: 0 6px 0 #6d28d9;
             transition: all 0.1s ease;
-            border: 3px solid #a7f3d0;
         }
-        .btn-puffy-emerald:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #059669; }
-        .btn-puffy-emerald:disabled { background-color: #cbd5e1; box-shadow: 0 6px 0 #94a3b8; border-color: #e2e8f0; cursor: not-allowed; }
-
-        /* 3D Radio Buttons สำหรับกรรมการตรวจรับ */
-        .tor-radio-box {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-        }
-        .tor-radio:checked + .tor-pass {
-            background-color: #10b981 !important;
-            color: white !important;
-            border-color: #047857 !important;
-            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
-            transform: scale(1.02);
-        }
-        .tor-radio:checked + .tor-fail {
-            background-color: #f43f5e !important;
-            color: white !important;
-            border-color: #be123c !important;
-            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
-            transform: scale(1.02);
-        }
-        .tor-radio:checked + .tor-wait {
-            background-color: #f59e0b !important;
-            color: white !important;
-            border-color: #b45309 !important;
-            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
-            transform: scale(1.02);
-        }
+        .btn-puffy-violet:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #6d28d9; }
+        .btn-puffy-violet:disabled { background-color: #cbd5e1; box-shadow: 0 6px 0 #94a3b8; color: #f8fafc; cursor: not-allowed; }
 
         .task-card {
-            background: #ffffff;
             border: 2px solid #e2e8f0;
             border-radius: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04);
+            background: #ffffff;
             transition: all 0.2s ease;
         }
         .task-card:hover {
             border-color: #fbcfe8;
-            box-shadow: 0 10px 18px -4px rgba(236, 72, 153, 0.08);
+            box-shadow: 0 8px 20px -5px rgba(236, 72, 153, 0.08);
         }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col">
+<body class="antialiased min-h-screen flex flex-col pb-12">
 
     <!-- Header -->
-    <header class="bg-white/90 backdrop-blur-md border-b-4 border-slate-100 sticky top-0 z-50 py-3 shadow-sm">
+    <header class="bg-white/95 backdrop-blur-md border-b-4 border-pink-100 sticky top-0 z-50 py-3.5 shadow-sm">
         <div class="container mx-auto px-4 flex justify-between items-center max-w-5xl">
             <div class="flex items-center space-x-3 md:space-x-4">
-                <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-pink-500 hover:border-pink-200 transition-all shadow-sm active:translate-y-1 shrink-0">
+                <a href="index.html" class="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-pink-500 hover:border-pink-200 transition-all shadow-sm active:translate-y-1 shrink-0">
                     <i class="ph-bold ph-caret-left text-2xl"></i>
                 </a>
-                <div class="hidden md:flex w-12 h-12 rounded-2xl bg-pink-100 border-2 border-pink-300 items-center justify-center shadow-sm">
+                <div class="hidden sm:flex w-12 h-12 rounded-2xl bg-pink-100 border-2 border-pink-300 items-center justify-center shadow-sm shrink-0">
                     <i class="ph-fill ph-seal-check text-pink-500 text-2xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                    <h1 class="text-base md:text-2xl font-extrabold text-slate-800 tracking-tight leading-tight">
                         ตรวจรับงานตาม TOR <span class="text-pink-500">(เชื่อมโยง MAM)</span>
                     </h1>
-                    <p class="text-xs font-bold text-slate-400">ดึงข้อมูลงานบำรุงรักษาทั่วไป (step_2, step_3, step_4) และงานเพิ่มเติม (TOR ข้อ 4)</p>
+                    <p class="text-[11px] md:text-xs font-bold text-slate-400">
+                        ดึงข้อมูลงานบำรุงรักษาทั่วไป (step_2, step_3, step_4) และงานเพิ่มเติม (TOR ข้อ 4)
+                    </p>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto px-4 py-8 max-w-5xl flex-grow">
-        <form id="torInspectionForm" onsubmit="submitTorCheck(event)" class="space-y-8">
-            
-            <!-- ส่วนที่ 1: เลือกเงื่อนไขสัญญาและสถานี -->
-            <div class="puffy-container p-6 md:p-8 border-t-8 border-t-pink-400">
-                <h2 class="text-lg md:text-xl font-bold text-slate-800 mb-5 flex flex-wrap items-center gap-2 border-b-2 border-slate-100 pb-3">
-                    <i class="ph-fill ph-SlidersHorizontal text-pink-500 text-2xl"></i> เลือกข้อมูลสัญญาและสถานีเพื่อตรวจรับงาน
-                    <span class="text-[11px] font-extrabold bg-pink-100 text-pink-700 px-3 py-1 rounded-full border border-pink-200">mam_tor_tasks</span>
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow space-y-6">
+
+        <!-- กล่องที่ 1: เลือกสถานีและงวดงาน -->
+        <div class="puffy-container p-5 md:p-8 border-t-8 border-t-pink-400">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-slate-100 pb-3 mb-5">
+                <h2 class="text-sm md:text-lg font-extrabold text-slate-700 flex items-center gap-2">
+                    <i class="ph-bold ph-magnifying-glass text-pink-500 text-xl"></i> เลือกสถานีที่ต้องการตรวจรับงาน
                 </h2>
+                <span class="bg-pink-50 text-pink-600 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-pink-200 font-mono">
+                    mam_tor_tasks + constants.js
+                </span>
+            </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div>
-                        <label class="text-sm font-bold text-slate-600 block mb-1.5">ปีงบประมาณ (พ.ศ.) <span class="text-rose-500">*</span></label>
-                        <select id="contractYearSelect" required class="w-full p-3 rounded-xl puffy-input"></select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold text-slate-600 block mb-1.5">งวดที่ส่งงาน <span class="text-rose-500">*</span></label>
-                        <select id="periodSelect" required class="w-full p-3 rounded-xl puffy-input">
-                            <option value="งวดที่1">งวดที่ 1</option>
-                            <option value="งวดที่2">งวดที่ 2</option>
-                            <option value="งวดที่3">งวดที่ 3</option>
-                            <option value="งวดที่4">งวดที่ 4</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold text-slate-600 block mb-1.5">กลุ่มลุ่มน้ำ <span class="text-rose-500">*</span></label>
-                        <select id="basinSelect" required class="w-full p-3 rounded-xl puffy-input">
-                            <option value="" disabled selected>-- เลือกกลุ่มลุ่มน้ำ --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-bold text-slate-600 block mb-1.5">รหัสสถานี <span class="text-rose-500">*</span></label>
-                        <select id="stationSelect" required disabled class="w-full p-3 rounded-xl puffy-input">
-                            <option value="" disabled selected>-- เลือกรหัสสถานี --</option>
-                        </select>
-                    </div>
-                    <div class="md:col-span-2 lg:col-span-4">
-                        <label class="text-sm font-bold text-slate-600 block mb-1.5">ชื่อสถานี</label>
-                        <input type="text" id="stationNameInput" readonly placeholder="ชื่อสถานีจะแสดงอัตโนมัติเมื่อเลือกรหัสสถานี"
-                               class="w-full p-3.5 rounded-xl bg-pink-50/70 border-2 border-pink-200 text-pink-700 font-extrabold text-center text-base md:text-lg focus:outline-none">
-                    </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5">ปีสัญญา (พ.ศ.) <span class="text-rose-500">*</span></label>
+                    <select id="contractYear" class="w-full p-3 text-sm rounded-xl puffy-input"></select>
                 </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5">งวดงาน <span class="text-rose-500">*</span></label>
+                    <select id="periodSelect" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="1">งวดที่ 1</option>
+                        <option value="2">งวดที่ 2</option>
+                        <option value="3">งวดที่ 3</option>
+                        <option value="4">งวดที่ 4</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5">กลุ่มลุ่มน้ำ <span class="text-rose-500">*</span></label>
+                    <select id="basinSelect" onchange="onBasinChange()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="">-- เลือกกลุ่มลุ่มน้ำ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5">รหัสสถานี <span class="text-rose-500">*</span></label>
+                    <select id="stationSelect" onchange="onStationChange()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="">-- เลือกสถานี --</option>
+                    </select>
+                </div>
+            </div>
 
-                <button type="button" id="btnFetchMam" onclick="fetchStationWorkData()" disabled
-                        class="btn-puffy-pink w-full font-extrabold py-4 text-base md:text-lg flex items-center justify-center gap-2">
-                    <i class="ph-bold ph-cloud-arrow-down text-2xl"></i> ดึงข้อมูลจากระบบ MAM
+            <div class="mb-5">
+                <label class="text-xs font-bold text-slate-500 block mb-1.5">ชื่อสถานี</label>
+                <div id="stationNameDisplay" class="w-full p-3.5 rounded-2xl bg-pink-50/70 border-2 border-pink-200 text-center font-extrabold text-pink-900 text-sm md:text-base">
+                    กรุณาเลือกกลุ่มลุ่มน้ำและรหัสสถานี
+                </div>
+            </div>
+
+            <button type="button" id="btnFetchTor" onclick="fetchTorTasks()"
+                    class="btn-puffy-pink w-full py-4 font-extrabold text-sm md:text-base flex items-center justify-center gap-2">
+                <i class="ph-bold ph-arrows-clockwise text-xl"></i> ดึงข้อมูลจากระบบ MAM ล่าสุด
+            </button>
+        </div>
+
+        <!-- กล่องที่ 2: ข้อมูลสรุปสถานะการส่งงานจากผู้รับจ้าง (ซ่อนไว้จนกว่าจะดึงข้อมูล) -->
+        <div id="jobSummaryCard" class="hidden puffy-container p-5 md:p-6 border-t-8 border-t-sky-400">
+            <h3 class="text-sm md:text-base font-extrabold text-slate-700 mb-3 flex items-center gap-2">
+                <i class="ph-fill ph-info text-sky-500 text-xl"></i> ข้อมูลการดำเนินงานของผู้รับจ้าง (จากระบบ MAM)
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span class="text-slate-400 font-bold block mb-0.5">เลขที่สัญญา / ชื่อสัญญา</span>
+                    <span id="sumContractName" class="font-extrabold text-slate-700">-</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span class="text-slate-400 font-bold block mb-0.5">สถานะใบงาน MAM</span>
+                    <span id="sumJobStatus" class="font-extrabold text-sky-600">-</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span class="text-slate-400 font-bold block mb-0.5">เวลา Check-in หน้างาน</span>
+                    <span id="sumCheckIn" class="font-extrabold text-slate-700">-</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span class="text-slate-400 font-bold block mb-0.5">สถานะงานพิเศษ (TOR 4)</span>
+                    <span id="sumExtraStatus" class="font-extrabold text-violet-600">-</span>
+                </div>
+            </div>
+            <div id="sumContractorNoteBox" class="hidden mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">
+                <i class="ph-fill ph-note text-amber-500"></i> <b>หมายเหตุผู้รับจ้าง:</b> <span id="sumContractorNote">-</span>
+            </div>
+        </div>
+
+        <!-- กล่องที่ 3: รายการตรวจรับงานตาม TOR -->
+        <div class="puffy-container p-5 md:p-8 border-t-8 border-t-violet-400">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-100 pb-3 mb-5">
+                <h2 class="text-sm md:text-lg font-extrabold text-slate-700 flex items-center gap-2">
+                    <i class="ph-fill ph-clipboard-text text-violet-500 text-xl"></i> รายการตรวจรับงานตาม TOR
+                </h2>
+                <div id="quickPassButtons" class="hidden flex-wrap items-center gap-2">
+                    <button type="button" onclick="setAllEvaluations('ผ่าน')"
+                            class="text-xs font-extrabold bg-emerald-50 hover:bg-emerald-500 text-emerald-700 hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all">
+                        <i class="ph-bold ph-check-circle"></i> ตั้งเป็น "ผ่าน" ทั้งหมด
+                    </button>
+                </div>
+            </div>
+
+            <!-- แถบแจ้งเตือนกรณีมีผลตรวจรับที่เคยบันทึกไว้แล้ว -->
+            <div id="savedTorBanner" class="hidden mb-5 p-3.5 rounded-2xl bg-violet-50 border-2 border-violet-200 text-violet-800 text-xs font-bold flex items-center gap-2">
+                <i class="ph-fill ph-check-square-offset text-violet-500 text-lg shrink-0"></i>
+                <span>พบประวัติการตรวจรับงานของสถานีนี้ในงวดที่เลือก ระบบได้โหลดผลประเมินเดิมมาแสดงให้แล้ว</span>
+            </div>
+
+            <!-- พื้นที่แสดงรายการงานตาม TOR -->
+            <div id="torTasksContainer" class="space-y-4">
+                <div class="py-12 px-4 rounded-2xl bg-pink-50/50 border-2 border-pink-200 text-center">
+                    <div class="w-12 h-12 rounded-full bg-pink-100 text-pink-500 flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="ph-fill ph-hand-pointing"></i>
+                    </div>
+                    <p class="font-extrabold text-pink-800 text-sm">กรุณาเลือกสถานีและกดปุ่ม "ดึงข้อมูลจากระบบ MAM ล่าสุด"</p>
+                </div>
+            </div>
+
+            <!-- ความเห็นรวมของคณะกรรมการตรวจรับ -->
+            <div id="committeeNoteSection" class="hidden mt-6 pt-5 border-t-2 border-slate-100">
+                <label class="text-xs font-extrabold text-slate-600 block mb-2">
+                    <i class="ph-bold ph-chat-centered-text text-violet-500"></i> ความเห็นสรุปของคณะกรรมการตรวจรับพัสดุ
+                </label>
+                <textarea id="committeeNote" rows="3" placeholder="ระบุความเห็นของคณะกรรมการ หรือข้อสั่งการแก้ไข (ถ้ามี)..."
+                          class="w-full p-3.5 text-sm rounded-2xl puffy-input"></textarea>
+            </div>
+
+            <!-- ปุ่มบันทึกผลการตรวจรับ -->
+            <div class="mt-6">
+                <button type="button" id="btnSaveTor" onclick="saveTorEvaluation()" disabled
+                        class="btn-puffy-violet w-full py-4 font-extrabold text-sm md:text-base flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกผลการตรวจรับงานตาม TOR
                 </button>
             </div>
+        </div>
 
-            <!-- ส่วนที่ 2: แสดงข้อมูลภาพรวมจาก MAM และรายการงานตาม TOR -->
-            <div class="puffy-container p-4 md:p-8 min-h-[300px] border-t-8 border-t-violet-400">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-100 pb-4 mb-5">
-                    <h2 class="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <i class="ph-fill ph-clipboard-text text-violet-500 text-2xl"></i> รายการตรวจรับงานตาม TOR
-                    </h2>
-                    <div id="quickPassGroup" class="hidden flex items-center gap-2">
-                        <button type="button" onclick="setAllEvaluation('ผ่าน')" class="text-xs font-extrabold bg-emerald-50 text-emerald-600 border-2 border-emerald-200 hover:bg-emerald-100 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1">
-                            <i class="ph-bold ph-check-circle"></i> ให้ "ผ่าน" ทั้งหมด
-                        </button>
-                    </div>
-                </div>
-
-                <!-- พื้นที่แสดงผลการ์ดงาน TOR -->
-                <div id="tasksContainer">
-                    <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                        <div class="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                            <i class="ph-fill ph-seal-check text-4xl md:text-5xl text-slate-300"></i>
-                        </div>
-                        <p class="font-bold text-slate-500 text-sm md:text-base text-center px-4">กรุณาเลือก ปีงบประมาณ, งวดที่ส่งงาน, ลุ่มน้ำ และรหัสสถานี<br>จากนั้นกดปุ่ม "ดึงข้อมูลจากระบบ MAM"</p>
-                    </div>
-                </div>
-
-                <!-- ช่องความเห็นคณะกรรมการตรวจรับ -->
-                <div id="committeeNoteWrapper" class="hidden mt-6 pt-5 border-t-2 border-slate-100">
-                    <label class="text-sm font-bold text-slate-700 block mb-2">
-                        <i class="ph-bold ph-chat-centered-text text-violet-500 mr-1"></i> ความเห็นสรุปของคณะกรรมการตรวจรับพัสดุ (ถ้ามี)
-                    </label>
-                    <textarea id="committeeNote" rows="2" class="w-full p-3.5 rounded-xl puffy-input text-sm" placeholder="ระบุความเห็นหรือข้อเสนอแนะของคณะกรรมการตรวจรับ..."></textarea>
-                </div>
-            </div>
-
-            <!-- ปุ่มยืนยันการบันทึกผลตรวจรับ -->
-            <div class="pb-10 pt-2">
-                <button type="submit" id="btnSubmit" disabled
-                        class="btn-puffy-emerald w-full py-4 md:py-5 font-extrabold text-lg md:text-xl flex items-center justify-center gap-2">
-                    <i class="ph-bold ph-floppy-disk text-2xl"></i> บันทึกผลการตรวจรับงานตาม TOR
-                </button>
-            </div>
-
-        </form>
     </main>
 
     <script>
-        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? ''
-            : 'https://ma-inspection-project.onrender.com';
+        // =========================================================================
+        // แก้ไขปัญหา APK: ใน WebView ของ Android ค่า hostname มักเป็น localhost
+        // จึงต้องบังคับชี้ไปที่เซิร์ฟเวอร์ Render เสมอ ยกเว้นเปิดเทสบนคอมพิวเตอร์พอร์ต 3000/5000
+        // =========================================================================
+        const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                             && (window.location.port === '3000' || window.location.port === '5000');
+        const API_BASE = isLocalPcDev ? '' : 'https://ma-inspection-project.onrender.com';
 
-        const contractYearSelect = document.getElementById("contractYearSelect");
-        const periodSelect = document.getElementById("periodSelect");
-        const basinSelect = document.getElementById("basinSelect");
-        const stationSelect = document.getElementById("stationSelect");
-        const stationNameInput = document.getElementById("stationNameInput");
-        const btnFetchMam = document.getElementById("btnFetchMam");
-        const btnSubmit = document.getElementById("btnSubmit");
-        const tasksContainer = document.getElementById("tasksContainer");
-        const quickPassGroup = document.getElementById("quickPassGroup");
-        const committeeNoteWrapper = document.getElementById("committeeNoteWrapper");
-
-        let currentTorSummary = null;
-        let currentAllTasks = [];
+        let currentStationMap = {};
+        let currentEvaluations = [];
+        let currentMamRecordId = '';
 
         const safeEscape = (str) => {
             if (typeof escapeHtml === 'function') return escapeHtml(str);
             return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        // 1. ตั้งค่าปีงบประมาณ พ.ศ. (2568 - 2578)
-        const startYear = 2568;
-        const totalYears = 10;
-        const currentDate = new Date();
-        let currentThaiFiscalYear = currentDate.getFullYear() + 543;
-        if (currentDate.getMonth() >= 9) currentThaiFiscalYear += 1;
+        window.onload = () => {
+            // 1. ตั้งค่าปีสัญญา (預設เป็น 2569 ซึ่งมีไฟล์ tor-tasks-2569.csv ใน MAM)
+            const yearSelect = document.getElementById('contractYear');
+            const startYear = 2568;
+            for (let i = 0; i <= 10; i++) {
+                const y = startYear + i;
+                yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+            }
+            yearSelect.value = '2569';
 
-        for (let i = 0; i <= totalYears; i++) {
-            const year = startYear + i;
-            const opt = document.createElement("option");
-            opt.value = year;
-            opt.textContent = year;
-            contractYearSelect.appendChild(opt);
-        }
-        contractYearSelect.value = (currentThaiFiscalYear >= startYear && currentThaiFiscalYear <= startYear + totalYears) ? currentThaiFiscalYear : 2569;
-
-        // 2. เติมรายชื่อลุ่มน้ำจาก constants.js
-        if (typeof hardcodedBasins !== 'undefined') {
-            hardcodedBasins.forEach(b => {
-                const opt = document.createElement("option");
-                opt.value = b;
-                opt.textContent = b;
-                basinSelect.appendChild(opt);
-            });
-        }
-
-        // 3. เมื่อเลือกกลุ่มลุ่มน้ำ ให้โหลดรายชื่อสถานี (กรองสถานีทดสอบ MOCK_ ออกตามสเปกหน้า 1 และ 8)
-        basinSelect.addEventListener("change", async () => {
-            const selectedBasin = basinSelect.value;
-            stationSelect.innerHTML = '<option value="" disabled selected>-- เลือกรหัสสถานี --</option>';
-            stationNameInput.value = "";
-            btnFetchMam.disabled = true;
-            btnSubmit.disabled = true;
-            resetTorView();
-
-            const mergedStations = {};
-            if (typeof stationsData !== 'undefined' && stationsData[selectedBasin]) {
-                for (let code in stationsData[selectedBasin]) {
-                    if (!/^MOCK[_-]/i.test(code)) {
-                        mergedStations[code] = stationsData[selectedBasin][code];
-                    }
-                }
+            // 2. โหลดกลุ่มลุ่มน้ำจาก constants.js
+            const basinSelect = document.getElementById('basinSelect');
+            let basinsList = [];
+            if (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) {
+                basinsList = hardcodedBasins;
+            } else if (typeof stationsData !== 'undefined') {
+                basinsList = Object.keys(stationsData);
             }
 
+            basinsList.forEach(b => {
+                basinSelect.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
+            });
+
+            if (basinsList.length > 0) {
+                basinSelect.value = basinsList[0];
+                onBasinChange();
+            }
+        };
+
+        async function onBasinChange() {
+            const basin = document.getElementById('basinSelect').value;
+            const stationSelect = document.getElementById('stationSelect');
+            const nameDisplay = document.getElementById('stationNameDisplay');
+
+            stationSelect.innerHTML = '<option value="">-- เลือกสถานี --</option>';
+            currentStationMap = {};
+
+            if (!basin) {
+                nameDisplay.textContent = 'กรุณาเลือกกลุ่มลุ่มน้ำและรหัสสถานี';
+                return;
+            }
+
+            // 1. ดึงรายชื่อสถานีจาก constants.js ทันที
+            if (typeof stationsData !== 'undefined' && stationsData[basin]) {
+                Object.keys(stationsData[basin]).forEach(code => {
+                    currentStationMap[code] = stationsData[basin][code];
+                });
+            }
+
+            renderStationOptions();
+
+            // 2. ดึงสถานีเพิ่มเติมจากฐานข้อมูล MAM
             try {
-                const res = await fetch(`${API_BASE}/api/mam/stations?basin=${encodeURIComponent(selectedBasin)}`);
-                if (res.ok) {
+                const res = await fetch(`${API_BASE}/api/mam/stations?basin=${encodeURIComponent(basin)}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const contentType = res.headers.get("content-type") || "";
+                if (res.ok && contentType.includes("application/json")) {
                     const data = await res.json();
                     if (data.success && data.stations) {
-                        for (let code in data.stations) {
-                            if (!/^MOCK[_-]/i.test(code) && !mergedStations[code]) {
-                                mergedStations[code] = data.stations[code];
+                        Object.keys(data.stations).forEach(code => {
+                            if (!currentStationMap[code]) {
+                                currentStationMap[code] = data.stations[code];
                             }
-                        }
+                        });
+                        renderStationOptions();
                     }
                 }
             } catch (e) {
-                console.warn("ดึงรายชื่อสถานีเพิ่มเติมไม่สำเร็จ ใช้ข้อมูลจาก constants.js");
+                // ใช้ข้อมูลจาก constants.js ต่อได้ทันที
             }
+        }
 
-            const codes = Object.keys(mergedStations);
-            if (codes.length > 0) {
-                stationSelect.disabled = false;
-                codes.forEach(code => {
-                    const opt = document.createElement("option");
-                    opt.value = code;
-                    opt.textContent = code;
-                    opt.dataset.stationName = mergedStations[code];
-                    stationSelect.appendChild(opt);
-                });
+        function renderStationOptions() {
+            const stationSelect = document.getElementById('stationSelect');
+            const prevValue = stationSelect.value;
+            stationSelect.innerHTML = '<option value="">-- เลือกสถานี --</option>';
+
+            const codes = Object.keys(currentStationMap);
+            codes.forEach(code => {
+                const opt = document.createElement('option');
+                opt.value = code;
+                opt.textContent = code;
+                stationSelect.appendChild(opt);
+            });
+
+            if (prevValue && currentStationMap[prevValue]) {
+                stationSelect.value = prevValue;
+            } else if (codes.length > 0) {
+                stationSelect.value = codes[0];
+            }
+            onStationChange();
+        }
+
+        function onStationChange() {
+            const code = document.getElementById('stationSelect').value;
+            const nameDisplay = document.getElementById('stationNameDisplay');
+            if (code && currentStationMap[code]) {
+                nameDisplay.textContent = currentStationMap[code];
+            } else if (code) {
+                nameDisplay.textContent = code;
             } else {
-                stationSelect.disabled = true;
+                nameDisplay.textContent = 'กรุณาเลือกกลุ่มลุ่มน้ำและรหัสสถานี';
             }
-        });
+        }
 
-        stationSelect.addEventListener("change", () => {
-            const selectedOpt = stationSelect.options[stationSelect.selectedIndex];
-            const selectedBasin = basinSelect.value;
-            const code = stationSelect.value;
+        async function fetchTorTasks() {
+            const year = document.getElementById('contractYear').value;
+            const period = document.getElementById('periodSelect').value;
+            const basin = document.getElementById('basinSelect').value;
+            const station = document.getElementById('stationSelect').value;
 
-            let stName = (selectedOpt && selectedOpt.dataset.stationName) ? selectedOpt.dataset.stationName : "";
-            if (!stName && typeof stationsData !== 'undefined' && stationsData[selectedBasin] && stationsData[selectedBasin][code]) {
-                stName = stationsData[selectedBasin][code];
+            if (!basin || !station) {
+                alert('กรุณาเลือกกลุ่มลุ่มน้ำและรหัสสถานีก่อนครับ');
+                return;
             }
-            stationNameInput.value = stName || code;
-            btnFetchMam.disabled = !code;
-        });
 
-        function resetTorView() {
-            currentTorSummary = null;
-            currentAllTasks = [];
-            quickPassGroup.classList.add("hidden");
-            committeeNoteWrapper.classList.add("hidden");
-            document.getElementById("committeeNote").value = "";
-            tasksContainer.innerHTML = `
-                <div class="py-16 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                    <div class="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
-                        <i class="ph-fill ph-seal-check text-4xl md:text-5xl text-slate-300"></i>
-                    </div>
-                    <p class="font-bold text-slate-500 text-sm md:text-base text-center px-4">กรุณาเลือกรหัสสถานีและกดปุ่ม "ดึงข้อมูลจากระบบ MAM"</p>
+            const btnFetch = document.getElementById('btnFetchTor');
+            const btnSave = document.getElementById('btnSaveTor');
+            const container = document.getElementById('torTasksContainer');
+            const summaryCard = document.getElementById('jobSummaryCard');
+            const quickBtns = document.getElementById('quickPassButtons');
+            const noteSection = document.getElementById('committeeNoteSection');
+            const savedBanner = document.getElementById('savedTorBanner');
+
+            btnFetch.disabled = true;
+            btnFetch.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังดึงข้อมูลงาน TOR จากระบบ MAM...';
+            container.innerHTML = `
+                <div class="py-12 text-center text-pink-500">
+                    <i class="ph-bold ph-spinner animate-spin text-4xl mb-2"></i>
+                    <p class="font-extrabold text-sm">กำลังโหลดข้อมูลงาน TOR ของสถานี ${safeEscape(station)}...</p>
                 </div>`;
-        }
-
-        // ป้ายแสดงสถานะงานจากระบบ MAM (job_status_code: 0=ยังไม่เริ่มงาน, 1=กำลังดำเนินงาน, 2=รออนุมัติ, 3=อนุมัติ, 4=ไม่อนุมัติ)
-        function getJobStatusBadge(jobStatus, jobStatusCode) {
-            const s = String(jobStatus || '-').trim();
-            const code = String(jobStatusCode ?? '').trim();
-            if (code === '3' || s === 'อนุมัติ') {
-                return `<span class="bg-emerald-100 text-emerald-700 border-2 border-emerald-200 px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1"><i class="ph-fill ph-check-circle text-base"></i> ${safeEscape(s)}</span>`;
-            } else if (code === '2' || s === 'รออนุมัติ') {
-                return `<span class="bg-sky-100 text-sky-700 border-2 border-sky-200 px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1"><i class="ph-fill ph-clock-countdown text-base"></i> ${safeEscape(s)}</span>`;
-            } else if (code === '1' || s === 'กำลังดำเนินงาน') {
-                return `<span class="bg-amber-100 text-amber-700 border-2 border-amber-200 px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1"><i class="ph-fill ph-wrench text-base"></i> ${safeEscape(s)}</span>`;
-            } else if (code === '4' || s === 'ไม่อนุมัติ') {
-                return `<span class="bg-rose-100 text-rose-700 border-2 border-rose-200 px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1"><i class="ph-fill ph-x-circle text-base"></i> ${safeEscape(s)}</span>`;
-            }
-            return `<span class="bg-slate-100 text-slate-600 border-2 border-slate-200 px-3 py-1 rounded-xl text-xs font-extrabold inline-flex items-center gap-1"><i class="ph-fill ph-minus-circle text-base"></i> ${safeEscape(s || 'ยังไม่เริ่มงาน')}</span>`;
-        }
-
-        // ป้ายความครบของรูปสำหรับงานพิเศษ (field_status / extra_works_status: not_started, in_progress, done)
-        function getFieldStatusBadge(fieldStatus) {
-            const fs = String(fieldStatus || '').trim().toLowerCase();
-            if (fs === 'done') {
-                return `<span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1"><i class="ph-bold ph-check"></i> บันทึกครบแล้ว (done)</span>`;
-            } else if (fs === 'in_progress') {
-                return `<span class="bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1"><i class="ph-bold ph-hourglass"></i> กำลังบันทึก (in_progress)</span>`;
-            }
-            return `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-2.5 py-0.5 rounded-lg text-[11px] font-extrabold inline-flex items-center gap-1">ยังไม่เริ่ม (not_started)</span>`;
-        }
-
-        // ไอคอนประจำขั้นตอนของงานทั่วไป (step_2, step_3, step_4)
-        function getGeneralTaskIcon(taskKey) {
-            const k = String(taskKey || '').toLowerCase();
-            if (k === 'step_2') return { icon: 'ph-broom', color: 'text-emerald-500 bg-emerald-50 border-emerald-200', stepLabel: 'ขั้นตอนที่ 2 (step_2)' };
-            if (k === 'step_3') return { icon: 'ph-ruler', color: 'text-sky-500 bg-sky-50 border-sky-200', stepLabel: 'ขั้นตอนที่ 3 (step_3)' };
-            if (k === 'step_4') return { icon: 'ph-cpu', color: 'text-violet-500 bg-violet-50 border-violet-200', stepLabel: 'ขั้นตอนที่ 4 (step_4)' };
-            return { icon: 'ph-check-square-offset', color: 'text-pink-500 bg-pink-50 border-pink-200', stepLabel: safeEscape(taskKey) };
-        }
-
-        // ดึงข้อมูลงานตาม TOR จาก /api/mam/tor-tasks (ตามสเปกหน้า 7)
-        async function fetchStationWorkData() {
-            const year = contractYearSelect.value;
-            const periodLabel = periodSelect.value; // เช่น "งวดที่1"
-            const periodNum = periodLabel.replace(/\D+/g, '') || '1';
-            const basin = basinSelect.value;
-            const stationId = stationSelect.value;
-
-            if (!stationId) return;
-
-            btnFetchMam.disabled = true;
-            btnSubmit.disabled = true;
-            btnFetchMam.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-2xl"></i> กำลังดึงข้อมูลจาก mam_tor_tasks...';
-
-            tasksContainer.innerHTML = `
-                <div class="py-16 flex flex-col items-center justify-center text-pink-500 bg-pink-50 rounded-2xl border-2 border-pink-100 text-center px-4">
-                    <i class="ph-bold ph-spinner animate-spin text-4xl md:text-5xl mb-4"></i>
-                    <p class="font-bold text-sm md:text-base">กำลังดึงข้อมูลงานตาม TOR ของสถานี ${safeEscape(stationId)} (ปีงบ ${safeEscape(year)} - ${safeEscape(periodLabel)})...</p>
-                </div>`;
+            summaryCard.classList.add('hidden');
+            quickBtns.classList.add('hidden');
+            noteSection.classList.add('hidden');
+            savedBanner.classList.add('hidden');
+            btnSave.disabled = true;
 
             try {
-                const url = `${API_BASE}/api/mam/tor-tasks?year=${encodeURIComponent(year)}&period=${encodeURIComponent(periodNum)}&basin=${encodeURIComponent(basin)}&station=${encodeURIComponent(stationId)}&t=${Date.now()}`;
-                const response = await fetch(url);
+                const url = `${API_BASE}/api/mam/tor-tasks?year=${encodeURIComponent(year)}&period=${encodeURIComponent(period)}&basin=${encodeURIComponent(basin)}&station=${encodeURIComponent(station)}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("เซิร์ฟเวอร์กำลังตื่นตัว (Cold Start) หรือการเชื่อมต่อขัดข้อง กรุณารอ 10 วินาทีแล้วกดดึงข้อมูลอีกครั้ง");
+                }
+
                 const result = await response.json();
 
-                if (response.ok && result.success) {
-                    currentTorSummary = result.summary;
-                    if (currentTorSummary && currentTorSummary.station_name) {
-                        stationNameInput.value = currentTorSummary.station_name;
-                    }
-                    renderDynamicInspectionTasks(result);
-                    btnSubmit.disabled = false;
-                } else {
-                    throw new Error(result.message || `ไม่พบข้อมูลงาน TOR ของสถานี ${stationId}`);
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || `ไม่พบข้อมูลงาน TOR ของสถานี ${station} ในปีสัญญา ${year}`);
                 }
+
+                // แสดงข้อมูลสรุปผู้รับจ้าง
+                const sum = result.summary || {};
+                currentMamRecordId = sum.mam_record_id || '';
+                document.getElementById('sumContractName').textContent = sum.contract_name || sum.contract_id || '-';
+                document.getElementById('sumJobStatus').textContent = sum.job_status || '-';
+                document.getElementById('sumCheckIn').textContent = sum.checked_in_at || 'ยังไม่ระบุเวลา Check-in';
+                document.getElementById('sumExtraStatus').textContent = sum.extra_works_status || '-';
+
+                const noteBox = document.getElementById('sumContractorNoteBox');
+                if (sum.contractor_note && String(sum.contractor_note).trim() !== '') {
+                    document.getElementById('sumContractorNote').textContent = sum.contractor_note;
+                    noteBox.classList.remove('hidden');
+                } else {
+                    noteBox.classList.add('hidden');
+                }
+                summaryCard.classList.remove('hidden');
+
+                // รวมรายการงานทั่วไป (generalTasks) และงานพิเศษ (extraTasks)
+                const allTasks = [
+                    ...(Array.isArray(result.generalTasks) ? result.generalTasks : []),
+                    ...(Array.isArray(result.extraTasks) ? result.extraTasks : [])
+                ];
+
+                const savedCheck = result.savedCheck || null;
+                const savedMap = {};
+                if (savedCheck && Array.isArray(savedCheck.evaluations)) {
+                    savedCheck.evaluations.forEach(ev => {
+                        savedMap[ev.task_key] = ev;
+                    });
+                    document.getElementById('committeeNote').value = savedCheck.committee_note || '';
+                    savedBanner.classList.remove('hidden');
+                } else {
+                    document.getElementById('committeeNote').value = '';
+                }
+
+                currentEvaluations = allTasks.map((t, idx) => {
+                    const prev = savedMap[t.task_key];
+                    return {
+                        _index: idx,
+                        task_key: t.task_key || `task_${idx + 1}`,
+                        task_name: t.task_name || '-',
+                        task_type: t.task_type || 'general',
+                        field_status: t.field_status || '',
+                        quantity: t.quantity || '',
+                        unit: t.unit || '',
+                        contract_required_quantity: t.contract_required_quantity || '',
+                        description: t.description || '',
+                        result: prev ? prev.result : 'ผ่าน',
+                        comment: prev ? (prev.comment || '') : ''
+                    };
+                });
+
+                renderTorTaskCards();
+                quickBtns.classList.remove('hidden');
+                quickBtns.classList.add('flex');
+                noteSection.classList.remove('hidden');
+                btnSave.disabled = false;
+
             } catch (error) {
-                console.error(error);
-                quickPassGroup.classList.add("hidden");
-                committeeNoteWrapper.classList.add("hidden");
-                tasksContainer.innerHTML = `
-                    <div class="p-8 text-center bg-rose-50 rounded-2xl border-2 border-rose-200">
-                        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mx-auto mb-3">
-                            <i class="ph-fill ph-warning-circle text-4xl text-rose-500"></i>
+                container.innerHTML = `
+                    <div class="py-10 px-4 rounded-2xl bg-rose-50 border-2 border-rose-200 text-center">
+                        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center mx-auto mb-3 text-2xl">
+                            <i class="ph-fill ph-warning-circle"></i>
                         </div>
-                        <p class="font-extrabold text-rose-600 text-base md:text-lg">${safeEscape(error.message)}</p>
-                        <p class="text-xs md:text-sm mt-2 text-rose-400 font-medium">กรุณาตรวจสอบเงื่อนไขการค้นหา หรือตรวจสอบการนำเข้าไฟล์ tor-tasks-${safeEscape(year)}.csv</p>
+                        <p class="font-extrabold text-rose-700 text-base mb-1">${safeEscape(error.message)}</p>
+                        <p class="text-xs font-bold text-rose-400">คำแนะนำ: ข้อมูลงาน TOR ปัจจุบันอยู่ในปีสัญญา 2569 (กรุณาตรวจสอบปีสัญญาที่เลือก)</p>
                     </div>`;
             } finally {
-                btnFetchMam.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-2xl"></i> ดึงข้อมูลจากระบบ MAM ล่าสุด';
-                btnFetchMam.disabled = false;
+                btnFetch.disabled = false;
+                btnFetch.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-xl"></i> ดึงข้อมูลจากระบบ MAM ล่าสุด';
             }
         }
 
-        function mapDefaultEvalFromMam(task, summary) {
-            if (task.task_type === 'extra') {
-                const fs = String(task.field_status || '').toLowerCase();
-                if (fs === 'done') return 'ผ่าน';
-                if (fs === 'in_progress') return 'รอดำเนินการ';
-                return 'รอดำเนินการ';
-            }
-            const code = String(summary?.job_status_code ?? '');
-            const status = String(summary?.job_status || '');
-            if (code === '3' || status === 'อนุมัติ' || code === '2' || status === 'รออนุมัติ') return 'ผ่าน';
-            if (code === '4' || status === 'ไม่อนุมัติ') return 'ไม่ผ่าน';
-            return 'รอดำเนินการ';
-        }
-
-        // วาดการ์ดงานบำรุงรักษาทั่วไป 3 แถว (step_2, step_3, step_4) และงานพิเศษ (extra) ตามสเปกหน้า 7
-        function renderDynamicInspectionTasks(apiResult) {
-            const summary = apiResult.summary || {};
-            const generalTasks = Array.isArray(apiResult.generalTasks) ? apiResult.generalTasks : [];
-            const extraTasks = Array.isArray(apiResult.extraTasks) ? apiResult.extraTasks : [];
-            const savedCheck = apiResult.savedCheck || null;
-
-            currentAllTasks = [...generalTasks, ...extraTasks];
-            quickPassGroup.classList.remove("hidden");
-            committeeNoteWrapper.classList.remove("hidden");
-
-            const savedEvalMap = {};
-            if (savedCheck && Array.isArray(savedCheck.evaluations)) {
-                savedCheck.evaluations.forEach(ev => {
-                    savedEvalMap[ev.task_key] = ev;
-                });
-                document.getElementById("committeeNote").value = savedCheck.committee_note || "";
-            } else {
-                document.getElementById("committeeNote").value = "";
+        function renderTorTaskCards() {
+            const container = document.getElementById('torTasksContainer');
+            if (currentEvaluations.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center text-slate-400 font-bold">ไม่พบรายการงานตาม TOR</div>`;
+                return;
             }
 
-            let html = "";
+            let html = '';
+            currentEvaluations.forEach((ev, idx) => {
+                const isPass = ev.result === 'ผ่าน';
+                const isFail = ev.result === 'ไม่ผ่าน';
+                const isPending = ev.result === 'รอดำเนินการ';
 
-            // แถบแจ้งเตือนกรณีเคยบันทึกผลการตรวจรับไปแล้ว
-            if (savedCheck) {
-                const saveTime = new Date(savedCheck.timestamp).toLocaleString('th-TH');
+                const typeBadge = ev.task_type === 'extra'
+                    ? '<span class="bg-violet-100 text-violet-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-violet-200">งานพิเศษ (TOR ข้อ 4)</span>'
+                    : '<span class="bg-sky-100 text-sky-700 text-[10px] font-extrabold px-2 py-0.5 rounded border border-sky-200">งานบำรุงรักษาทั่วไป</span>';
+
                 html += `
-                <div class="mb-5 bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 text-emerald-800 flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-2">
-                        <i class="ph-fill ph-seal-check text-emerald-500 text-2xl"></i>
-                        <span class="text-xs md:text-sm font-bold">สถานีนี้บันทึกผลการตรวจรับใน <b>ปีงบ ${safeEscape(savedCheck.contractYear)} (${safeEscape(savedCheck.period_label || 'งวดที่' + savedCheck.period)})</b> แล้วเมื่อ ${saveTime}</span>
-                    </div>
-                </div>`;
-            }
-
-            // กล่องสรุปข้อมูลระดับสถานีในงวดนั้นจากระบบ MAM
-            html += `
-            <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 md:p-5 mb-6">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 mb-3.5 border-b border-slate-200">
-                    <div>
-                        <span class="text-[11px] font-extrabold text-pink-600 uppercase tracking-wider block">ข้อมูลระดับสถานีจากระบบ MAM (Record ID: ${safeEscape(summary.mam_record_id)})</span>
-                        <h3 class="text-base md:text-lg font-extrabold text-slate-800">${safeEscape(summary.contract_name)} (รหัสสัญญา: ${safeEscape(summary.contract_id)})</h3>
-                    </div>
-                    <div class="flex items-center gap-2 self-start md:self-center">
-                        <span class="text-xs font-bold text-slate-500">สถานะงาน MAM:</span>
-                        ${getJobStatusBadge(summary.job_status, summary.job_status_code)}
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div class="bg-white p-3 rounded-xl border border-slate-200">
-                        <span class="text-slate-400 font-bold block text-[10px] uppercase">ปีสัญญา / งวดงาน</span>
-                        <span class="text-slate-700 font-extrabold text-sm">ปี ${safeEscape(summary.contract_year)} (${safeEscape(summary.period_label)})</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-slate-200">
-                        <span class="text-slate-400 font-bold block text-[10px] uppercase">เวลาเช็กอินครั้งแรก (checked_in_at)</span>
-                        <span class="text-sky-600 font-extrabold text-sm">${safeEscape(summary.checked_in_at || 'ไม่มีข้อมูลเวลาเช็กอิน')}</span>
-                    </div>
-                    <div class="bg-white p-3 rounded-xl border border-slate-200">
-                        <span class="text-slate-400 font-bold block text-[10px] uppercase">ความคืบหน้างานเพิ่มเติม (extra_works_status)</span>
-                        <div class="mt-0.5">${getFieldStatusBadge(summary.extra_works_status)}</div>
-                    </div>
-                    ${summary.contractor_note ? `
-                    <div class="sm:col-span-3 bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-800 font-bold">
-                        <i class="ph-fill ph-note mr-1 text-amber-500"></i> หมายเหตุผู้รับจ้างตอนเช็กอิน (contractor_note): ${safeEscape(summary.contractor_note)}
-                    </div>` : ''}
-                </div>
-            </div>`;
-
-            // ส่วนที่ 2.1: งานบำรุงรักษาทั่วไป 3 การ์ดตามแถว task_type = general (step_2, step_3, step_4)
-            html += `
-            <div class="mb-6">
-                <h3 class="text-base font-extrabold text-slate-700 mb-3 flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-sm font-black">1</span>
-                    งานบำรุงรักษาทั่วไปประจำงวด (General Tasks - 3 ขั้นตอนหลัก)
-                </h3>
-                <div class="space-y-4">`;
-
-            generalTasks.forEach((task, index) => {
-                const meta = getGeneralTaskIcon(task.task_key);
-                const prev = savedEvalMap[task.task_key];
-                const defaultEval = prev ? prev.result : mapDefaultEvalFromMam(task, summary);
-                const defaultComment = prev ? (prev.comment || '') : '';
-
-                html += renderSingleTaskCard(task, index, meta, defaultEval, defaultComment, summary);
-            });
-
-            html += `</div></div>`;
-
-            // ส่วนที่ 2.2: งานพิเศษ / งานเพิ่มเติมตาม TOR ข้อ 4 (task_type = extra)
-            html += `
-            <div>
-                <h3 class="text-base font-extrabold text-slate-700 mb-3 flex items-center gap-2">
-                    <span class="w-7 h-7 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center text-sm font-black">2</span>
-                    งานพิเศษ / งานเพิ่มเติมตามสัญญา (TOR ข้อ 4 - Extra Works)
-                    <span class="bg-pink-100 text-pink-700 text-xs font-extrabold px-2.5 py-0.5 rounded-full">${extraTasks.length} รายการ</span>
-                </h3>`;
-
-            if (extraTasks.length === 0) {
-                html += `
-                <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center text-slate-400 font-bold text-sm">
-                    <i class="ph-fill ph-stack-simple text-2xl block mb-1"></i> ไม่มีรายการงานเพิ่มเติม (task_type = extra) ที่ผู้รับจ้างบันทึกในงวดนี้
-                </div>`;
-            } else {
-                html += `<div class="space-y-4">`;
-                extraTasks.forEach((task, i) => {
-                    const globalIdx = generalTasks.length + i;
-                    const meta = {
-                        icon: 'ph-sparkle',
-                        color: 'text-pink-500 bg-pink-50 border-pink-200',
-                        stepLabel: `รหัสงานสัญญา: ${safeEscape(task.task_key)}`
-                    };
-                    const prev = savedEvalMap[task.task_key];
-                    const defaultEval = prev ? prev.result : mapDefaultEvalFromMam(task, summary);
-                    const defaultComment = prev ? (prev.comment || '') : '';
-
-                    html += renderSingleTaskCard(task, globalIdx, meta, defaultEval, defaultComment, summary);
-                });
-                html += `</div>`;
-            }
-
-            html += `</div>`;
-            tasksContainer.innerHTML = html;
-        }
-
-        function renderSingleTaskCard(task, idx, meta, defaultEval, defaultComment, summary) {
-            const isExtra = task.task_type === 'extra';
-            const chkPass = defaultEval === 'ผ่าน' ? 'checked' : '';
-            const chkFail = defaultEval === 'ไม่ผ่าน' ? 'checked' : '';
-            const chkWait = (defaultEval !== 'ผ่าน' && defaultEval !== 'ไม่ผ่าน') ? 'checked' : '';
-
-            // สำหรับงาน extra: แยกหมายเหตุที่คั่นด้วย ; ออกเป็นรายการย่อยให้อ่านง่าย
-            let descHtml = '';
-            if (isExtra) {
-                const descList = String(task.description || '').split(';').map(s => s.trim()).filter(Boolean);
-                const descItems = descList.length > 0
-                    ? descList.map(d => `<li class="ml-4 list-disc">${safeEscape(d)}</li>`).join('')
-                    : '<li class="ml-4 text-slate-400">ไม่มีรายละเอียดเพิ่มเติม</li>';
-
-                descHtml = `
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-pink-50/50 p-3.5 rounded-xl border border-pink-100 text-xs mb-3">
-                    <div>
-                        <span class="text-slate-400 font-bold block text-[10px] uppercase">ปริมาณงานที่บันทึกงวดนี้ (quantity)</span>
-                        <span class="text-pink-600 font-black text-sm">${safeEscape(task.quantity || '0')} ${safeEscape(task.unit || '')}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 font-bold block text-[10px] uppercase">ปริมาณที่สัญญากำหนดรวม</span>
-                        <span class="text-slate-700 font-extrabold text-sm">${safeEscape(task.contract_required_quantity || '-')} ${safeEscape(task.unit || '')}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 font-bold block text-[10px] uppercase">ความครบของรูป (field_status)</span>
-                        <div class="mt-0.5">${getFieldStatusBadge(task.field_status)}</div>
-                    </div>
-                    <div class="sm:col-span-3 pt-2 border-t border-pink-100">
-                        <span class="text-slate-500 font-bold block text-[10px] uppercase mb-1">รายละเอียด / หมายเหตุรายการ (description):</span>
-                        <ul class="text-slate-700 font-semibold space-y-0.5">${descItems}</ul>
-                    </div>
-                </div>`;
-            }
-
-            return `
-            <div class="task-card p-4 md:p-5" data-task-index="${idx}">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 mb-3 border-b border-slate-100">
-                    <div class="flex items-start gap-3">
-                        <div class="w-11 h-11 rounded-2xl border-2 ${meta.color} flex items-center justify-center shrink-0">
-                            <i class="ph-fill ${meta.icon} text-2xl"></i>
-                        </div>
+                <div class="task-card p-4 md:p-5">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-100">
                         <div>
-                            <span class="text-[11px] font-extrabold text-slate-400 uppercase block">${meta.stepLabel}</span>
-                            <h4 class="text-base md:text-lg font-extrabold text-slate-800">${safeEscape(task.task_name)}</h4>
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                <span class="bg-pink-500 text-white text-[10px] font-black px-2 py-0.5 rounded">${safeEscape(ev.task_key)}</span>
+                                ${typeBadge}
+                                <span class="text-sm md:text-base font-extrabold text-slate-800">${safeEscape(ev.task_name)}</span>
+                            </div>
+                            ${(ev.quantity || ev.description || ev.field_status) ? `
+                            <div class="text-xs font-semibold text-slate-500 flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                ${ev.field_status ? `<span><b>สถานะสนาม:</b> ${safeEscape(ev.field_status)}</span>` : ''}
+                                ${ev.quantity ? `<span><b>ปริมาณงาน:</b> ${safeEscape(ev.quantity)} ${safeEscape(ev.unit)}</span>` : ''}
+                                ${ev.description ? `<span><b>รายละเอียด:</b> ${safeEscape(ev.description)}</span>` : ''}
+                            </div>` : ''}
+                        </div>
+
+                        <!-- ปุ่มประเมินผลของคณะกรรมการ -->
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <button type="button" onclick="updateTorResult(${idx}, 'ผ่าน')"
+                                    class="px-3.5 py-2 rounded-xl text-xs font-extrabold border-2 transition-all flex items-center gap-1 ${isPass ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-emerald-50'}">
+                                <i class="ph-bold ph-check-circle text-base"></i> ผ่าน
+                            </button>
+                            <button type="button" onclick="updateTorResult(${idx}, 'ไม่ผ่าน')"
+                                    class="px-3.5 py-2 rounded-xl text-xs font-extrabold border-2 transition-all flex items-center gap-1 ${isFail ? 'bg-rose-500 text-white border-rose-600 shadow-sm' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-rose-50'}">
+                                <i class="ph-bold ph-x-circle text-base"></i> ไม่ผ่าน
+                            </button>
+                            <button type="button" onclick="updateTorResult(${idx}, 'รอดำเนินการ')"
+                                    class="px-3 py-2 rounded-xl text-xs font-extrabold border-2 transition-all flex items-center gap-1 ${isPending ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-amber-50'}">
+                                <i class="ph-bold ph-clock text-base"></i> รอแก้ไข
+                            </button>
                         </div>
                     </div>
-                    <div class="self-start sm:self-center">
-                        ${isExtra
-                            ? getFieldStatusBadge(task.field_status)
-                            : `<div class="flex items-center gap-1.5"><span class="text-[11px] font-bold text-slate-400">ผลตรวจ MAM:</span>${getJobStatusBadge(task.job_status || summary.job_status, task.job_status_code ?? summary.job_status_code)}</div>`
-                        }
+
+                    <div>
+                        <input type="text" value="${safeEscape(ev.comment || '')}"
+                               oninput="updateTorComment(${idx}, this.value)"
+                               placeholder="ความเห็นกรรมการรายข้อ (ถ้ามี)..."
+                               class="w-full p-2.5 text-xs rounded-xl puffy-input">
                     </div>
-                </div>
+                </div>`;
+            });
 
-                ${descHtml}
-
-                <!-- ปุ่มประเมินผลสำหรับกรรมการตรวจรับ -->
-                <div class="grid grid-cols-3 gap-2 md:gap-3 mb-3">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="tor_eval_${idx}" value="ผ่าน" ${chkPass} class="sr-only tor-radio">
-                        <div class="tor-pass tor-radio-box bg-emerald-50 text-emerald-600 border-emerald-200 py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 font-extrabold text-xs md:text-sm hover:bg-emerald-100">
-                            <i class="ph-bold ph-check-circle text-base md:text-lg"></i> ผ่าน
-                        </div>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="tor_eval_${idx}" value="ไม่ผ่าน" ${chkFail} class="sr-only tor-radio">
-                        <div class="tor-fail tor-radio-box bg-rose-50 text-rose-600 border-rose-200 py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 font-extrabold text-xs md:text-sm hover:bg-rose-100">
-                            <i class="ph-bold ph-x-circle text-base md:text-lg"></i> ไม่ผ่าน (แก้ไข)
-                        </div>
-                    </label>
-                    <label class="cursor-pointer">
-                        <input type="radio" name="tor_eval_${idx}" value="รอดำเนินการ" ${chkWait} class="sr-only tor-radio">
-                        <div class="tor-wait tor-radio-box bg-amber-50 text-amber-600 border-amber-200 py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 font-extrabold text-xs md:text-sm hover:bg-amber-100">
-                            <i class="ph-bold ph-clock text-base md:text-lg"></i> รอดำเนินการ
-                        </div>
-                    </label>
-                </div>
-
-                <input type="text" id="tor_comment_${idx}" value="${safeEscape(defaultComment)}" placeholder="ระบุความเห็นกรรมการเฉพาะรายการนี้ (ถ้ามี)..."
-                       class="w-full p-2.5 text-xs md:text-sm rounded-xl puffy-input">
-            </div>`;
+            container.innerHTML = html;
         }
 
-        function setAllEvaluation(targetVal) {
-            currentAllTasks.forEach((_, idx) => {
-                const radios = document.querySelectorAll(`input[name="tor_eval_${idx}"]`);
-                radios.forEach(r => {
-                    if (r.value === targetVal) r.checked = true;
-                });
-            });
+        function updateTorResult(idx, resVal) {
+            if (!currentEvaluations[idx]) return;
+            currentEvaluations[idx].result = resVal;
+            renderTorTaskCards();
         }
 
-        async function submitTorCheck(event) {
-            event.preventDefault();
-            if (!currentTorSummary || currentAllTasks.length === 0) return;
+        function updateTorComment(idx, commentVal) {
+            if (!currentEvaluations[idx]) return;
+            currentEvaluations[idx].comment = commentVal;
+        }
 
-            const year = contractYearSelect.value;
-            const periodLabel = periodSelect.value;
-            const basin = basinSelect.value;
-            const stationId = stationSelect.value;
-            const stationName = stationNameInput.value;
-            const committeeNote = document.getElementById("committeeNote").value.trim();
+        function setAllEvaluations(resVal) {
+            currentEvaluations.forEach(ev => { ev.result = resVal; });
+            renderTorTaskCards();
+        }
 
-            const evaluations = currentAllTasks.map((task, idx) => {
-                const checked = document.querySelector(`input[name="tor_eval_${idx}"]:checked`);
-                const commentEl = document.getElementById(`tor_comment_${idx}`);
-                return {
-                    task_type: task.task_type,
-                    task_key: task.task_key,
-                    task_name: task.task_name,
-                    mam_job_status: task.job_status || currentTorSummary.job_status || '',
-                    field_status: task.field_status || '',
-                    quantity: task.quantity || '',
-                    unit: task.unit || '',
-                    result: checked ? checked.value : 'รอดำเนินการ',
-                    comment: commentEl ? commentEl.value.trim() : ''
-                };
-            });
+        async function saveTorEvaluation() {
+            if (currentEvaluations.length === 0) return;
 
-            const confirmRes = await Swal.fire({
-                title: 'ยืนยันการบันทึกผลตรวจรับ TOR?',
-                html: `สถานี <b>${safeEscape(stationId)} (${safeEscape(stationName)})</b><br>ปีงบประมาณ ${safeEscape(year)} - ${safeEscape(periodLabel)}<br>รวมรายการตรวจรับ ${evaluations.length} รายการ`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#94a3b8',
-                confirmButtonText: 'ยืนยันบันทึก',
-                cancelButtonText: 'ยกเลิก',
-                customClass: {
-                    popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                    title: 'font-prompt font-extrabold text-slate-800',
-                    confirmButton: 'font-prompt font-bold rounded-xl px-5 py-2.5',
-                    cancelButton: 'font-prompt font-bold rounded-xl px-5 py-2.5'
-                }
-            });
+            const year = document.getElementById('contractYear').value;
+            const period = document.getElementById('periodSelect').value;
+            const basin = document.getElementById('basinSelect').value;
+            const stationId = document.getElementById('stationSelect').value;
+            const stationName = document.getElementById('stationNameDisplay').textContent.trim();
+            const committeeNote = document.getElementById('committeeNote').value.trim();
+            const btnSave = document.getElementById('btnSaveTor');
 
-            if (!confirmRes.isConfirmed) return;
-
-            Swal.fire({
-                title: 'กำลังบันทึกผลตรวจรับ... 🚀',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading(),
-                customClass: { popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white' }
-            });
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังบันทึกผลการตรวจรับ...';
 
             try {
+                const payload = {
+                    contractYear: year,
+                    period: period,
+                    basin: basin,
+                    station_id: stationId,
+                    station_name: stationName,
+                    mam_record_id: currentMamRecordId,
+                    evaluations: currentEvaluations,
+                    committee_note: committeeNote
+                };
+
                 const response = await fetch(`${API_BASE}/api/mam/tor-check`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contractYear: year,
-                        period: periodLabel,
-                        basin: basin,
-                        station_id: stationId,
-                        station_name: stationName,
-                        mam_record_id: currentTorSummary.mam_record_id || '',
-                        evaluations: evaluations,
-                        committee_note: committeeNote
-                    })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
                 });
+
+                const contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง กรุณาลองกดบันทึกอีกครั้ง");
+                }
 
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'บันทึกสำเร็จ! 🎉',
-                        text: result.message || 'บันทึกผลการตรวจรับงานตาม TOR เรียบร้อยแล้ว',
-                        confirmButtonColor: '#10b981',
-                        customClass: {
-                            popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                            confirmButton: 'font-prompt font-bold rounded-xl px-6'
-                        }
-                    });
+                    alert('✅ บันทึกผลการตรวจรับงานตาม TOR เรียบร้อยแล้ว!');
+                    document.getElementById('savedTorBanner').classList.remove('hidden');
                 } else {
-                    throw new Error(result.message || 'ไม่สามารถบันทึกข้อมูลได้');
+                    throw new Error(result.message || 'บันทึกข้อมูลไม่สำเร็จ');
                 }
             } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด 😥',
-                    text: error.message,
-                    confirmButtonColor: '#f43f5e',
-                    customClass: {
-                        popup: 'rounded-3xl border-4 border-white shadow-2xl',
-                        confirmButton: 'font-prompt font-bold rounded-xl px-6'
-                    }
-                });
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerHTML = '<i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกผลการตรวจรับงานตาม TOR';
             }
         }
     </script>
