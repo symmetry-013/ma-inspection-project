@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ตรวจรับงานตาม TOR (เชื่อมโยง MAM)</title>
+    <title>ตรวจรับงานตาม TOR และบันทึกสภาพสถานี (เชื่อมโยง MAM)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -76,6 +76,15 @@
         .btn-puffy-violet:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #6d28d9; }
         .btn-puffy-violet:disabled { background-color: #cbd5e1; box-shadow: 0 6px 0 #94a3b8; color: #f8fafc; cursor: not-allowed; }
 
+        .btn-puffy-teal {
+            background-color: #14b8a6;
+            color: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 0 #0f766e;
+            transition: all 0.1s ease;
+        }
+        .btn-puffy-teal:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0px 0 #0f766e; }
+
         .task-card {
             border: 2px solid #e2e8f0;
             border-radius: 20px;
@@ -105,7 +114,7 @@
                         ตรวจรับงานตาม TOR <span class="text-pink-500">(เชื่อมโยง MAM)</span>
                     </h1>
                     <p class="text-[11px] md:text-xs font-bold text-slate-400">
-                        ดึงข้อมูลงานบำรุงรักษาทั่วไป (step_2, step_3, step_4) และงานเพิ่มเติม (TOR ข้อ 4)
+                        ประเมินงานตามสัญญา บันทึกพิกัด GPS และอัปโหลดภาพถ่ายสภาพสถานี
                     </p>
                 </div>
             </div>
@@ -118,10 +127,10 @@
         <div class="puffy-container p-5 md:p-8 border-t-8 border-t-pink-400">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-slate-100 pb-3 mb-5">
                 <h2 class="text-sm md:text-lg font-extrabold text-slate-700 flex items-center gap-2">
-                    <i class="ph-bold ph-magnifying-glass text-pink-500 text-xl"></i> เลือกสถานีที่ต้องการตรวจรับงาน
+                    <i class="ph-bold ph-magnifying-glass text-pink-500 text-xl"></i> 1. เลือกสถานีที่ต้องการตรวจรับงาน
                 </h2>
                 <span class="bg-pink-50 text-pink-600 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-pink-200 font-mono">
-                    mam_tor_tasks + constants.js
+                    TOR + GPS + Photos
                 </span>
             </div>
 
@@ -166,7 +175,7 @@
             </button>
         </div>
 
-        <!-- กล่องที่ 2: ข้อมูลสรุปสถานะการส่งงานจากผู้รับจ้าง (ซ่อนไว้จนกว่าจะดึงข้อมูล) -->
+        <!-- กล่องที่ 2: ข้อมูลสรุปสถานะการส่งงานจากผู้รับจ้าง -->
         <div id="jobSummaryCard" class="hidden puffy-container p-5 md:p-6 border-t-8 border-t-sky-400">
             <h3 class="text-sm md:text-base font-extrabold text-slate-700 mb-3 flex items-center gap-2">
                 <i class="ph-fill ph-info text-sky-500 text-xl"></i> ข้อมูลการดำเนินงานของผู้รับจ้าง (จากระบบ MAM)
@@ -194,11 +203,72 @@
             </div>
         </div>
 
-        <!-- กล่องที่ 3: รายการตรวจรับงานตาม TOR -->
+        <!-- กล่องที่ 3: พิกัด GPS และภาพถ่ายสภาพสถานี (ย้ายมาจาก inspection.html) -->
+        <div class="puffy-container p-5 md:p-8 border-t-8 border-t-teal-400">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-slate-100 pb-3 mb-5">
+                <h2 class="text-sm md:text-lg font-extrabold text-slate-700 flex items-center gap-2">
+                    <i class="ph-fill ph-map-pin-line text-teal-500 text-xl"></i> 2. พิกัด GPS และภาพถ่ายสภาพสถานีหน้างาน
+                </h2>
+                <button type="button" onclick="getGPSLocation()" id="btnGetGps"
+                        class="btn-puffy-teal px-3.5 py-2 text-xs font-extrabold flex items-center gap-1.5">
+                    <i class="ph-bold ph-crosshair text-base"></i> ดึงพิกัด GPS ปัจจุบัน
+                </button>
+            </div>
+
+            <!-- ส่วนพิกัด GPS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">ละติจูด (Latitude)</label>
+                    <input type="text" id="latInput" placeholder="เช่น 13.7563" class="w-full p-3 text-sm rounded-xl puffy-input">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">ลองจิจูด (Longitude)</label>
+                    <input type="text" id="lonInput" placeholder="เช่น 100.5018" class="w-full p-3 text-sm rounded-xl puffy-input">
+                </div>
+            </div>
+            <div id="gpsStatusText" class="text-xs font-bold text-teal-600 mb-6 flex items-center gap-1.5">
+                <i class="ph-fill ph-navigation-arrow"></i> <span>ระบบกำลังค้นหาพิกัด GPS อัตโนมัติ...</span>
+            </div>
+
+            <!-- ส่วนอัปโหลดรูปภาพสภาพสถานี (เลือกได้หลายรูป) -->
+            <div class="border-t-2 border-slate-100 pt-5">
+                <label class="text-xs md:text-sm font-extrabold text-slate-700 block mb-2">
+                    <i class="ph-fill ph-camera text-teal-500 text-lg"></i> ภาพถ่ายสภาพสถานีและอุปกรณ์ (เลือกได้หลายรูป สูงสุด 10 รูป)
+                </label>
+
+                <label for="stationPhotosInput" class="cursor-pointer block border-3 border-dashed border-teal-300 hover:border-teal-500 bg-teal-50/40 hover:bg-teal-50 rounded-2xl p-6 text-center transition-all">
+                    <div class="w-12 h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mx-auto mb-2 text-2xl">
+                        <i class="ph-bold ph-upload-simple"></i>
+                    </div>
+                    <span class="block text-sm font-extrabold text-teal-800">แตะเพื่อเลือกรูปภาพ หรือถ่ายภาพสภาพสถานี</span>
+                    <span class="block text-[11px] font-bold text-slate-400 mt-0.5">รองรับการเลือกพร้อมกันหลายรูป (JPG, PNG)</span>
+                    <input type="file" id="stationPhotosInput" accept="image/*" multiple onchange="handlePhotoSelect(event)" class="hidden">
+                </label>
+
+                <!-- แสดงรูปภาพใหม่ที่กำลังจะอัปโหลด -->
+                <div id="newPhotoPreviewSection" class="hidden mt-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-extrabold text-teal-700">รูปภาพที่เลือกใหม่ (<span id="newPhotoCount">0</span> รูป):</span>
+                        <button type="button" onclick="clearNewPhotos()" class="text-xs font-bold text-rose-500 hover:underline">ล้างรูปที่เลือกใหม่</button>
+                    </div>
+                    <div id="newPhotoPreviewGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3"></div>
+                </div>
+
+                <!-- แสดงรูปภาพเดิมที่เคยบันทึกไว้แล้วในงวดนี้ -->
+                <div id="existingPhotosSection" class="hidden mt-4 pt-4 border-t border-slate-100">
+                    <span class="block text-xs font-extrabold text-slate-600 mb-2">
+                        <i class="ph-fill ph-images text-sky-500"></i> รูปภาพสภาพสถานีที่เคยบันทึกไว้แล้วในงวดนี้:
+                    </span>
+                    <div id="existingPhotosGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- กล่องที่ 4: รายการตรวจรับงานตาม TOR -->
         <div class="puffy-container p-5 md:p-8 border-t-8 border-t-violet-400">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-100 pb-3 mb-5">
                 <h2 class="text-sm md:text-lg font-extrabold text-slate-700 flex items-center gap-2">
-                    <i class="ph-fill ph-clipboard-text text-violet-500 text-xl"></i> รายการตรวจรับงานตาม TOR
+                    <i class="ph-fill ph-clipboard-text text-violet-500 text-xl"></i> 3. รายการตรวจรับงานตาม TOR
                 </h2>
                 <div id="quickPassButtons" class="hidden flex-wrap items-center gap-2">
                     <button type="button" onclick="setAllEvaluations('ผ่าน')"
@@ -211,7 +281,7 @@
             <!-- แถบแจ้งเตือนกรณีมีผลตรวจรับที่เคยบันทึกไว้แล้ว -->
             <div id="savedTorBanner" class="hidden mb-5 p-3.5 rounded-2xl bg-violet-50 border-2 border-violet-200 text-violet-800 text-xs font-bold flex items-center gap-2">
                 <i class="ph-fill ph-check-square-offset text-violet-500 text-lg shrink-0"></i>
-                <span>พบประวัติการตรวจรับงานของสถานีนี้ในงวดที่เลือก ระบบได้โหลดผลประเมินเดิมมาแสดงให้แล้ว</span>
+                <span>พบประวัติการตรวจรับงานของสถานีนี้ในงวดที่เลือก ระบบได้โหลดผลประเมิน พิกัด และรูปภาพเดิมมาแสดงให้แล้ว</span>
             </div>
 
             <!-- พื้นที่แสดงรายการงานตาม TOR -->
@@ -225,19 +295,28 @@
             </div>
 
             <!-- ความเห็นรวมของคณะกรรมการตรวจรับ -->
-            <div id="committeeNoteSection" class="hidden mt-6 pt-5 border-t-2 border-slate-100">
-                <label class="text-xs font-extrabold text-slate-600 block mb-2">
-                    <i class="ph-bold ph-chat-centered-text text-violet-500"></i> ความเห็นสรุปของคณะกรรมการตรวจรับพัสดุ
-                </label>
-                <textarea id="committeeNote" rows="3" placeholder="ระบุความเห็นของคณะกรรมการ หรือข้อสั่งการแก้ไข (ถ้ามี)..."
-                          class="w-full p-3.5 text-sm rounded-2xl puffy-input"></textarea>
+            <div id="committeeNoteSection" class="hidden mt-6 pt-5 border-t-2 border-slate-100 space-y-4">
+                <div>
+                    <label class="text-xs font-extrabold text-slate-600 block mb-1.5">
+                        <i class="ph-bold ph-note-pencil text-teal-600"></i> หมายเหตุสภาพสถานีหน้างาน (ผู้ตรวจสอบ)
+                    </label>
+                    <input type="text" id="inspectorNote" placeholder="ระบุหมายเหตุหน้างานทั่วไป (ถ้ามี)..."
+                           class="w-full p-3 text-sm rounded-2xl puffy-input">
+                </div>
+                <div>
+                    <label class="text-xs font-extrabold text-slate-600 block mb-1.5">
+                        <i class="ph-bold ph-chat-centered-text text-violet-500"></i> ความเห็นสรุปของคณะกรรมการตรวจรับพัสดุ
+                    </label>
+                    <textarea id="committeeNote" rows="3" placeholder="ระบุความเห็นของคณะกรรมการ หรือข้อสั่งการแก้ไข (ถ้ามี)..."
+                              class="w-full p-3.5 text-sm rounded-2xl puffy-input"></textarea>
+                </div>
             </div>
 
             <!-- ปุ่มบันทึกผลการตรวจรับ -->
             <div class="mt-6">
                 <button type="button" id="btnSaveTor" onclick="saveTorEvaluation()" disabled
                         class="btn-puffy-violet w-full py-4 font-extrabold text-sm md:text-base flex items-center justify-center gap-2">
-                    <i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกผลการตรวจรับงานตาม TOR
+                    <i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกผลการตรวจรับงาน พิกัด GPS และภาพถ่ายสถานี
                 </button>
             </div>
         </div>
@@ -246,8 +325,7 @@
 
     <script>
         // =========================================================================
-        // แก้ไขปัญหา APK: ใน WebView ของ Android ค่า hostname มักเป็น localhost
-        // จึงต้องบังคับชี้ไปที่เซิร์ฟเวอร์ Render เสมอ ยกเว้นเปิดเทสบนคอมพิวเตอร์พอร์ต 3000/5000
+        // แก้ไขปัญหา APK: ชี้ไปที่เซิร์ฟเวอร์ Render เสมอเมื่อไม่ได้รันผ่านพอร์ตพัฒนาบน PC
         // =========================================================================
         const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
                              && (window.location.port === '3000' || window.location.port === '5000');
@@ -256,14 +334,35 @@
         let currentStationMap = {};
         let currentEvaluations = [];
         let currentMamRecordId = '';
+        let selectedPhotoFiles = [];
+        let savedExistingPhotos = [];
 
         const safeEscape = (str) => {
             if (typeof escapeHtml === 'function') return escapeHtml(str);
             return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
+        function extractDriveFileId(rawUrl) {
+            if (!rawUrl) return null;
+            const str = String(rawUrl).trim();
+            const m1 = str.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (m1) return m1[1];
+            const m2 = str.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (m2) return m2[1];
+            const m3 = str.match(/\/api\/images\/([a-zA-Z0-9_-]+)/);
+            if (m3) return m3[1];
+            return null;
+        }
+
+        function resolvePhotoUrl(rawUrl) {
+            if (!rawUrl) return '';
+            const fileId = extractDriveFileId(rawUrl);
+            if (fileId) return `${API_BASE}/api/images/${fileId}`;
+            if (String(rawUrl).startsWith('/')) return `${API_BASE}${rawUrl}`;
+            return rawUrl;
+        }
+
         window.onload = () => {
-            // 1. ตั้งค่าปีสัญญา (預設เป็น 2569 ซึ่งมีไฟล์ tor-tasks-2569.csv ใน MAM)
             const yearSelect = document.getElementById('contractYear');
             const startYear = 2568;
             for (let i = 0; i <= 10; i++) {
@@ -272,7 +371,6 @@
             }
             yearSelect.value = '2569';
 
-            // 2. โหลดกลุ่มลุ่มน้ำจาก constants.js
             const basinSelect = document.getElementById('basinSelect');
             let basinsList = [];
             if (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) {
@@ -289,7 +387,127 @@
                 basinSelect.value = basinsList[0];
                 onBasinChange();
             }
+
+            // ดึงพิกัด GPS อัตโนมัติทันทีที่เปิดหน้า
+            getGPSLocation();
         };
+
+        // ฟังก์ชันจับพิกัด GPS
+        function getGPSLocation() {
+            const statusEl = document.getElementById('gpsStatusText');
+            const latInput = document.getElementById('latInput');
+            const lonInput = document.getElementById('lonInput');
+
+            if (!navigator.geolocation) {
+                statusEl.innerHTML = '<i class="ph-fill ph-warning text-rose-500"></i> <span class="text-rose-600">อุปกรณ์นี้ไม่รองรับการดึงพิกัด GPS อัตโนมัติ กรุณากรอกด้วยตนเอง</span>';
+                return;
+            }
+
+            statusEl.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-teal-600"></i> <span>กำลังค้นหาพิกัดดาวเทียม GPS...</span>';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
+                    latInput.value = lat;
+                    lonInput.value = lon;
+                    statusEl.innerHTML = `<i class="ph-fill ph-check-circle text-emerald-600"></i> <span class="text-emerald-700">จับพิกัด GPS สำเร็จ: ${lat}, ${lon}</span>`;
+                },
+                (err) => {
+                    statusEl.innerHTML = '<i class="ph-fill ph-warning-circle text-amber-500"></i> <span class="text-amber-700">ไม่สามารถดึงพิกัดอัตโนมัติได้ (กรุณาเปิด Location บนมือถือ หรือกรอกค่าเอง)</span>';
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        // ฟังก์ชันจัดการการเลือกรูปภาพหลายรูป
+        function handlePhotoSelect(event) {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
+
+            const combined = [...selectedPhotoFiles, ...files].slice(0, 10);
+            selectedPhotoFiles = combined;
+            renderNewPhotoPreviews();
+        }
+
+        function renderNewPhotoPreviews() {
+            const section = document.getElementById('newPhotoPreviewSection');
+            const grid = document.getElementById('newPhotoPreviewGrid');
+            const countSpan = document.getElementById('newPhotoCount');
+
+            if (selectedPhotoFiles.length === 0) {
+                section.classList.add('hidden');
+                grid.innerHTML = '';
+                return;
+            }
+
+            section.classList.remove('hidden');
+            countSpan.textContent = selectedPhotoFiles.length;
+            grid.innerHTML = '';
+
+            selectedPhotoFiles.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'relative rounded-xl overflow-hidden border-2 border-teal-200 bg-slate-50 h-24';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" class="w-full h-full object-cover">
+                        <button type="button" onclick="removeNewPhoto(${idx})"
+                                class="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center shadow">
+                            <i class="ph-bold ph-x"></i>
+                        </button>
+                    `;
+                    grid.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeNewPhoto(idx) {
+            selectedPhotoFiles.splice(idx, 1);
+            renderNewPhotoPreviews();
+        }
+
+        function clearNewPhotos() {
+            selectedPhotoFiles = [];
+            document.getElementById('stationPhotosInput').value = '';
+            renderNewPhotoPreviews();
+        }
+
+        function renderExistingPhotos() {
+            const section = document.getElementById('existingPhotosSection');
+            const grid = document.getElementById('existingPhotosGrid');
+
+            if (!savedExistingPhotos || savedExistingPhotos.length === 0) {
+                section.classList.add('hidden');
+                grid.innerHTML = '';
+                return;
+            }
+
+            section.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            savedExistingPhotos.forEach((ph, idx) => {
+                const rawUrl = ph.thumbnailUrl || ph.webViewLink || ph.url || '';
+                const imgUrl = resolvePhotoUrl(rawUrl);
+                const div = document.createElement('div');
+                div.className = 'relative rounded-xl overflow-hidden border-2 border-sky-200 bg-slate-50 h-24';
+                div.innerHTML = `
+                    <img src="${safeEscape(imgUrl)}" class="w-full h-full object-cover"
+                         onerror="this.src='https://placehold.co/200x150?text=Photo'">
+                    <button type="button" onclick="removeExistingPhoto(${idx})" title="ลบรูปนี้"
+                            class="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-500 text-white text-xs flex items-center justify-center shadow">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function removeExistingPhoto(idx) {
+            savedExistingPhotos.splice(idx, 1);
+            renderExistingPhotos();
+        }
 
         async function onBasinChange() {
             const basin = document.getElementById('basinSelect').value;
@@ -304,7 +522,6 @@
                 return;
             }
 
-            // 1. ดึงรายชื่อสถานีจาก constants.js ทันที
             if (typeof stationsData !== 'undefined' && stationsData[basin]) {
                 Object.keys(stationsData[basin]).forEach(code => {
                     currentStationMap[code] = stationsData[basin][code];
@@ -313,7 +530,6 @@
 
             renderStationOptions();
 
-            // 2. ดึงสถานีเพิ่มเติมจากฐานข้อมูล MAM
             try {
                 const res = await fetch(`${API_BASE}/api/mam/stations?basin=${encodeURIComponent(basin)}`, {
                     headers: { 'Accept': 'application/json' }
@@ -330,9 +546,7 @@
                         renderStationOptions();
                     }
                 }
-            } catch (e) {
-                // ใช้ข้อมูลจาก constants.js ต่อได้ทันที
-            }
+            } catch (e) {}
         }
 
         function renderStationOptions() {
@@ -409,16 +623,15 @@
 
                 const contentType = response.headers.get("content-type") || "";
                 if (!contentType.includes("application/json")) {
-                    throw new Error("เซิร์ฟเวอร์กำลังตื่นตัว (Cold Start) หรือการเชื่อมต่อขัดข้อง กรุณารอ 10 วินาทีแล้วกดดึงข้อมูลอีกครั้ง");
+                    throw new Error("เซิร์ฟเวอร์กำลังตื่นตัว (Cold Start) กรุณารอ 10 วินาทีแล้วกดดึงข้อมูลอีกครั้ง");
                 }
 
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    throw new Error(result.message || `ไม่พบข้อมูลงาน TOR ของสถานี ${station} ในปีสัญญา ${year}`);
+                    throw new Error(result.message || `ไม่พบข้อมูลงาน TOR ของสถานี ${station}`);
                 }
 
-                // แสดงข้อมูลสรุปผู้รับจ้าง
                 const sum = result.summary || {};
                 currentMamRecordId = sum.mam_record_id || '';
                 document.getElementById('sumContractName').textContent = sum.contract_name || sum.contract_id || '-';
@@ -435,7 +648,6 @@
                 }
                 summaryCard.classList.remove('hidden');
 
-                // รวมรายการงานทั่วไป (generalTasks) และงานพิเศษ (extraTasks)
                 const allTasks = [
                     ...(Array.isArray(result.generalTasks) ? result.generalTasks : []),
                     ...(Array.isArray(result.extraTasks) ? result.extraTasks : [])
@@ -443,14 +655,24 @@
 
                 const savedCheck = result.savedCheck || null;
                 const savedMap = {};
-                if (savedCheck && Array.isArray(savedCheck.evaluations)) {
-                    savedCheck.evaluations.forEach(ev => {
-                        savedMap[ev.task_key] = ev;
-                    });
+                if (savedCheck) {
+                    if (Array.isArray(savedCheck.evaluations)) {
+                        savedCheck.evaluations.forEach(ev => {
+                            savedMap[ev.task_key] = ev;
+                        });
+                    }
                     document.getElementById('committeeNote').value = savedCheck.committee_note || '';
+                    document.getElementById('inspectorNote').value = savedCheck.inspector_note || '';
+                    if (savedCheck.lat) document.getElementById('latInput').value = savedCheck.lat;
+                    if (savedCheck.lon) document.getElementById('lonInput').value = savedCheck.lon;
+                    savedExistingPhotos = Array.isArray(savedCheck.photos) ? [...savedCheck.photos] : [];
+                    renderExistingPhotos();
                     savedBanner.classList.remove('hidden');
                 } else {
                     document.getElementById('committeeNote').value = '';
+                    document.getElementById('inspectorNote').value = '';
+                    savedExistingPhotos = [];
+                    renderExistingPhotos();
                 }
 
                 currentEvaluations = allTasks.map((t, idx) => {
@@ -483,7 +705,6 @@
                             <i class="ph-fill ph-warning-circle"></i>
                         </div>
                         <p class="font-extrabold text-rose-700 text-base mb-1">${safeEscape(error.message)}</p>
-                        <p class="text-xs font-bold text-rose-400">คำแนะนำ: ข้อมูลงาน TOR ปัจจุบันอยู่ในปีสัญญา 2569 (กรุณาตรวจสอบปีสัญญาที่เลือก)</p>
                     </div>`;
             } finally {
                 btnFetch.disabled = false;
@@ -570,6 +791,7 @@
             renderTorTaskCards();
         }
 
+        // บันทึกผลตรวจรับงาน TOR + พิกัด GPS + รูปถ่ายสภาพสถานี (Multipart Form-Data)
         async function saveTorEvaluation() {
             if (currentEvaluations.length === 0) return;
 
@@ -579,30 +801,37 @@
             const stationId = document.getElementById('stationSelect').value;
             const stationName = document.getElementById('stationNameDisplay').textContent.trim();
             const committeeNote = document.getElementById('committeeNote').value.trim();
+            const inspectorNote = document.getElementById('inspectorNote').value.trim();
+            const lat = document.getElementById('latInput').value.trim();
+            const lon = document.getElementById('lonInput').value.trim();
             const btnSave = document.getElementById('btnSaveTor');
 
             btnSave.disabled = true;
-            btnSave.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังบันทึกผลการตรวจรับ...';
+            btnSave.innerHTML = '<i class="ph-bold ph-spinner animate-spin text-xl"></i> กำลังบันทึกผลและอัปโหลดรูปภาพ...';
 
             try {
-                const payload = {
-                    contractYear: year,
-                    period: period,
-                    basin: basin,
-                    station_id: stationId,
-                    station_name: stationName,
-                    mam_record_id: currentMamRecordId,
-                    evaluations: currentEvaluations,
-                    committee_note: committeeNote
-                };
+                const formData = new FormData();
+                formData.append('contractYear', year);
+                formData.append('period', period);
+                formData.append('basin', basin);
+                formData.append('station_id', stationId);
+                formData.append('station_name', stationName);
+                formData.append('mam_record_id', currentMamRecordId);
+                formData.append('evaluations', JSON.stringify(currentEvaluations));
+                formData.append('committee_note', committeeNote);
+                formData.append('inspector_note', inspectorNote);
+                formData.append('lat', lat);
+                formData.append('lon', lon);
+                formData.append('existingPhotos', JSON.stringify(savedExistingPhotos));
+
+                selectedPhotoFiles.forEach(file => {
+                    formData.append('photos', file);
+                });
 
                 const response = await fetch(`${API_BASE}/api/mam/tor-check`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
+                    headers: { 'Accept': 'application/json' },
+                    body: formData
                 });
 
                 const contentType = response.headers.get("content-type") || "";
@@ -612,7 +841,12 @@
 
                 const result = await response.json();
                 if (response.ok && result.success) {
-                    alert('✅ บันทึกผลการตรวจรับงานตาม TOR เรียบร้อยแล้ว!');
+                    alert('✅ บันทึกผลการตรวจรับงานตาม TOR พิกัด GPS และภาพถ่ายสภาพสถานีเรียบร้อยแล้ว!');
+                    clearNewPhotos();
+                    if (Array.isArray(result.photos)) {
+                        savedExistingPhotos = result.photos;
+                        renderExistingPhotos();
+                    }
                     document.getElementById('savedTorBanner').classList.remove('hidden');
                 } else {
                     throw new Error(result.message || 'บันทึกข้อมูลไม่สำเร็จ');
@@ -621,7 +855,7 @@
                 alert('❌ เกิดข้อผิดพลาด: ' + error.message);
             } finally {
                 btnSave.disabled = false;
-                btnSave.innerHTML = '<i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกผลการตรวจรับงานตาม TOR';
+                btnSave.innerHTML = '<i class="ph-bold ph-floppy-disk text-xl"></i> บันทึกผลการตรวจรับงาน พิกัด GPS และภาพถ่ายสถานี';
             }
         }
     </script>

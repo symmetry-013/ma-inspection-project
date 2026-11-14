@@ -231,16 +231,16 @@
                     <p class="text-xs md:text-sm font-bold text-slate-400">เลือกทำรายการตรวจสอบ บันทึกข้อมูล หรือเรียกดูรายงานประจำสถานี</p>
                 </div>
 
-                <!-- ตารางปุ่มเมนูสไตล์แอปธนาคาร -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5 md:gap-5">
+                <!-- ตารางปุ่มเมนูสไตล์แอปธนาคาร (10 ปุ่มครบทุกฟังก์ชันที่ใช้งานจริง) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5 md:gap-4">
                     
-                    <!-- 1. ตรวจรับงานตาม TOR -->
+                    <!-- 1. ตรวจรับงานตาม TOR + GPS + ภาพถ่ายหน้างาน -->
                     <a href="tor_inspection.html" class="bank-app-btn group">
                         <div class="bank-icon bg-pink-50 text-pink-500 border-2 border-pink-200 group-hover:bg-pink-500 group-hover:text-white">
                             <i class="ph-fill ph-seal-check"></i>
                         </div>
                         <span class="text-xs font-extrabold text-slate-700 group-hover:text-pink-600">ตรวจรับงาน TOR</span>
-                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ระบบ MAM</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">TOR / GPS / รูปถ่าย</span>
                     </a>
 
                     <!-- 2. ตรวจสอบอุปกรณ์ MAM -->
@@ -252,16 +252,16 @@
                         <span class="text-[10px] text-slate-400 font-medium mt-0.5">ทะเบียนสถานี</span>
                     </a>
 
-                    <!-- 3. รายงานผลตรวจสอบอุปกรณ์ -->
-                    <a href="report_mam_equipment.html" class="bank-app-btn group">
-                        <div class="bank-icon bg-emerald-50 text-emerald-500 border-2 border-emerald-200 group-hover:bg-emerald-500 group-hover:text-white">
-                            <i class="ph-fill ph-chart-bar"></i>
+                    <!-- 3. สอบเทียบค่าระดับน้ำ/ฝน -->
+                    <a href="calibration.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-purple-50 text-purple-500 border-2 border-purple-200 group-hover:bg-purple-500 group-hover:text-white">
+                            <i class="ph-fill ph-ruler"></i>
                         </div>
-                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-emerald-600">รายงานอุปกรณ์</span>
-                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลเช็ค MAM</span>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-purple-600">สอบเทียบระดับน้ำ</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">บันทึกค่ามาตรฐาน</span>
                     </a>
 
-                    <!-- 4. รายงานผล TOR -->
+                    <!-- 4. รายงานผลตรวจรับงาน TOR -->
                     <a href="report_mam_tor.html" class="bank-app-btn group">
                         <div class="bank-icon bg-violet-50 text-violet-500 border-2 border-violet-200 group-hover:bg-violet-500 group-hover:text-white">
                             <i class="ph-fill ph-clipboard-text"></i>
@@ -270,25 +270,16 @@
                         <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลตรวจรับ</span>
                     </a>
 
-                    <!-- 5. ตรวจสอบอุปกรณ์สนาม -->
-                    <a href="inspection.html" class="bank-app-btn group">
-                        <div class="bank-icon bg-teal-50 text-teal-500 border-2 border-teal-200 group-hover:bg-teal-500 group-hover:text-white">
-                            <i class="ph-fill ph-wrench"></i>
+                    <!-- 5. รายงานผลตรวจสอบอุปกรณ์ MAM -->
+                    <a href="report_mam_equipment.html" class="bank-app-btn group">
+                        <div class="bank-icon bg-emerald-50 text-emerald-500 border-2 border-emerald-200 group-hover:bg-emerald-500 group-hover:text-white">
+                            <i class="ph-fill ph-chart-bar"></i>
                         </div>
-                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-teal-600">ตรวจอุปกรณ์สนาม</span>
-                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">บันทึกหน้างาน</span>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-emerald-600">รายงานอุปกรณ์</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">สรุปผลเช็ค MAM</span>
                     </a>
 
-                    <!-- 6. สอบเทียบค่าระดับน้ำ/ฝน -->
-                    <a href="calibration.html" class="bank-app-btn group">
-                        <div class="bank-icon bg-purple-50 text-purple-500 border-2 border-purple-200 group-hover:bg-purple-500 group-hover:text-white">
-                            <i class="ph-fill ph-ruler"></i>
-                        </div>
-                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-purple-600">สอบเทียบระดับน้ำ</span>
-                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ค่ามาตรฐาน</span>
-                    </a>
-
-                    <!-- 7. ติดตามการตรวจงาน -->
+                    <!-- 6. ติดตามการตรวจงาน -->
                     <a href="tracking.html" class="bank-app-btn group">
                         <div class="bank-icon bg-orange-50 text-orange-500 border-2 border-orange-200 group-hover:bg-orange-500 group-hover:text-white">
                             <i class="ph-fill ph-compass"></i>
@@ -297,34 +288,34 @@
                         <span class="text-[10px] text-slate-400 font-medium mt-0.5">สถานะความคืบหน้า</span>
                     </a>
 
-                    <!-- 8. ผลตรวจสอบอุปกรณ์สนาม -->
+                    <!-- 7. ผลตรวจสอบสภาพสถานี (ภาพรวม + รูปถ่าย + พิกัด) -->
                     <a href="report_inspection.html" class="bank-app-btn group">
                         <div class="bank-icon bg-amber-50 text-amber-500 border-2 border-amber-200 group-hover:bg-amber-500 group-hover:text-white">
                             <i class="ph-fill ph-file-text"></i>
                         </div>
-                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-amber-600">ผลตรวจสนาม</span>
-                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายงานย้อนหลัง</span>
+                        <span class="text-xs font-extrabold text-slate-700 group-hover:text-amber-600">ผลตรวจสภาพสถานี</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">ภาพถ่าย/พิกัด/อุปกรณ์</span>
                     </a>
 
-                    <!-- 9. ผลสอบเทียบระดับน้ำ -->
+                    <!-- 8. ผลสอบเทียบระดับน้ำ -->
                     <a href="report_calibration.html" class="bank-app-btn group">
                         <div class="bank-icon bg-yellow-50 text-yellow-600 border-2 border-yellow-200 group-hover:bg-yellow-500 group-hover:text-white">
-                            <i class="ph-fill ph-chart-bar"></i>
+                            <i class="ph-fill ph-chart-line-up"></i>
                         </div>
                         <span class="text-xs font-extrabold text-slate-700 group-hover:text-yellow-600">ผลสอบเทียบ</span>
                         <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายงานทางสถิติ</span>
                     </a>
 
-                    <!-- 10. สรุปผลอุปกรณ์ชำรุด -->
+                    <!-- 9. สรุปผลอุปกรณ์ชำรุด -->
                     <a href="defects.html" class="bank-app-btn group">
                         <div class="bank-icon bg-rose-50 text-rose-500 border-2 border-rose-200 group-hover:bg-rose-500 group-hover:text-white">
                             <i class="ph-fill ph-warning"></i>
                         </div>
                         <span class="text-xs font-extrabold text-slate-700 group-hover:text-rose-600">อุปกรณ์ชำรุด</span>
-                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">รอซ่อมแซม</span>
+                        <span class="text-[10px] text-slate-400 font-medium mt-0.5">รายการรอซ่อมแซม</span>
                     </a>
 
-                    <!-- 11. ออกรายงานสรุป PDF -->
+                    <!-- 10. ออกรายงานสรุป PDF -->
                     <a href="report_summary.html" class="bank-app-btn group">
                         <div class="bank-icon bg-cyan-50 text-cyan-500 border-2 border-cyan-200 group-hover:bg-cyan-500 group-hover:text-white">
                             <i class="ph-fill ph-file-pdf"></i>
@@ -344,18 +335,15 @@
         </footer>
     </div>
 
-    <!-- ========================================== -->
-    <!-- สคริปต์จัดการการเข้าสู่ระบบ (รองรับหลายเครื่องพร้อมกัน) -->
-    <!-- ========================================== -->
     <script>
         const AUTH_STORAGE_KEY = 'rid_tele_auth_session';
         const VALID_USER = 'tele_app';
         const VALID_PASS = 'Rid_tele';
 
-        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-            ? '' : 'https://ma-inspection-project.onrender.com';
+        const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                             && (window.location.port === '3000' || window.location.port === '5000');
+        const API_BASE = isLocalPcDev ? '' : 'https://ma-inspection-project.onrender.com';
 
-        // ตรวจสอบสถานะการล็อกอินเมื่อเปิดหน้าเว็บ
         window.addEventListener('DOMContentLoaded', () => {
             const savedSession = localStorage.getItem(AUTH_STORAGE_KEY) || sessionStorage.getItem(AUTH_STORAGE_KEY);
             if (savedSession) {
@@ -400,29 +388,20 @@
 
             let isSuccess = false;
 
-            // 1. พยายามตรวจสอบผ่าน API เซิร์ฟเวอร์ก่อน (ถ้ามี Endpoint /api/login)
             try {
                 const res = await fetch(`${API_BASE}/api/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && data.success) {
-                        isSuccess = true;
-                    }
+                    if (data && data.success) isSuccess = true;
                 } else if (res.status === 404) {
-                    // กรณีเซิร์ฟเวอร์ยังไม่ได้อัปเดต Endpoint /api/login ให้ตรวจสอบฝั่ง Client
-                    if (username === VALID_USER && password === VALID_PASS) {
-                        isSuccess = true;
-                    }
+                    if (username === VALID_USER && password === VALID_PASS) isSuccess = true;
                 }
             } catch (err) {
-                // กรณีออฟไลน์หรือเซิร์ฟเวอร์กำลังตื่น ให้เช็คกับค่าที่กำหนด
-                if (username === VALID_USER && password === VALID_PASS) {
-                    isSuccess = true;
-                }
+                if (username === VALID_USER && password === VALID_PASS) isSuccess = true;
             }
 
             btnLogin.disabled = false;
@@ -446,7 +425,7 @@
                 errorText.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง';
                 errorBox.classList.remove('hidden');
                 loginCard.classList.remove('animate-shake');
-                void loginCard.offsetWidth; // รีเซ็ต Animation
+                void loginCard.offsetWidth;
                 loginCard.classList.add('animate-shake');
             }
         }

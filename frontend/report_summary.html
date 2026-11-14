@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรายงานสรุปผล PDF | 3D Cartoon Edition</title>
+    <title>ออกรายงานสรุป PDF (สำหรับคณะกรรมการตรวจรับพัสดุ)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,29 +14,19 @@
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- SweetAlert2 (Light Theme) -->
-    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
-    
-    <!-- เชื่อมต่อข้อมูลส่วนกลาง -->
+    <!-- นำเข้าข้อมูลส่วนกลาง (hardcodedBasins, stationsData, equipmentMap) -->
     <script src="constants.js"></script>
-    
+
     <script>
-        tailwind.config = { 
-            theme: { 
-                extend: { 
-                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
-                    colors: { 
-                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
-                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981', 600: '#059669' },
-                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
-                        amber: { 50: '#fffbeb', 100: '#fef3c7', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' },
-                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e' }
-                    }
-                } 
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
             }
         }
     </script>
+
     <style>
         body {
             background-color: #fffbeb; 
@@ -47,11 +37,9 @@
 
         .puffy-container {
             background-color: #ffffff;
-            border-radius: 32px;
+            border-radius: 28px;
             border: 4px solid #f8fafc;
-            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
-            border-top-width: 12px;
-            border-top-color: #34d399;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
         }
 
         .puffy-input {
@@ -59,149 +47,489 @@
             border: 2px solid #e2e8f0;
             color: #334155;
             transition: all 0.2s ease;
-            font-weight: 700;
+            font-weight: 600;
         }
         .puffy-input:focus {
             outline: none;
-            border-color: #34d399;
+            border-color: #06b6d4;
             background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
+            box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
         }
 
-        .btn-puffy-emerald {
-            background-color: #10b981;
+        .btn-puffy-cyan {
+            background-color: #06b6d4;
             color: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 0 #059669;
-            transition: all 0.15s ease;
-            font-weight: 800;
-            border: 4px solid #6ee7b7;
+            border-radius: 18px;
+            box-shadow: 0 6px 0 #0891b2;
+            transition: all 0.1s ease;
         }
-        .btn-puffy-emerald:active { transform: translateY(8px); box-shadow: 0 0px 0 #059669; }
+        .btn-puffy-cyan:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #0891b2; }
+        .btn-puffy-cyan:disabled { background-color: #94a3b8; box-shadow: 0 6px 0 #64748b; cursor: not-allowed; opacity: 0.7; }
 
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .bounce-soft { animation: bounceSoft 2s infinite; }
-        @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .btn-puffy-slate {
+            background-color: #475569;
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 5px 0 #1e293b;
+            transition: all 0.1s ease;
+        }
+        .btn-puffy-slate:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 0px 0 #1e293b; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-6 flex items-center justify-center font-sans">
-    
-    <div class="w-full max-w-2xl puffy-container p-6 md:p-10 fade-in relative">
-        
-        <div class="absolute -top-12 right-10 w-24 h-24 bg-white rounded-full border-4 border-emerald-100 flex items-center justify-center shadow-lg bounce-soft">
-            <i class="ph-fill ph-file-pdf text-6xl text-emerald-400"></i>
-        </div>
+<body class="antialiased min-h-screen flex flex-col pb-12">
 
-        <div class="flex items-center gap-4 mb-8 pb-6 border-b-2 border-slate-100 mt-2">
-            <a href="index.html" class="w-12 h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm active:translate-y-1 shrink-0">
-                <i class="ph-bold ph-caret-left text-2xl"></i>
-            </a>
-            <div>
-                <h1 class="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">
-                    สร้างรายงาน <span class="text-emerald-500">PDF</span>
-                </h1>
-                <p class="text-slate-400 font-bold text-sm mt-0.5">ระบบจะดึงข้อมูลมาจัดหน้ากระดาษให้อัตโนมัติ</p>
+    <!-- Header -->
+    <header class="bg-white/95 backdrop-blur-md border-b-4 border-cyan-100 sticky top-0 z-40 py-3.5 shadow-sm">
+        <div class="container mx-auto px-4 flex justify-between items-center max-w-5xl">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <a href="index.html" class="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-cyan-600 hover:border-cyan-200 transition-all shadow-sm active:translate-y-1 shrink-0">
+                    <i class="ph-bold ph-caret-left text-2xl"></i>
+                </a>
+                <div class="hidden sm:flex w-12 h-12 rounded-2xl bg-cyan-100 border-2 border-cyan-300 items-center justify-center shadow-sm shrink-0">
+                    <i class="ph-fill ph-file-pdf text-cyan-600 text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                        ออกรายงานสรุป <span class="text-cyan-600">PDF ทางการ</span>
+                    </h1>
+                    <p class="text-[11px] md:text-xs font-bold text-slate-400">
+                        สร้างเอกสาร PDF รวม 4 ส่วน (ตารางสรุป, สอบเทียบ, ประวัติครุภัณฑ์ MAM 12 หมวด และใบตรวจรับรายสถานี)
+                    </p>
+                </div>
             </div>
         </div>
-        
-        <!-- ฟอร์มเลือกข้อมูล (เพิ่มปีงบประมาณ) -->
-        <div class="space-y-5 mb-8">
-            <div class="bg-amber-50 p-5 rounded-2xl border-2 border-amber-100">
-                <label class="block text-sm font-bold text-amber-600 mb-2 flex items-center gap-1.5 uppercase">
-                    <i class="ph-fill ph-calendar text-lg"></i> เลือกปีงบประมาณ
-                </label>
-                <select id="yearSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
-                    <option value="all">รวมทั้งหมด (ทุกปีงบประมาณ)</option>
-                </select>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-5xl flex-grow space-y-6">
+
+        <!-- กล่องตั้งค่าเงื่อนไขการออกรายงาน PDF -->
+        <div class="puffy-container p-5 md:p-8 border-t-8 border-t-cyan-500">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-slate-100 pb-3 mb-5">
+                <h2 class="text-sm md:text-lg font-extrabold text-slate-700 flex items-center gap-2">
+                    <i class="ph-bold ph-sliders-horizontal text-cyan-600 text-xl"></i> เลือกเงื่อนไขสำหรับสร้างไฟล์รายงาน PDF
+                </h2>
+                <span class="bg-cyan-50 text-cyan-700 text-[11px] font-extrabold px-3 py-1 rounded-xl border border-cyan-200">
+                    รองรับทั้งแบบรายลุ่มน้ำ และรายสถานี
+                </span>
             </div>
 
-            <div class="bg-emerald-50 p-5 rounded-2xl border-2 border-emerald-100">
-                <label class="block text-sm font-bold text-emerald-600 mb-2 flex items-center gap-1.5 uppercase">
-                    <i class="ph-fill ph-calendar-check text-lg"></i> เลือกระยะเวลา (งวด)
-                </label>
-                <select id="termSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
-                    <option value="all">รวมทั้งหมด (ทุกงวด)</option>
-                    <option value="งวดที่1">งวดที่ 1</option>
-                    <option value="งวดที่2">งวดที่ 2</option>
-                    <option value="งวดที่3">งวดที่ 3</option>
-                    <option value="งวดที่4">งวดที่ 4</option>
-                </select>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">ปีงบประมาณ</label>
+                    <select id="filterYear" onchange="updatePreview()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกปีงบประมาณ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">งวดการตรวจสอบ</label>
+                    <select id="filterTerm" onchange="updatePreview()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกงวด --</option>
+                        <option value="งวดที่1">งวดที่ 1</option>
+                        <option value="งวดที่2">งวดที่ 2</option>
+                        <option value="งวดที่3">งวดที่ 3</option>
+                        <option value="งวดที่4">งวดที่ 4</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">กลุ่มลุ่มน้ำ</label>
+                    <select id="filterBasin" onchange="onBasinChange()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกกลุ่มลุ่มน้ำ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1.5 uppercase">เลือกสถานี (กรณีเจาะจง)</label>
+                    <select id="filterStation" onchange="updatePreview()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกสถานีในลุ่มน้ำ --</option>
+                    </select>
+                </div>
             </div>
-            
-            <div class="bg-sky-50 p-5 rounded-2xl border-2 border-sky-100">
-                <label class="block text-sm font-bold text-sky-600 mb-2 flex items-center gap-1.5 uppercase">
-                    <i class="ph-fill ph-map-trifold text-lg"></i> เลือกพื้นที่ (กลุ่มลุ่มน้ำ)
-                </label>
-                <select id="basinSelect" class="w-full puffy-input rounded-xl p-4 text-sm md:text-base">
-                    <option value="all" class="font-extrabold text-sky-600">✨ สรุปทุกลุ่มน้ำทั้งหมด (ภาพรวมประเทศ)</option>
-                </select>
+
+            <!-- รายละเอียดโครงสร้างรายงาน PDF ทั้ง 4 ส่วน -->
+            <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 mb-6">
+                <h3 class="text-xs font-extrabold text-slate-700 uppercase mb-2.5 flex items-center gap-1.5">
+                    <i class="ph-fill ph-stack text-cyan-600 text-base"></i> โครงสร้างเอกสารที่จะถูกสร้างในไฟล์ PDF ชุดนี้:
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs font-semibold text-slate-600">
+                    <div class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span class="bg-cyan-500 text-white font-black text-[10px] px-2 py-0.5 rounded shrink-0">ส่วนที่ 1</span>
+                        <span>ตารางสรุปภาพรวมสถานีโทรมาตร (พร้อมใช้งาน, ความสะอาด, อุปกรณ์ชำรุด, ข้อคิดเห็นกรรมการ)</span>
+                    </div>
+                    <div class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span class="bg-emerald-500 text-white font-black text-[10px] px-2 py-0.5 rounded shrink-0">ส่วนที่ 2</span>
+                        <span>รายงานผลสอบเทียบเซ็นเซอร์ระดับน้ำและน้ำฝน พร้อมรูปถ่ายเปรียบเทียบ เสาวัดน้ำ / RTU / Website</span>
+                    </div>
+                    <div class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span class="bg-sky-500 text-white font-black text-[10px] px-2 py-0.5 rounded shrink-0">ส่วนที่ 3</span>
+                        <span>ตารางประวัติครุภัณฑ์ประจำสถานี 12 หมวด 4 งวด (ยี่ห้อ, รุ่น, S/N และผลตรวจเช็คจาก MAM)</span>
+                    </div>
+                    <div class="flex items-start gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                        <span class="bg-pink-500 text-white font-black text-[10px] px-2 py-0.5 rounded shrink-0">ส่วนที่ 4</span>
+                        <span>ใบตรวจรับงานรายสถานี (เช็คลิสต์ 26 รายการ, ผลประเมิน TOR, พิกัด GPS, รูปถ่ายหน้างาน และช่องเซ็นชื่อกรรมการ)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ปุ่มกดสร้างและดาวน์โหลด PDF -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="button" onclick="downloadPDFReport()" id="btnDownloadPdf"
+                        class="btn-puffy-cyan flex-grow py-4 font-extrabold text-sm md:text-base flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-file-pdf text-2xl"></i> ดาวน์โหลดรายงานสรุป PDF
+                </button>
+                <button type="button" onclick="loadSummaryData()" id="btnRefreshPreview"
+                        class="btn-puffy-slate px-6 py-4 font-extrabold text-xs md:text-sm flex items-center justify-center gap-2 shrink-0">
+                    <i class="ph-bold ph-arrows-clockwise text-lg"></i> รีเฟรชตัวอย่างข้อมูล
+                </button>
             </div>
         </div>
 
-        <button onclick="downloadPDF()" class="w-full btn-puffy-emerald py-5 flex items-center justify-center gap-3 text-lg md:text-xl">
-            <i class="ph-bold ph-download-simple text-2xl"></i>
-            สร้างและดาวน์โหลดเอกสาร
-        </button>
+        <!-- แถบสรุปจำนวนข้อมูลที่จะอยู่ในรายงาน PDF -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-broadcast"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">สถานีที่จะออกรายงาน</span>
+                    <span id="statStationsCount" class="block text-xl md:text-2xl font-black text-slate-800">0 สถานี</span>
+                </div>
+            </div>
 
-    </div>
+            <div class="bg-white border-2 border-emerald-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-check-circle"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">สถานะ: ใช้ได้</span>
+                    <span id="statUsableCount" class="block text-xl md:text-2xl font-black text-emerald-600">0 สถานี</span>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-rose-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-warning"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">สถานะ: ใช้ไม่ได้</span>
+                    <span id="statUnusableCount" class="block text-xl md:text-2xl font-black text-rose-600">0 สถานี</span>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-purple-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-ruler"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">ข้อมูลสอบเทียบ</span>
+                    <span id="statCalibCount" class="block text-xl md:text-2xl font-black text-purple-600">0 รายการ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ตารางแสดงตัวอย่างข้อมูลก่อนออกรายงาน PDF (Preview Table) -->
+        <div class="puffy-container p-5 md:p-7">
+            <h3 class="text-sm md:text-base font-extrabold text-slate-700 mb-4 flex items-center gap-2 border-b-2 border-slate-100 pb-3">
+                <i class="ph-fill ph-table text-cyan-600 text-xl"></i> ตัวอย่างตารางสรุปข้อมูลสถานีที่จะปรากฏในไฟล์ PDF
+            </h3>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600 uppercase text-[11px] border-b-2 border-slate-200">
+                            <th class="p-3 font-extrabold text-center w-12">ลำดับ</th>
+                            <th class="p-3 font-extrabold w-28">รหัสสถานี</th>
+                            <th class="p-3 font-extrabold">ชื่อสถานี</th>
+                            <th class="p-3 font-extrabold text-center w-24">พร้อมใช้งาน</th>
+                            <th class="p-3 font-extrabold text-center w-24">ความสะอาด</th>
+                            <th class="p-3 font-extrabold">อุปกรณ์ที่ชำรุด</th>
+                            <th class="p-3 font-extrabold">หมายเหตุ / ข้อคิดเห็นกรรมการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTableBody">
+                        <tr>
+                            <td colspan="7" class="p-8 text-center text-slate-400 font-bold">
+                                กำลังโหลดตัวอย่างข้อมูล...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
 
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            // เติมปีงบประมาณ
-            const yearSelect = document.getElementById('yearSelect');
-            const startYear = 2568;
-            const totalYears = 10;
-            for (let i = 0; i <= totalYears; i++) {
-                const y = startYear + i;
-                const opt = document.createElement('option');
-                opt.value = y;
-                opt.textContent = `ปีงบประมาณ ${y}`;
-                yearSelect.appendChild(opt);
-            }
+        // =========================================================================
+        // แก้ไขปัญหา APK: ชี้ไปที่เซิร์ฟเวอร์ Render เสมอเมื่อไม่ได้รันผ่านพอร์ตพัฒนาบน PC
+        // =========================================================================
+        const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                             && (window.location.port === '3000' || window.location.port === '5000');
+        const API_BASE = isLocalPcDev ? '' : 'https://ma-inspection-project.onrender.com';
 
-            // เติมรายชื่อลุ่มน้ำจาก constants.js
-            const basinSelect = document.getElementById('basinSelect');
-            if (typeof hardcodedBasins !== 'undefined') {
-                hardcodedBasins.forEach(b => {
-                    const opt = document.createElement('option');
-                    opt.value = b;
-                    opt.textContent = `ลุ่มน้ำ ${b}`;
-                    basinSelect.appendChild(opt);
-                });
-            }
-        });
+        let allInspections = [];
+        let allCalibrations = [];
 
-        function downloadPDF() {
-            const year = document.getElementById('yearSelect').value;
-            const term = document.getElementById('termSelect').value;
-            const basin = document.getElementById('basinSelect').value;
-            
-            const baseUrl = 'https://ma-inspection-project.onrender.com';
-            const url = `${baseUrl}/api/report/pdf?year=${encodeURIComponent(year)}&term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&t=${new Date().getTime()}`;
-            
-            Swal.fire({
-                title: 'เตรียมดาวน์โหลด! 📥',
-                html: '<span style="color: #64748b; font-weight: 500;">ระบบกำลังเปิดแท็บใหม่เพื่อสร้างเอกสาร<br><br>⚠️ หากพบหน้าจอสีดำเขียนว่า <b>"Render"</b> ไม่ต้องตกใจ!<br>ปล่อยทิ้งไว้ประมาณ 30-50 วินาที ระบบกำลังวาดตาราง PDF ให้ครับ 🎨✨</span>',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#10b981',
-                cancelButtonColor: '#cbd5e1',
-                confirmButtonText: 'รับทราบ เปิดเลย',
-                cancelButtonText: 'ยกเลิก',
-                customClass: {
-                    popup: 'rounded-3xl border-4 border-white shadow-2xl bg-white',
-                    title: 'font-prompt font-extrabold text-emerald-600',
-                    htmlContainer: 'font-prompt',
-                    confirmButton: 'font-prompt font-bold rounded-xl px-6 py-2.5',
-                    cancelButton: 'font-prompt font-bold rounded-xl px-6 py-2.5 text-slate-600'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.open(url, '_blank');
+        const safeEscape = (str) => {
+            if (typeof escapeHtml === 'function') return escapeHtml(str);
+            return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        };
+
+        const isBrokenValue = (val) => {
+            const v = (val || '').toString().trim().toLowerCase();
+            return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง' || v === 'ใช้งานไม่ได้';
+        };
+
+        // เงื่อนไขเดิม 100% ในการประเมินสถานะสถานีสำหรับตารางสรุปหน้าแรกของ PDF
+        function evaluateStationSummary(item) {
+            const eqMap = (typeof equipmentMap !== 'undefined') ? equipmentMap : {
+                clean: "ความสะอาด", pai: "ป้ายสถานี", power: "ระบบไฟฟ้า", power1: "หลอดไฟ",
+                online: "เว็บไซต์ไม่ออนไลน์", wl: "ระดับน้ำ(1)", wl1: "ระดับน้ำ(แก้)", r: "ค่าน้ำฝน",
+                sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI", sta_do: "DO", sta_io: "IO", plc: "PLC",
+                sta_m1: "Modem 1", sta_m2: "Modem 2", sta_p1: "Power 1", sta_p2: "Power 2",
+                sta_cctv1: "CCTV1", sta_cctv2: "CCTV2", sta_r: "Rain Gauge", sta_s: "Surge",
+                sta_wl: "WL(bubble)", sta_tro: "ท่อลม", sta_gass: "ถังแก๊ส", sta_wl1: "WL(Radar)",
+                sta_wl2: "WL(float)", sta_saling: "สายสลิง", b2: "แบตเตอรี่", 
+                sta1: "แผ่นวัดน้ำ(บวก)", sta2: "แผ่นวัดน้ำ(ลบ)", pole2: "เสาวัดน้ำ"
+            };
+
+            const brokenList = [];
+            Object.keys(eqMap).forEach(key => {
+                if (isBrokenValue(item[key])) {
+                    brokenList.push(eqMap[key]);
                 }
             });
+
+            let isSystemBroken = false;
+            const groupA = [
+                'power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc',
+                'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro',
+                'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'
+            ];
+            if (groupA.some(key => isBrokenValue(item[key]))) {
+                isSystemBroken = true;
+            }
+            if (isBrokenValue(item.sta_m1) && isBrokenValue(item.sta_m2)) isSystemBroken = true;
+            if (isBrokenValue(item.sta_p1) && isBrokenValue(item.sta_p2)) isSystemBroken = true;
+
+            let cleanStatus = item.clean || 'ผ่าน';
+            const cleanLower = String(cleanStatus).toLowerCase();
+            if (cleanLower === 'o' || cleanLower === 'ไม่ผ่าน' || cleanLower === 'ชำรุด') cleanStatus = 'ไม่ผ่าน';
+            else cleanStatus = 'ผ่าน';
+
+            return {
+                isSystemBroken,
+                statusText: isSystemBroken ? 'ใช้ไม่ได้' : 'ใช้ได้',
+                cleanStatus,
+                brokenDesc: brokenList.join(', ') || '-'
+            };
+        }
+
+        function getFiscalYear(item) {
+            if (item.contractYear && String(item.contractYear).trim() !== '') {
+                return String(item.contractYear).trim();
+            }
+            const d = new Date(item.timestamp || item.createdAt);
+            if (isNaN(d.getTime())) return '';
+            let y = d.getFullYear() + 543;
+            if (d.getMonth() >= 9) y += 1;
+            return String(y);
+        }
+
+        function lookupStationName(code, basin) {
+            if (!code || typeof stationsData === 'undefined') return '';
+            const c = String(code).trim();
+            if (basin && stationsData[basin] && stationsData[basin][c]) return stationsData[basin][c];
+            for (const bKey of Object.keys(stationsData)) {
+                if (stationsData[bKey] && stationsData[bKey][c]) return stationsData[bKey][c];
+            }
+            return '';
+        }
+
+        function populateStationsDropdown(selectedBasin) {
+            const stationSelect = document.getElementById('filterStation');
+            stationSelect.innerHTML = '<option value="all">-- ทุกสถานีในลุ่มน้ำ --</option>';
+            if (typeof stationsData === 'undefined') return;
+
+            if (selectedBasin && selectedBasin !== 'all') {
+                const map = stationsData[selectedBasin] || {};
+                Object.keys(map).forEach(code => {
+                    const opt = document.createElement('option');
+                    opt.value = code;
+                    opt.textContent = `${code} - ${map[code]}`;
+                    stationSelect.appendChild(opt);
+                });
+            } else {
+                const added = new Set();
+                Object.keys(stationsData).forEach(bKey => {
+                    const map = stationsData[bKey] || {};
+                    Object.keys(map).forEach(code => {
+                        if (!added.has(code)) {
+                            added.add(code);
+                            const opt = document.createElement('option');
+                            opt.value = code;
+                            opt.textContent = `[${bKey}] ${code} - ${map[code]}`;
+                            stationSelect.appendChild(opt);
+                        }
+                    });
+                });
+            }
+        }
+
+        function onBasinChange() {
+            const basin = document.getElementById('filterBasin').value;
+            populateStationsDropdown(basin);
+            updatePreview();
+        }
+
+        window.onload = () => {
+            const filterYear = document.getElementById('filterYear');
+            const startYear = 2568;
+            for (let i = 0; i <= 10; i++) {
+                const y = startYear + i;
+                filterYear.innerHTML += `<option value="${y}">${y}</option>`;
+            }
+
+            const filterBasin = document.getElementById('filterBasin');
+            if (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) {
+                hardcodedBasins.forEach(b => {
+                    filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
+                });
+            } else if (typeof stationsData !== 'undefined') {
+                Object.keys(stationsData).forEach(b => {
+                    filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
+                });
+            }
+
+            populateStationsDropdown('all');
+            loadSummaryData();
+        };
+
+        async function loadSummaryData() {
+            const btn = document.getElementById('btnRefreshPreview');
+            btn.disabled = true;
+
+            try {
+                const [insRes, calRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/inspections`, { headers: { 'Accept': 'application/json' } }),
+                    fetch(`${API_BASE}/api/calibrations`, { headers: { 'Accept': 'application/json' } })
+                ]);
+
+                if (insRes.ok && (insRes.headers.get("content-type") || "").includes("application/json")) {
+                    const insData = await insRes.json();
+                    if (insData.success) allInspections = Array.isArray(insData.data) ? insData.data : [];
+                }
+                if (calRes.ok && (calRes.headers.get("content-type") || "").includes("application/json")) {
+                    const calData = await calRes.json();
+                    if (calData.success) allCalibrations = Array.isArray(calData.data) ? calData.data : [];
+                }
+
+                updatePreview();
+            } catch (error) {
+                document.getElementById('previewTableBody').innerHTML = `
+                    <tr><td colspan="7" class="p-6 text-center text-rose-500 font-bold">ไม่สามารถโหลดตัวอย่างข้อมูลได้ (${safeEscape(error.message)}) แต่คุณยังสามารถกดปุ่มดาวน์โหลด PDF ได้ตามปกติ</td></tr>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updatePreview() {
+            const year = document.getElementById('filterYear').value;
+            const term = document.getElementById('filterTerm').value;
+            const basin = document.getElementById('filterBasin').value;
+            const station = document.getElementById('filterStation').value;
+
+            const filteredIns = allInspections.filter(item => {
+                if (year !== 'all' && getFiscalYear(item) !== year) return false;
+                if (term !== 'all') {
+                    const pNum = term.replace(/\D/g, '');
+                    const itemP = String(item.saya || item.period || '').replace(/\s+/g, '');
+                    if (!itemP.includes(pNum) && itemP !== term) return false;
+                }
+                if (basin !== 'all' && item.code !== basin && item.basin !== basin) return false;
+                if (station !== 'all') {
+                    const code = String(item.id_name || '').trim().toUpperCase();
+                    const target = String(station).trim().toUpperCase();
+                    if (code !== target && !code.startsWith(target)) return false;
+                }
+                return true;
+            });
+
+            const filteredCal = allCalibrations.filter(item => {
+                if (year !== 'all' && getFiscalYear(item) !== year) return false;
+                if (term !== 'all') {
+                    const pNum = term.replace(/\D/g, '');
+                    const itemP = String(item.myDataPeriod || '').replace(/\s+/g, '');
+                    if (!itemP.includes(pNum) && itemP !== term) return false;
+                }
+                if (basin !== 'all' && item.myData0 !== basin) return false;
+                if (station !== 'all') {
+                    const code = String(item.myData1 || '').trim().toUpperCase();
+                    const target = String(station).trim().toUpperCase();
+                    if (code !== target && !code.startsWith(target)) return false;
+                }
+                return true;
+            });
+
+            let usable = 0;
+            let unusable = 0;
+            const tbody = document.getElementById('previewTableBody');
+
+            if (filteredIns.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400 font-bold">
+                            ไม่พบข้อมูลสถานีตามตัวกรองที่เลือก
+                        </td>
+                    </tr>`;
+            } else {
+                let rowsHtml = '';
+                filteredIns.forEach((item, idx) => {
+                    const sum = evaluateStationSummary(item);
+                    if (sum.isSystemBroken) unusable++;
+                    else usable++;
+
+                    const stCode = item.id_name || '-';
+                    const bName = item.code || item.basin || '-';
+                    const stName = lookupStationName(stCode, bName) || item.name_id || stCode;
+
+                    rowsHtml += `
+                    <tr class="border-b border-slate-100 hover:bg-cyan-50/40">
+                        <td class="p-3 text-center font-bold text-slate-400">${idx + 1}</td>
+                        <td class="p-3 font-extrabold text-slate-800">${safeEscape(stCode)}</td>
+                        <td class="p-3 font-semibold text-slate-700">${safeEscape(stName)}</td>
+                        <td class="p-3 text-center">
+                            <span class="px-2 py-0.5 rounded text-[11px] font-extrabold ${sum.isSystemBroken ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+                                ${sum.statusText}
+                            </span>
+                        </td>
+                        <td class="p-3 text-center font-bold ${sum.cleanStatus === 'ผ่าน' ? 'text-sky-600' : 'text-rose-600'}">
+                            ${sum.cleanStatus}
+                        </td>
+                        <td class="p-3 font-semibold ${sum.brokenDesc !== '-' ? 'text-rose-600' : 'text-slate-400'}">
+                            ${safeEscape(sum.brokenDesc)}
+                        </td>
+                        <td class="p-3 text-slate-600">
+                            <div><b>หน้างาน:</b> ${safeEscape(item.note || '-')}</div>
+                            <div class="text-violet-700"><b>กรรมการ:</b> ${safeEscape(item.note2 || '-')}</div>
+                        </td>
+                    </tr>`;
+                });
+                tbody.innerHTML = rowsHtml;
+            }
+
+            document.getElementById('statStationsCount').textContent = `${filteredIns.length} สถานี`;
+            document.getElementById('statUsableCount').textContent = `${usable} สถานี`;
+            document.getElementById('statUnusableCount').textContent = `${unusable} สถานี`;
+            document.getElementById('statCalibCount').textContent = `${filteredCal.length} รายการ`;
+        }
+
+        function downloadPDFReport() {
+            const year = document.getElementById('filterYear').value;
+            const term = document.getElementById('filterTerm').value;
+            const basin = document.getElementById('filterBasin').value;
+            const station = document.getElementById('filterStation').value;
+
+            const pdfUrl = `${API_BASE}/api/report/pdf?year=${encodeURIComponent(year)}&term=${encodeURIComponent(term)}&basin=${encodeURIComponent(basin)}&station=${encodeURIComponent(station)}`;
+            window.open(pdfUrl, '_blank');
         }
     </script>
 </body>

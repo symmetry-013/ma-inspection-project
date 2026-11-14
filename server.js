@@ -25,8 +25,8 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 const uploadDir = path.join(__dirname, 'uploads');
@@ -63,6 +63,231 @@ function parsePeriodNumber(periodInput) {
 function formatPeriodLabel(periodInput) {
     const num = parsePeriodNumber(periodInput);
     return `งวดที่${num}`;
+}
+
+// แปลงรายการอุปกรณ์จาก mam_equipment.html และผลประเมินจาก tor_inspection.html
+// ให้เป็นคีย์มาตรฐานเดิม (clean, sta_cpu, sta_m1, sta_p1, ...) เพื่อใช้เงื่อนไขเดิมในรายงานทั้งหมด
+function mapMamDataToLegacyRecord(torDoc, equipDoc) {
+    const base = {};
+    const refDoc = torDoc || equipDoc || {};
+    const pNum = parsePeriodNumber(refDoc.period || '1');
+
+    base._id = refDoc._id;
+    base.source_type = 'mam_unified';
+    base.contractYear = refDoc.contractYear || getThaiFiscalYear(refDoc.timestamp);
+    base.saya = `งวดที่${pNum}`;
+    base.period = pNum;
+    base.code = refDoc.basin || '-';
+    base.basin = refDoc.basin || '-';
+    base.id_name = (torDoc && torDoc.station_id) ? torDoc.station_id : (equipDoc ? equipDoc.station_code : '-');
+    base.name_id = (torDoc && torDoc.station_name) ? torDoc.station_name : (equipDoc ? equipDoc.station_name : base.id_name);
+    base.timestamp = (torDoc && torDoc.timestamp) ? torDoc.timestamp : (equipDoc ? equipDoc.timestamp : new Date());
+    base.createdAt = base.timestamp;
+
+    base.lat = (torDoc && torDoc.lat) ? torDoc.lat : '';
+    base.lon = (torDoc && torDoc.lon) ? torDoc.lon : '';
+    base.geoAddress = (torDoc && torDoc.geoAddress) ? torDoc.geoAddress : 'ไม่ระบุพิกัด';
+    base.photos = (torDoc && Array.isArray(torDoc.photos)) ? torDoc.photos : [];
+
+    // หมายเหตุผู้ตรวจสอบ (จาก mam_equipment) และความเห็นกรรมการ (จาก tor_inspection)
+    base.note = (equipDoc && equipDoc.inspector_note) ? equipDoc.inspector_note : ((torDoc && torDoc.inspector_note) ? torDoc.inspector_note : '-');
+    base.note2 = (torDoc && torDoc.committee_note) ? torDoc.committee_note : '-';
+
+    // ค่าเริ่มต้นให้ทุกคีย์เป็น 'ปกติ' ('p')
+    const allKeys = [
+        'clean', 'pai', 'power', 'power1', 'online', 'wl', 'wl1', 'r',
+        'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc',
+        'sta_m1', 'sta_m2', 'sta_p1', 'sta_p2', 'sta_cctv1', 'sta_cctv2',
+        'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl1',
+        'sta_wl2', 'sta_saling', 'b2', 'sta1', 'sta2', 'pole2'
+    ];
+    allKeys.forEach(k => { base[k] = 'ปกติ'; });
+
+    // 1. ตรวจสอบจากผลประเมิน TOR (tor_inspection.html)
+    if (torDoc && Array.isArray(torDoc.evaluations)) {
+        base.tor_evaluations = torDoc.evaluations;
+        torDoc.evaluations.forEach(ev => {
+            const isFail = (ev.result === 'ไม่ผ่าน' || ev.result === 'ชำรุด');
+            const nameAndKey = `${ev.task_key || ''} ${ev.task_name || ''}`.toLowerCase();
+            if (nameAndKey.includes('step_2') || nameAndKey.includes('ความสะอาด') || nameAndKey.includes('ทำความสะอาด')) {
+                base.clean = isFail ? 'ไม่ผ่าน' : 'ผ่าน';
+            }
+            if (isFail) {
+                if (nameAndKey.includes('ป้าย')) base.pai = 'ชำรุด';
+                if (nameAndKey.includes('ไฟฟ้า')) base.power = 'ชำรุด';
+                if (nameAndKey.includes('หลอดไฟ')) base.power1 = 'ชำรุด';
+                if (nameAndKey.includes('ออนไลน์') || nameAndKey.includes('เว็บ')) base.online = 'ชำรุด';
+                if (nameAndKey.includes('เสาวัดน้ำ') || nameAndKey.includes('staff')) base.pole2 = 'ชำรุด';
+            }
+        });
+    } else {
+        base.clean = 'ผ่าน';
+    }
+
+    // 2. ตรวจสอบจากรายการอุปกรณ์ MAM (mam_equipment.html)
+    if (equipDoc && Array.isArray(equipDoc.items)) {
+        base.mam_items = equipDoc.items;
+        let modemCount = 0;
+        let powerCount = 0;
+        let cctvCount = 0;
+
+        equipDoc.items.forEach(it => {
+            const st = String(it.inspected_status || it.mam_status || '').trim();
+            const isBroken = (st === 'ชำรุด' || st === 'ใช้งานไม่ได้' || st === 'ไม่ผ่าน' || st === '0' || st.toLowerCase() === 'o');
+            const text = `${it.category || ''} ${it.location_point || ''} ${it.model || ''} ${it.brand || ''}`.toLowerCase();
+
+            if (text.includes('cpu') || text.includes('rtu')) {
+                if (isBroken) base.sta_cpu = 'ชำรุด';
+            } else if (text.includes('ai') || text.includes('analog')) {
+                if (isBroken) base.sta_ai = 'ชำรุด';
+            } else if (text.includes('di')) {
+                if (isBroken) base.sta_di = 'ชำรุด';
+            } else if (text.includes('do')) {
+                if (isBroken) base.sta_do = 'ชำรุด';
+            } else if (text.includes('io') || text.includes('i/o') || text.includes('mux')) {
+                if (isBroken) base.sta_io = 'ชำรุด';
+            } else if (text.includes('plc') || text.includes('logger')) {
+                if (isBroken) base.plc = 'ชำรุด';
+            } else if (text.includes('modem') || text.includes('router') || text.includes('gprs') || text.includes('โมเด็ม')) {
+                modemCount++;
+                const targetKey = modemCount === 1 ? 'sta_m1' : 'sta_m2';
+                if (isBroken) base[targetKey] = 'ชำรุด';
+            } else if (text.includes('power') || text.includes('solar') || text.includes('charger') || text.includes('แหล่งจ่ายไฟ') || text.includes('โซลาร์')) {
+                powerCount++;
+                const targetKey = powerCount === 1 ? 'sta_p1' : 'sta_p2';
+                if (isBroken) base[targetKey] = 'ชำรุด';
+            } else if (text.includes('cctv') || text.includes('กล้อง') || text.includes('camera')) {
+                cctvCount++;
+                const targetKey = cctvCount === 1 ? 'sta_cctv1' : 'sta_cctv2';
+                if (isBroken) base[targetKey] = 'ชำรุด';
+            } else if (text.includes('rain') || text.includes('น้ำฝน') || text.includes('ปริมาณฝน')) {
+                if (isBroken) base.sta_r = 'ชำรุด';
+            } else if (text.includes('surge') || text.includes('กันฟ้าผ่า') || text.includes('arrester')) {
+                if (isBroken) base.sta_s = 'ชำรุด';
+            } else if (text.includes('radar') || text.includes('เรดาร์') || text.includes('ultrasonic')) {
+                if (isBroken) base.sta_wl1 = 'ชำรุด';
+            } else if (text.includes('float') || text.includes('ลูกลอย') || text.includes('shaft')) {
+                if (isBroken) base.sta_wl2 = 'ชำรุด';
+            } else if (text.includes('bubble') || text.includes('ความดัน') || text.includes('pressure') || text.includes('ระดับน้ำ')) {
+                if (isBroken) base.sta_wl = 'ชำรุด';
+            } else if (text.includes('battery') || text.includes('แบต')) {
+                if (isBroken) base.b2 = 'ชำรุด';
+            } else if (text.includes('ท่อลม')) {
+                if (isBroken) base.sta_tro = 'ชำรุด';
+            } else if (text.includes('ถังแก๊ส') || text.includes('ไนโตรเจน')) {
+                if (isBroken) base.sta_gass = 'ชำรุด';
+            } else if (text.includes('สลิง')) {
+                if (isBroken) base.sta_saling = 'ชำรุด';
+            } else if (text.includes('เสาวัดน้ำ') || text.includes('staff')) {
+                if (isBroken) base.pole2 = 'ชำรุด';
+            }
+        });
+    }
+
+    return base;
+}
+
+// รวมข้อมูลจาก Inspection เดิม + TorCheck + EquipmentCheck โดยไม่ซ้ำสถานีในงวดเดียวกัน
+async function buildUnifiedInspections(filterOptions = {}) {
+    const { year = 'all', term = 'all', basin = 'all', station = 'all' } = filterOptions;
+
+    let legacyQuery = {};
+    let torQuery = {};
+    let equipQuery = {};
+
+    if (term !== 'all' && term !== 'ALL') {
+        const pNum = parsePeriodNumber(term);
+        const pLabel = formatPeriodLabel(pNum);
+        legacyQuery.saya = new RegExp(term.replace(/\s+/g, '.*'), 'i');
+        torQuery.period = { $in: [pNum, pLabel] };
+        equipQuery.period = { $in: [pNum, pLabel, String(term).trim()] };
+    }
+    if (basin !== 'all' && basin !== 'ALL') {
+        legacyQuery.code = basin;
+        torQuery.basin = basin;
+        equipQuery.basin = basin;
+    }
+    if (station !== 'all' && station !== 'ALL' && String(station).trim() !== '') {
+        const stReg = new RegExp(String(station).trim(), 'i');
+        legacyQuery.id_name = stReg;
+        torQuery.station_id = stReg;
+        equipQuery.station_code = stReg;
+    }
+    if (year !== 'all' && year !== 'ALL') {
+        torQuery.contractYear = String(year).trim();
+        equipQuery.contractYear = String(year).trim();
+    }
+
+    let [legacyList, torList, equipList] = await Promise.all([
+        Inspection.find(legacyQuery).sort({ timestamp: -1 }).lean(),
+        TorCheck.find(torQuery).sort({ timestamp: -1 }).lean(),
+        EquipmentCheck.find(equipQuery).sort({ timestamp: -1 }).lean()
+    ]);
+
+    if (year !== 'all' && year !== 'ALL') {
+        legacyList = legacyList.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
+    }
+
+    const unifiedMap = new Map();
+
+    // 1. จับคู่ TorCheck กับ EquipmentCheck ตาม ปี_งวด_รหัสสถานี
+    const mamGroupMap = new Map();
+
+    torList.forEach(t => {
+        const y = t.contractYear || getThaiFiscalYear(t.timestamp);
+        const p = parsePeriodNumber(t.period);
+        const code = normalizeStationCode(t.station_id);
+        const key = `${y}_${p}_${code}`;
+        if (!mamGroupMap.has(key)) mamGroupMap.set(key, { tor: t, equip: null });
+        else if (!mamGroupMap.get(key).tor) mamGroupMap.get(key).tor = t;
+    });
+
+    equipList.forEach(e => {
+        const y = e.contractYear || getThaiFiscalYear(e.timestamp);
+        const p = parsePeriodNumber(e.period);
+        const code = normalizeStationCode(e.station_code);
+        const key = `${y}_${p}_${code}`;
+        if (!mamGroupMap.has(key)) mamGroupMap.set(key, { tor: null, equip: e });
+        else if (!mamGroupMap.get(key).equip) mamGroupMap.get(key).equip = e;
+    });
+
+    for (const [key, pair] of mamGroupMap.entries()) {
+        unifiedMap.set(key, mapMamDataToLegacyRecord(pair.tor, pair.equip));
+    }
+
+    // 2. เติมข้อมูลจาก Inspection เดิม (กรณีสถานีเก่าที่ยังไม่ได้ตรวจผ่านระบบใหม่)
+    legacyList.forEach(leg => {
+        const y = getThaiFiscalYear(leg.timestamp || leg.createdAt, leg.contractYear);
+        const p = parsePeriodNumber(leg.saya || '1');
+        const code = normalizeStationCode(leg.id_name);
+        const key = `${y}_${p}_${code}`;
+        if (!unifiedMap.has(key)) {
+            unifiedMap.set(key, {
+                ...leg,
+                contractYear: y,
+                saya: formatPeriodLabel(p)
+            });
+        } else {
+            // หากใน TorCheck ยังไม่มีรูปภาพหรือพิกัด แต่ใน Inspection เดิมมี ให้ดึงมาเสริม
+            const existing = unifiedMap.get(key);
+            if ((!existing.photos || existing.photos.length === 0) && Array.isArray(leg.photos) && leg.photos.length > 0) {
+                existing.photos = leg.photos;
+            }
+            if (!existing.lat && leg.lat) {
+                existing.lat = leg.lat;
+                existing.lon = leg.lon;
+                existing.geoAddress = leg.geoAddress || existing.geoAddress;
+            }
+        }
+    });
+
+    const resultList = Array.from(unifiedMap.values());
+    resultList.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    return {
+        unifiedList: resultList,
+        torList,
+        equipList
+    };
 }
 
 // ==========================================
@@ -129,12 +354,18 @@ const EquipmentCheck = mongoose.model('EquipmentCheck', EquipmentCheckSchema);
 const TorCheckSchema = new mongoose.Schema({
     contractYear: String,
     period: String,
+    period_label: String,
     basin: String,
     station_id: String,
     station_name: String,
     mam_record_id: String,
     evaluations: Array,
     committee_note: String,
+    inspector_note: String,
+    lat: String,
+    lon: String,
+    geoAddress: String,
+    photos: Array,
     timestamp: { type: Date, default: Date.now }
 }, { strict: false, timestamps: true });
 const TorCheck = mongoose.model('TorCheck', TorCheckSchema);
@@ -361,7 +592,7 @@ async function uploadFileToFolder(file, targetFolderId) {
             fileId: fileId,
             name: response.data.name,
             webViewLink: response.data.webViewLink || `https://drive.google.com/file/d/${fileId}/view`,
-            thumbnailUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
+            thumbnailUrl: `/api/images/${fileId}`
         };
     } catch (error) {
         console.error('❌ Google Drive Upload API Error:', error.message);
@@ -384,8 +615,19 @@ async function fetchImageBufferDirectly(fileId) {
 }
 
 // ==========================================
-// 6. API: รับ-ส่งข้อมูลตรวจสอบสถานี (Inspection)
+// 6. API: ดึงข้อมูลตรวจสอบสถานีแบบรวมศูนย์ (TorCheck + EquipmentCheck + Inspection เดิม)
 // ==========================================
+app.get('/api/inspections', checkApiAuth, async (req, res) => {
+    try {
+        const { year, term, basin, station } = req.query;
+        const { unifiedList } = await buildUnifiedInspections({ year, term, basin, station });
+        res.status(200).json({ success: true, count: unifiedList.length, data: unifiedList });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// คง Endpoint POST /api/inspection ไว้เผื่อกรณีมีข้อมูลค้างส่ง
 app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
     try {
         const formData = { ...req.body };
@@ -422,15 +664,6 @@ app.post('/api/inspection', upload.array('photos', 10), async (req, res) => {
         await newInspection.save();
         
         res.status(200).json({ success: true, message: 'บันทึกข้อมูลสำเร็จ', photos });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-});
-
-app.get('/api/inspections', checkApiAuth, async (req, res) => {
-    try {
-        const data = await Inspection.find().sort({ timestamp: -1, createdAt: -1 }).lean();
-        res.status(200).json({ success: true, data: data });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -495,7 +728,6 @@ app.get('/api/calibrations', checkApiAuth, async (req, res) => {
 // 8. API: ระบบเชื่อมต่อข้อมูล MAM (mam_equipment & mam_tor_tasks)
 // ==========================================
 
-// 8.1 สั่งซิงก์ไฟล์ CSV จากระบบ MAM เข้าสู่ MongoDB
 app.all('/api/mam/sync', async (req, res) => {
     try {
         const key = req.headers['x-api-key'] ||
@@ -693,11 +925,41 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
 
         let dataSource = 'mam_tor_tasks';
 
+        // กรณีไม่มีใบงานใน mam_tor_tasks ของปีนั้น ให้สร้างโครงสร้างพื้นฐาน 3 ขั้นตอนเพื่อให้กรรมการยังสามารถตรวจสถานีถ่ายรูปและจับ GPS ได้
         if (!rows || rows.length === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: `ไม่พบข้อมูลงาน TOR ของสถานี ${rawStation} ในระบบ MAM (ปีงบ ${contractYear} งวด ${periodLabel})` 
-            });
+            rows = [
+                {
+                    contract_year: contractYear,
+                    period: periodNum,
+                    basin: basin || '-',
+                    station_id: rawStation,
+                    station_name: rawStation,
+                    task_type: 'general',
+                    task_key: 'step_2',
+                    task_name: 'ทำความสะอาดบริเวณสถานีและอุปกรณ์ (มาตรฐาน TOR)'
+                },
+                {
+                    contract_year: contractYear,
+                    period: periodNum,
+                    basin: basin || '-',
+                    station_id: rawStation,
+                    station_name: rawStation,
+                    task_type: 'general',
+                    task_key: 'step_3',
+                    task_name: 'สอบเทียบค่าระดับน้ำและน้ำฝน (มาตรฐาน TOR)'
+                },
+                {
+                    contract_year: contractYear,
+                    period: periodNum,
+                    basin: basin || '-',
+                    station_id: rawStation,
+                    station_name: rawStation,
+                    task_type: 'general',
+                    task_key: 'step_4',
+                    task_name: 'ตรวจสอบการทำงานของอุปกรณ์ประจำสถานี (มาตรฐาน TOR)'
+                }
+            ];
+            dataSource = 'default_tor_template';
         }
 
         const cleanedRows = rows.map(r => {
@@ -752,9 +1014,35 @@ app.get('/api/mam/tor-tasks', checkApiAuth, async (req, res) => {
     }
 });
 
-app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
+// รองรับทั้ง JSON และ Multipart Form-Data (อัปโหลดรูปถ่ายสภาพสถานี 여러รูป + พิกัด GPS)
+app.post('/api/mam/tor-check', checkApiAuth, upload.array('photos', 10), async (req, res) => {
     try {
-        const { contractYear, period, basin, station_id, station_name, mam_record_id, evaluations, committee_note } = req.body;
+        let {
+            contractYear,
+            period,
+            basin,
+            station_id,
+            station_name,
+            mam_record_id,
+            evaluations,
+            committee_note,
+            inspector_note,
+            lat,
+            lon,
+            existingPhotos
+        } = req.body;
+
+        // กรณีส่งมาแบบ FormData ค่า evaluations และ existingPhotos จะเป็น JSON String
+        if (typeof evaluations === 'string') {
+            try { evaluations = JSON.parse(evaluations); } catch (e) { evaluations = []; }
+        }
+        let parsedExistingPhotos = [];
+        if (typeof existingPhotos === 'string' && existingPhotos.trim() !== '') {
+            try { parsedExistingPhotos = JSON.parse(existingPhotos); } catch (e) { parsedExistingPhotos = []; }
+        } else if (Array.isArray(existingPhotos)) {
+            parsedExistingPhotos = existingPhotos;
+        }
+
         if (!station_id || !Array.isArray(evaluations)) {
             return res.status(400).json({ success: false, message: 'ข้อมูลการตรวจรับงานตาม TOR ไม่ครบถ้วน' });
         }
@@ -762,24 +1050,67 @@ app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
         const now = new Date();
         const yearVal = getThaiFiscalYear(now, contractYear);
         const periodNum = parsePeriodNumber(period || '1');
+        const periodLabel = formatPeriodLabel(periodNum);
+        const cleanStationId = String(station_id).trim();
+
+        // ค้นหาที่อยู่จากพิกัด GPS (Reverse Geocoding)
+        let geoAddress = "ไม่ระบุพิกัด";
+        if (lat && lon) {
+            try {
+                const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+                const response = await axios.get(osmUrl, { headers: { 'User-Agent': 'MA_Inspection_App' }, timeout: 5000 });
+                if (response.data && response.data.display_name) geoAddress = response.data.display_name;
+            } catch (e) {
+                geoAddress = "หาที่อยู่ไม่เจอ";
+            }
+        }
+
+        // อัปโหลดรูปภาพใหม่ขึ้น Google Drive (ถ้ามีการแนบรูปมา)
+        const uploadedPhotos = [];
+        if (req.files && req.files.length > 0) {
+            const yearFolder = `ปีงบ_${yearVal}`;
+            const targetFolderId = await getTargetFolderId([yearFolder, periodLabel, basin || 'ไม่ระบุลุ่มน้ำ', cleanStationId]);
+            for (const file of req.files) {
+                const uploaded = await uploadFileToFolder(file, targetFolderId);
+                if (uploaded) uploadedPhotos.push(uploaded);
+            }
+        }
+
+        // รวมรูปเดิมที่เคยอัปโหลดไว้ (ถ้ามี) กับรูปใหม่
+        const prevDoc = await TorCheck.findOne({
+            contractYear: yearVal,
+            period: { $in: [periodNum, periodLabel] },
+            station_id: cleanStationId
+        }).lean();
+
+        const basePhotos = parsedExistingPhotos.length > 0
+            ? parsedExistingPhotos
+            : (prevDoc && Array.isArray(prevDoc.photos) ? prevDoc.photos : []);
+
+        const finalPhotos = [...basePhotos, ...uploadedPhotos];
 
         const recordData = {
             contractYear: yearVal,
             period: periodNum,
-            period_label: formatPeriodLabel(periodNum),
+            period_label: periodLabel,
             basin: basin || '-',
-            station_id: String(station_id).trim(),
-            station_name: station_name || station_id,
+            station_id: cleanStationId,
+            station_name: station_name || cleanStationId,
             mam_record_id: mam_record_id || '',
             evaluations: evaluations,
             committee_note: committee_note || '',
+            inspector_note: inspector_note || '',
+            lat: lat || (prevDoc ? prevDoc.lat : '') || '',
+            lon: lon || (prevDoc ? prevDoc.lon : '') || '',
+            geoAddress: (lat && lon) ? geoAddress : ((prevDoc && prevDoc.geoAddress) ? prevDoc.geoAddress : 'ไม่ระบุพิกัด'),
+            photos: finalPhotos,
             timestamp: now
         };
 
         const saved = await TorCheck.findOneAndUpdate(
             {
                 contractYear: recordData.contractYear,
-                period: recordData.period,
+                period: { $in: [periodNum, periodLabel] },
                 station_id: recordData.station_id
             },
             recordData,
@@ -788,8 +1119,9 @@ app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'บันทึกผลการตรวจรับงานตาม TOR เรียบร้อยแล้ว',
-            data: saved
+            message: 'บันทึกผลการตรวจรับงานตาม TOR พิกัด GPS และภาพถ่ายสถานีเรียบร้อยแล้ว',
+            data: saved,
+            photos: finalPhotos
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -797,7 +1129,7 @@ app.post('/api/mam/tor-check', checkApiAuth, async (req, res) => {
 });
 
 // ==========================================
-// 8.1 API สำหรับหน้ารายงานผลการตรวจสอบอุปกรณ์ (NEW)
+// 8.1 API สำหรับหน้ารายงานผลการตรวจสอบอุปกรณ์
 // ==========================================
 app.get('/api/mam/report/equipment', checkApiAuth, async (req, res) => {
     try {
@@ -822,7 +1154,7 @@ app.get('/api/mam/report/equipment', checkApiAuth, async (req, res) => {
 });
 
 // ==========================================
-// 8.2 API สำหรับหน้ารายงานผลการตรวจรับงาน TOR (NEW)
+// 8.2 API สำหรับหน้ารายงานผลการตรวจรับงาน TOR
 // ==========================================
 app.get('/api/mam/report/tor', checkApiAuth, async (req, res) => {
     try {
@@ -848,7 +1180,7 @@ app.get('/api/mam/report/tor', checkApiAuth, async (req, res) => {
 });
 
 // ===============================================
-// 9. การสร้าง PDF (รวม 4 ส่วนครบถ้วนตามตัวอย่างรายงาน)
+// 9. การสร้าง PDF (ดึงข้อมูลรวมศูนย์จาก TorCheck + EquipmentCheck + Calibration)
 // ===============================================
 app.get('/api/report/pdf', async (req, res) => {
     try {
@@ -857,47 +1189,30 @@ app.get('/api/report/pdf', async (req, res) => {
         const basin = req.query.basin || 'all';
         const station = req.query.station || 'all';
 
-        let query = {};
         let calibQuery = {};
-        let equipCheckQuery = {};
-        let torCheckQuery = {};
         let mamEquipQuery = {};
         
         if (term !== 'all') {
-            query.saya = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
             calibQuery.myDataPeriod = new RegExp(term.replace(/\s+/g, '.*'), 'i'); 
         }
         if (basin !== 'all') {
-            query.code = basin;
             calibQuery.myData0 = basin;
-            equipCheckQuery.basin = basin;
-            torCheckQuery.basin = basin;
             mamEquipQuery.basin = basin;
         }
         if (station !== 'all' && String(station).trim() !== '') {
             const stReg = new RegExp(String(station).trim(), 'i');
-            query.id_name = stReg;
             calibQuery.myData1 = stReg;
-            equipCheckQuery.station_code = stReg;
-            torCheckQuery.station_id = stReg;
             mamEquipQuery.station_id = stReg;
         }
 
-        if (year !== 'all' && year !== 'ALL') {
-            equipCheckQuery.contractYear = String(year).trim();
-            torCheckQuery.contractYear = String(year).trim();
-        }
-
-        let [inspectionData, calibrationData, equipmentChecks, torChecks, mamEquipments] = await Promise.all([
-            Inspection.find(query).lean(),
+        const [{ unifiedList, torList, equipList }, rawCalibData, mamEquipments] = await Promise.all([
+            buildUnifiedInspections({ year, term, basin, station }),
             Calibration.find(calibQuery).lean(),
-            EquipmentCheck.find(equipCheckQuery).sort({ timestamp: -1 }).lean(),
-            TorCheck.find(torCheckQuery).sort({ timestamp: -1 }).lean(),
             MamEquipment.find(mamEquipQuery).lean()
         ]);
 
+        let calibrationData = rawCalibData;
         if (year !== 'all' && year !== 'ALL') {
-            inspectionData = inspectionData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
             calibrationData = calibrationData.filter(item => getThaiFiscalYear(item.timestamp || item.createdAt, item.contractYear) === String(year));
         }
 
@@ -916,7 +1231,7 @@ app.get('/api/report/pdf', async (req, res) => {
         const termLabel = (year !== 'all' && year !== 'ALL') ? `${term} (ปีงบประมาณ ${year})` : term;
 
         await generateInspectionPDF(
-            inspectionData, 
+            unifiedList, 
             calibrationData, 
             termLabel, 
             basin, 
@@ -927,8 +1242,8 @@ app.get('/api/report/pdf', async (req, res) => {
             extractDriveId, 
             fixThaiVowels,
             {
-                equipmentChecks,
-                torChecks,
+                equipmentChecks: equipList,
+                torChecks: torList,
                 mamEquipments,
                 contractYear: (year !== 'all' && year !== 'ALL') ? String(year) : getThaiFiscalYear(new Date())
             }

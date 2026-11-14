@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบติดตามสถานะสถานี (Map) | 3D Cartoon Edition</title>
+    <title>ติดตามสถานะความคืบหน้าการตรวจสถานี</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,481 +11,389 @@
     <!-- Google Fonts: Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Leaflet JS & CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <!-- เชื่อมต่อไฟล์ constants.js ในโฟลเดอร์เดียวกัน -->
+    <!-- นำเข้าข้อมูลส่วนกลาง (hardcodedBasins, stationsData) -->
     <script src="constants.js"></script>
 
     <script>
-        tailwind.config = { 
-            theme: { 
-                extend: { 
-                    fontFamily: { sans: ['Prompt', 'sans-serif'] },
-                    colors: { 
-                        sky: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9' },
-                        emerald: { 50: '#ecfdf5', 100: '#d1fae5', 400: '#34d399', 500: '#10b981' },
-                        rose: { 50: '#fff1f2', 100: '#ffe4e6', 400: '#fb7185', 500: '#f43f5e' }
-                    }
-                } 
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Prompt', 'sans-serif'] }
+                }
             }
         }
     </script>
+
     <style>
-        html, body { font-family: 'Prompt', sans-serif; margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #fffbeb; }
-        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; background-color: #e5e5e5; }
-        .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15); padding: 0; overflow: hidden; border: 4px solid #f8fafc; }
-        .leaflet-popup-content { margin: 0; line-height: 1.5; width: 260px !important; }
-        .leaflet-container a.leaflet-popup-close-button { color: #94a3b8; font-weight: bold; padding: 6px 12px; }
-        .simple-tooltip { background: rgba(255, 255, 255, 0.95); border: 2px solid #e2e8f0; border-radius: 12px; font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 700; padding: 4px 10px; color: #475569; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; } 
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; border: 2px solid #f1f5f9; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
-        .spin { animation: spin 1s linear infinite; }
-        
-        .puffy-panel { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-radius: 20px; border: 4px solid #f8fafc; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05); transition: all 0.3s ease; }
-        .puffy-input { background-color: #f8fafc; border: 2px solid #e2e8f0; color: #334155; transition: all 0.2s ease; font-weight: 700; }
-        .puffy-input:focus { outline: none; border-color: #38bdf8; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
+        body {
+            background-color: #fffbeb; 
+            color: #334155;
+            background-image: radial-gradient(#fde047 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+        }
 
-        .filter-btn { transition: all 0.15s ease; cursor: pointer; user-select: none; border: 2px solid #e2e8f0; background: #f8fafc; border-radius: 12px; } 
-        .filter-btn:active { transform: translateY(2px); }
-        .filter-btn.active.filter-all { border-color: #38bdf8; background-color: #f0f9ff; color: #0284c7; box-shadow: 0 4px 0 #bae6fd; }
-        .filter-btn.active.filter-p { border-color: #34d399; background-color: #ecfdf5; color: #059669; box-shadow: 0 4px 0 #a7f3d0; }
-        .filter-btn.active.filter-o { border-color: #fb7185; background-color: #fff1f2; color: #e11d48; box-shadow: 0 4px 0 #fecaca; }
-        
-        .btn-refresh { background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 0 #e2e8f0; transition: all 0.15s ease; border: 2px solid #f1f5f9; }
-        .btn-refresh:active { transform: translateY(4px); box-shadow: 0 0px 0 #e2e8f0; }
+        .puffy-container {
+            background-color: #ffffff;
+            border-radius: 28px;
+            border: 4px solid #f8fafc;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);
+        }
 
-        @keyframes bounceSoft { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        .bounce-soft { animation: bounceSoft 2s infinite; }
+        .puffy-input {
+            background-color: #f8fafc;
+            border: 2px solid #e2e8f0;
+            color: #334155;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+        .puffy-input:focus {
+            outline: none;
+            border-color: #ea580c;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.15);
+        }
+
+        .btn-puffy-orange {
+            background-color: #ea580c;
+            color: white;
+            border-radius: 16px;
+            box-shadow: 0 6px 0 #c2410c;
+            transition: all 0.1s ease;
+        }
+        .btn-puffy-orange:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0px 0 #c2410c; }
+
+        .progress-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 22px;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .progress-card:hover {
+            border-color: #fed7aa;
+            box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.1);
+        }
     </style>
 </head>
-<body class="relative">
-    <div id="map"></div>
-    
-    <!-- Loading Screen -->
-    <div id="loadingUI" class="absolute inset-0 z-[2000] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center transition-opacity duration-300">
-        <div class="w-20 h-20 bg-sky-50 rounded-full border-4 border-sky-100 flex items-center justify-center shadow-md bounce-soft mb-4">
-            <i class="ph-bold ph-map-trifold text-4xl text-sky-500"></i>
-        </div>
-        <p class="text-sky-600 font-extrabold text-lg tracking-wide">กำลังเตรียมข้อมูลแผนที่...</p>
-    </div>
+<body class="antialiased min-h-screen flex flex-col pb-12">
 
-    <!-- แผงควบคุม (Dashboard) -->
-    <div class="absolute top-0 left-0 w-full p-3 md:p-4 z-[1000] pointer-events-none flex justify-between items-start flex-col md:flex-row gap-3">
-        
-        <div class="puffy-panel p-3.5 md:p-4 pointer-events-auto w-full md:w-auto md:max-w-2xl transition-all duration-300 border-t-8 border-t-sky-400">
-            <div id="dashboardHeader" class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 border-b-2 border-slate-100 pb-3 gap-3">
-                <div class="flex items-center justify-between w-full sm:w-auto gap-2">
-                    <div class="flex items-center gap-2">
-                        <a href="index.html" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 hover:text-sky-500 hover:bg-sky-50 transition-all border-2 border-slate-200 shrink-0">
-                            <i class="ph-bold ph-caret-left text-xl"></i>
-                        </a>
-                        <h1 class="text-base font-extrabold text-slate-800 tracking-tight leading-tight whitespace-nowrap">ระบบติดตาม<br><span class="text-sky-500">สถานะสถานี</span></h1>
-                    </div>
-                    <!-- ปุ่มพับเก็บสำหรับจอมือถือ -->
-                    <button onclick="toggleDashboard()" class="sm:hidden w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-200 border-2 border-slate-200 shrink-0 transition-all">
-                        <i id="toggleIconMobile" class="ph-bold ph-caret-up text-lg"></i>
-                    </button>
+    <!-- Header -->
+    <header class="bg-white/95 backdrop-blur-md border-b-4 border-orange-100 sticky top-0 z-40 py-3.5 shadow-sm">
+        <div class="container mx-auto px-4 flex justify-between items-center max-w-6xl">
+            <div class="flex items-center space-x-3 md:space-x-4">
+                <a href="index.html" class="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white border-2 border-slate-200 flex items-center justify-center text-slate-500 hover:text-orange-500 hover:border-orange-200 transition-all shadow-sm active:translate-y-1 shrink-0">
+                    <i class="ph-bold ph-caret-left text-2xl"></i>
+                </a>
+                <div class="hidden sm:flex w-12 h-12 rounded-2xl bg-orange-100 border-2 border-orange-300 items-center justify-center shadow-sm shrink-0">
+                    <i class="ph-fill ph-compass text-orange-500 text-2xl"></i>
                 </div>
-                
-                <!-- ตัวกรอง: ปีงบประมาณ + งวดตรวจ + ลุ่มน้ำ -->
-                <div class="grid grid-cols-3 sm:flex items-center gap-1.5 md:gap-2 w-full sm:w-auto">
-                    <select id="yearFilter" onchange="renderMap()" class="w-full sm:w-28 text-[11px] md:text-xs puffy-input rounded-xl px-2 py-2 truncate">
-                        <option value="ALL">ทุกปีงบฯ</option>
-                    </select>
+                <div>
+                    <h1 class="text-lg md:text-2xl font-extrabold text-slate-800 tracking-tight">
+                        ติดตามสถานะ <span class="text-orange-500">ความคืบหน้าการตรวจงาน</span>
+                    </h1>
+                    <p class="text-[11px] md:text-xs font-bold text-slate-400">
+                        ตรวจสอบสถิติการปฏิบัติงานเทียบกับรายชื่อสถานีมาตรฐานจาก constants.js
+                    </p>
+                </div>
+            </div>
+        </div>
+    </header>
 
-                    <select id="periodFilter" onchange="renderMap()" class="w-full sm:w-28 text-[11px] md:text-xs puffy-input rounded-xl px-2 py-2 truncate">
-                        <option value="ALL">ทุกงวดตรวจ</option>
+    <main class="container mx-auto px-4 py-6 max-w-6xl flex-grow space-y-6">
+
+        <!-- ตัวกรองข้อมูล -->
+        <div class="puffy-container p-5 md:p-7 border-t-8 border-t-orange-500">
+            <h2 class="text-sm md:text-base font-extrabold text-slate-700 mb-4 flex items-center gap-2 border-b-2 border-slate-100 pb-2.5">
+                <i class="ph-bold ph-funnel text-orange-500 text-lg"></i> ตัวกรองการติดตามสถานะ
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mb-5">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">ปีงบประมาณ</label>
+                    <select id="filterYear" onchange="processTrackingData()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกปีงบประมาณ --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">งวดการตรวจสอบ</label>
+                    <select id="filterPeriod" onchange="processTrackingData()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกงวด --</option>
                         <option value="งวดที่1">งวดที่ 1</option>
                         <option value="งวดที่2">งวดที่ 2</option>
                         <option value="งวดที่3">งวดที่ 3</option>
                         <option value="งวดที่4">งวดที่ 4</option>
                     </select>
-                    
-                    <select id="basinFilter" onchange="renderMap()" class="w-full sm:w-36 text-[11px] md:text-xs puffy-input rounded-xl px-2 py-2 truncate">
-                        <option value="ALL">ทุกลุ่มน้ำ</option>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 block mb-1">กลุ่มลุ่มน้ำ</label>
+                    <select id="filterBasin" onchange="processTrackingData()" class="w-full p-3 text-sm rounded-xl puffy-input">
+                        <option value="all">-- ทุกกลุ่มลุ่มน้ำ --</option>
                     </select>
-                    
-                    <!-- ปุ่มพับเก็บสำหรับจอคอม -->
-                    <button onclick="toggleDashboard()" class="hidden sm:flex w-10 h-10 bg-slate-100 rounded-xl items-center justify-center text-slate-500 hover:bg-slate-200 border-2 border-slate-200 shrink-0 transition-all">
-                        <i id="toggleIconDesktop" class="ph-bold ph-caret-up text-lg"></i>
-                    </button>
                 </div>
             </div>
-            
-            <div id="dashboardContent" class="overflow-hidden transition-all duration-300 opacity-100 max-h-[500px]">
-                <div class="grid grid-cols-3 gap-2 md:gap-3 text-xs">
-                    <div onclick="setStatusFilter('ALL')" id="btnFilterALL" class="filter-btn active filter-all px-2 md:px-4 py-2 font-extrabold text-slate-600 flex items-center gap-1.5 justify-center">
-                        <span class="truncate">ทั้งหมด</span> <span id="countALL" class="bg-white/80 border border-slate-200 px-1.5 py-0.5 rounded-lg text-[10px]">0</span>
-                    </div>
-                    <div onclick="setStatusFilter('P')" id="btnFilterP" class="filter-btn filter-p px-2 md:px-4 py-2 font-extrabold text-slate-600 flex items-center gap-1.5 justify-center">
-                        <i class="ph-fill ph-check-circle text-emerald-500 text-base md:text-lg shrink-0"></i> <span class="truncate">พร้อมใช้งาน</span> <span id="countP" class="bg-white/80 border border-slate-200 px-1.5 py-0.5 rounded-lg text-[10px]">0</span>
-                    </div>
-                    <div onclick="setStatusFilter('O')" id="btnFilterO" class="filter-btn filter-o px-2 md:px-4 py-2 font-extrabold text-slate-600 flex items-center gap-1.5 justify-center">
-                        <i class="ph-fill ph-warning-circle text-rose-500 text-base md:text-lg shrink-0"></i> <span class="truncate">มีชำรุด</span> <span id="countO" class="bg-white/80 border border-slate-200 px-1.5 py-0.5 rounded-lg text-[10px]">0</span>
-                    </div>
+
+            <button type="button" onclick="loadTrackingData()" id="btnRefresh"
+                    class="btn-puffy-orange w-full py-3.5 text-sm md:text-base font-extrabold flex items-center justify-center gap-2">
+                <i class="ph-bold ph-arrows-clockwise text-xl"></i> โหลดข้อมูลและคำนวณความคืบหน้า
+            </button>
+        </div>
+
+        <!-- แถบสรุปภาพรวม -->
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-map-pin"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">สถานีในระบบทั้งหมด</span>
+                    <span id="statTotalStations" class="block text-xl md:text-2xl font-black text-slate-800">0 สถานี</span>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-emerald-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-check-circle"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">ตรวจแล้ว (สำเร็จ)</span>
+                    <span id="statCheckedStations" class="block text-xl md:text-2xl font-black text-emerald-600">0 สถานี</span>
+                </div>
+            </div>
+
+            <div class="col-span-2 lg:col-span-1 bg-white border-2 border-amber-200 rounded-2xl p-4 md:p-5 shadow-sm flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-2xl shrink-0">
+                    <i class="ph-fill ph-clock"></i>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-bold text-slate-400 uppercase">ยังไม่ตรวจ (ค้างอยู่)</span>
+                    <span id="statPendingStations" class="block text-xl md:text-2xl font-black text-amber-600">0 สถานี</span>
                 </div>
             </div>
         </div>
 
-        <button id="refreshBtn" onclick="loadData()" class="pointer-events-auto btn-refresh px-5 py-3 flex items-center justify-center gap-2 w-full md:w-auto">
-            <i id="refreshIcon" class="ph-bold ph-arrows-clockwise text-xl text-sky-500"></i>
-            <span class="font-extrabold text-slate-600 text-sm" id="refreshText">รีเฟรชข้อมูล</span>
-        </button>
-    </div>
+        <!-- พื้นที่แสดงความคืบหน้าแยกตามลุ่มน้ำ -->
+        <div id="basinProgressContainer" class="space-y-4">
+            <div class="py-16 text-center bg-white rounded-3xl border-4 border-slate-100 text-orange-500">
+                <i class="ph-bold ph-spinner animate-spin text-4xl mb-2"></i>
+                <p class="font-extrabold text-sm">กำลังประมวลผลความคืบหน้า...</p>
+            </div>
+        </div>
+
+    </main>
 
     <script>
-        let map; 
-        let markersLayer; 
-        let allStationData = []; 
-        let currentStatusSelection = 'ALL'; 
-        let isDashboardOpen = true;
-        
-        const BASE_URL = 'https://ma-inspection-project.onrender.com';
-        const mockData = [];
+        // =========================================================================
+        // แก้ไขปัญหา APK: ชี้ไปที่เซิร์ฟเวอร์ Render เสมอเมื่อไม่ได้รันผ่านพอร์ตพัฒนาบน PC
+        // =========================================================================
+        const isLocalPcDev = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                             && (window.location.port === '3000' || window.location.port === '5000');
+        const API_BASE = isLocalPcDev ? '' : 'https://ma-inspection-project.onrender.com';
 
-        // เชื่อมต่อ equipmentMap จากไฟล์ constants.js (และมีค่าสำรองกรณีฉุกเฉิน)
-        const activeEquipMap = (typeof equipmentMap !== 'undefined') ? equipmentMap : {
-            power: "ระบบไฟฟ้า", sta_cpu: "CPU", sta_ai: "AI", sta_di: "DI",
-            sta_do: "DO", sta_io: "IO", sta_m1: "Modem 1", sta_m2: "Modem 2", plc: "PLC",
-            sta_p1: "Power 1", sta_p2: "Power 2", sta_cctv1: "CCTV1", sta_cctv2: "CCTV2",
-            sta_r: "Rain Gauge", sta_s: "Surge", sta_wl: "WL(bubble)", sta_tro: "ท่อลม",
-            sta_gass: "ถังแก๊ส", sta_wl2: "WL(float)", sta_saling: "สายสลิง", sta_wl1: "WL(Radar)"
+        let rawInspections = [];
+
+        const safeEscape = (str) => {
+            if (typeof escapeHtml === 'function') return escapeHtml(str);
+            return String(str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         };
 
-        const isBrokenValue = (val) => {
-            const v = String(val || '').trim().toLowerCase();
-            return v === 'o' || v === 'ชำรุด' || v === '0' || v === 'ไม่ผ่าน' || v === 'ไม่ถูกต้อง';
-        };
-
-        const safeEscapeHtml = (unsafe) => {
-            if (typeof escapeHtml === 'function') return escapeHtml(unsafe);
-            return String(unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        };
-
-        // ฟังก์ชันคำนวณปีงบประมาณไทย (ต.ค. - ก.ย.) จากวันที่บันทึก
-        function getFiscalYearFromDate(dateStr, explicitYear) {
-            if (explicitYear && String(explicitYear).trim() !== '') {
-                return String(explicitYear).trim();
+        function getFiscalYear(item) {
+            if (item.contractYear && String(item.contractYear).trim() !== '') {
+                return String(item.contractYear).trim();
             }
-            const d = dateStr ? new Date(dateStr) : new Date();
-            if (isNaN(d.getTime())) return String(new Date().getFullYear() + 543);
-            let thaiYear = d.getFullYear() + 543;
-            if (d.getMonth() >= 9) { // เดือนตุลาคม (index 9) เป็นต้นไป นับเป็นปีงบประมาณถัดไป
-                thaiYear += 1;
-            }
-            return String(thaiYear);
+            const d = new Date(item.timestamp || item.createdAt);
+            if (isNaN(d.getTime())) return '';
+            let y = d.getFullYear() + 543;
+            if (d.getMonth() >= 9) y += 1;
+            return String(y);
         }
 
-        // ตั้งค่าตัวเลือกปีงบประมาณและลุ่มน้ำจาก constants.js ทันทีที่เปิดหน้าเว็บ
-        function initFilters() {
-            // 1. ตั้งค่า Dropdown ปีงบประมาณ (2568 - 2578)
-            const yearSelect = document.getElementById('yearFilter');
+        window.onload = () => {
+            const filterYear = document.getElementById('filterYear');
             const startYear = 2568;
-            const totalYears = 10;
-            let yearHtml = '<option value="ALL">ทุกปีงบฯ</option>';
-            for (let i = 0; i <= totalYears; i++) {
+            for (let i = 0; i <= 10; i++) {
                 const y = startYear + i;
-                yearHtml += `<option value="${y}">ปีงบ ${y}</option>`;
+                filterYear.innerHTML += `<option value="${y}">${y}</option>`;
             }
-            yearSelect.innerHTML = yearHtml;
 
-            // 2. ตั้งค่า Dropdown ลุ่มน้ำจาก hardcodedBasins ใน constants.js
-            updateBasinDropdown();
-        }
+            const filterBasin = document.getElementById('filterBasin');
+            let basinsList = [];
+            if (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) {
+                basinsList = hardcodedBasins;
+            } else if (typeof stationsData !== 'undefined') {
+                basinsList = Object.keys(stationsData);
+            }
 
-        function updateBasinDropdown() {
-            const select = document.getElementById('basinFilter'); 
-            const currentVal = select.value;
-            
-            // ดึงรายชื่อลุ่มน้ำจาก constants.js เป็นหลัก
-            const baseBasins = (typeof hardcodedBasins !== 'undefined' && Array.isArray(hardcodedBasins)) 
-                ? [...hardcodedBasins] 
-                : [];
-            
-            // รวมกับลุ่มน้ำที่มีในฐานข้อมูล (เผื่อมีลุ่มน้ำพิเศษเพิ่มเข้ามา)
-            const dataBasins = allStationData.map(d => d.basin).filter(b => b && b !== '-');
-            const combinedBasins = [...new Set([...baseBasins, ...dataBasins])];
-
-            let optionsHtml = '<option value="ALL">ทุกลุ่มน้ำ</option>';
-            combinedBasins.forEach(b => {
-                optionsHtml += `<option value="${b}">${b}</option>`;
+            basinsList.forEach(b => {
+                filterBasin.innerHTML += `<option value="${safeEscape(b)}">${safeEscape(b)}</option>`;
             });
-            
-            select.innerHTML = optionsHtml; 
-            if ([...select.options].some(o => o.value === currentVal)) {
-                select.value = currentVal;
-            }
-        }
 
-        function parseImageInfo(imagePath) {
-            if (!imagePath || String(imagePath).trim() === '') return null;
-            let path = String(imagePath).trim();
-            let fileId = null;
+            loadTrackingData();
+        };
 
-            if (path.includes('/api/images/')) {
-                fileId = path.split('/api/images/').pop().replace(/\//g, '');
-            } else if (path.includes('drive.google.com') || path.includes('drive.usercontent.google.com')) {
-                const matchFileD = path.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                if (matchFileD) fileId = matchFileD[1];
-                else {
-                    const matchId = path.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                    if (matchId) fileId = matchId[1];
-                }
-            }
+        async function loadTrackingData() {
+            const btn = document.getElementById('btnRefresh');
+            btn.disabled = true;
 
-            if (fileId) {
-                return {
-                    href: `https://drive.google.com/file/d/${fileId}/view`,
-                    src: `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`
-                };
-            }
-            if (/^https?:\/\//i.test(path)) return { href: path, src: path };
-            
-            let cleanPath = path.replace(/\\/g, '/');
-            if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
-            let encodedPath = cleanPath.split('/').map(p => encodeURIComponent(p)).join('/');
-            const fullUrl = `${BASE_URL}/${encodedPath}`;
-            return { href: fullUrl, src: fullUrl };
-        }
-
-        function hideLoader() {
-            const loader = document.getElementById('loadingUI');
-            if (loader && loader.style.display !== 'none') { 
-                loader.style.opacity = '0'; 
-                setTimeout(() => { loader.style.display = 'none'; }, 300); 
-            }
-        }
-
-        function toggleDashboard() {
-            isDashboardOpen = !isDashboardOpen;
-            const content = document.getElementById('dashboardContent'); 
-            const iconDesktop = document.getElementById('toggleIconDesktop');
-            const iconMobile = document.getElementById('toggleIconMobile');
-            
-            if (isDashboardOpen) { 
-                content.classList.replace('max-h-0', 'max-h-[500px]'); 
-                content.classList.replace('opacity-0', 'opacity-100'); 
-                if (iconDesktop) iconDesktop.className = 'ph-bold ph-caret-up text-lg'; 
-                if (iconMobile) iconMobile.className = 'ph-bold ph-caret-up text-lg'; 
-            } else { 
-                content.classList.replace('max-h-[500px]', 'max-h-0'); 
-                content.classList.replace('opacity-100', 'opacity-0'); 
-                if (iconDesktop) iconDesktop.className = 'ph-bold ph-caret-down text-lg'; 
-                if (iconMobile) iconMobile.className = 'ph-bold ph-caret-down text-lg'; 
-            }
-        }
-
-        async function loadData() {
-            if (!map) return;
-            const icon = document.getElementById('refreshIcon');
-            const text = document.getElementById('refreshText');
-            if (icon) icon.classList.add('spin');
-            if (text) text.innerText = 'กำลังดึงข้อมูล...';
-            
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const response = await fetch(`${BASE_URL}/api/inspections?t=${new Date().getTime()}`, {
-                    signal: controller.signal
+                const response = await fetch(`${API_BASE}/api/inspections`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
                 });
-                clearTimeout(timeoutId);
+
+                const contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("เซิร์ฟเวอร์กำลังตื่นตัว กรุณารอ 10 วินาทีแล้วลองอีกครั้ง");
+                }
 
                 const result = await response.json();
-                
-                if (result.success && Array.isArray(result.data)) {
-                    const transformedData = [];
-                    
-                    result.data.forEach(row => {
-                        const rLat = parseFloat(row.lat);
-                        const rLon = parseFloat(row.lon);
-                        if (isNaN(rLat) || isNaN(rLon)) return;
-                        
-                        let defectsList = [];
-                        Object.keys(activeEquipMap).forEach(key => {
-                            if (isBrokenValue(row[key])) defectsList.push(activeEquipMap[key]);
-                        });
-                        
-                        let isSystemBroken = false;
-                        const groupA = ['power', 'sta_cpu', 'sta_ai', 'sta_di', 'sta_do', 'sta_io', 'plc', 'sta_cctv1', 'sta_cctv2', 'sta_r', 'sta_s', 'sta_wl', 'sta_tro', 'sta_gass', 'sta_wl2', 'sta_saling', 'sta_wl1'];
-                        if (groupA.some(key => isBrokenValue(row[key]))) isSystemBroken = true;
-                        if (isBrokenValue(row.sta_m1) && isBrokenValue(row.sta_m2)) isSystemBroken = true;
-                        if (isBrokenValue(row.sta_p1) && isBrokenValue(row.sta_p2)) isSystemBroken = true;
-
-                        const fiscalYear = getFiscalYearFromDate(row.timestamp || row.createdAt, row.contractYear || row.year);
-
-                        transformedData.push({
-                            code: row.id_name || '-', 
-                            name: row.name_id || 'ไม่ระบุชื่อ', 
-                            location: row.geoAddress || row.install_status || '-', 
-                            basin: (row.code || '-').trim(),
-                            period: (row.saya || '-').trim(), 
-                            year: fiscalYear,
-                            statusUsage: isSystemBroken ? 'O' : 'P', 
-                            statusClean: row.clean ? String(row.clean).trim().toUpperCase() : '-',
-                            defects: defectsList.join(', '), 
-                            remark: row.note || '-', 
-                            comment: row.note2 || '-', 
-                            lat: rLat, 
-                            lng: rLon, 
-                            photos: Array.isArray(row.photos) ? row.photos : []
-                        });
-                    });
-                    allStationData = transformedData;
+                if (response.ok && result.success) {
+                    rawInspections = Array.isArray(result.data) ? result.data : [];
+                    processTrackingData();
                 } else {
-                    allStationData = mockData;
+                    throw new Error(result.message || 'ไม่สามารถดึงข้อมูลได้');
                 }
-            } catch (err) { 
-                console.error("Load Data Error:", err);
-                allStationData = mockData; 
+            } catch (error) {
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message);
             } finally {
-                if (icon) icon.classList.remove('spin');
-                if (text) text.innerText = 'รีเฟรชข้อมูล';
-                hideLoader();
-                updateBasinDropdown(); 
-                renderMap();
+                btn.disabled = false;
             }
         }
 
-        function setStatusFilter(status) {
-            currentStatusSelection = status;
-            document.querySelectorAll('.filter-btn').forEach(btn => { 
-                btn.classList.remove('active', 'border-sky-400', 'border-emerald-400', 'border-rose-400', 'shadow-sm'); 
-            });
-            const activeBtn = document.getElementById('btnFilter' + status);
-            if (activeBtn) { activeBtn.classList.add('active', 'shadow-sm'); }
-            renderMap();
-        }
+        function processTrackingData() {
+            const year = document.getElementById('filterYear').value;
+            const period = document.getElementById('filterPeriod').value;
+            const selectedBasin = document.getElementById('filterBasin').value;
 
-        function renderMap() {
-            if (!markersLayer) return; 
-            markersLayer.clearLayers();
-            
-            const selectedYear = document.getElementById('yearFilter').value;
-            const selectedPeriod = document.getElementById('periodFilter').value;
-            const selectedBasin = document.getElementById('basinFilter').value;
-            
-            let filteredData = allStationData.filter(d => {
-                const matchYear = selectedYear === 'ALL' || String(d.year) === String(selectedYear);
-                const safePeriod = String(d.period || '').replace(/\s+/g, '');
-                const safeSelectedPeriod = String(selectedPeriod || '').replace(/\s+/g, '');
-                const matchPeriod = selectedPeriod === 'ALL' || (safePeriod === safeSelectedPeriod);
-                const matchBasin = selectedBasin === 'ALL' || d.basin === selectedBasin;
-                
-                return matchYear && matchPeriod && matchBasin;
+            // กรองข้อมูลการตรวจจริงตามฟิลเตอร์
+            const filteredInspections = rawInspections.filter(item => {
+                if (year !== 'all' && getFiscalYear(item) !== year) return false;
+                if (period !== 'all') {
+                    const pNum = period.replace(/\D/g, '');
+                    const itemP = String(item.saya || item.period || '').replace(/\s+/g, '');
+                    if (!itemP.includes(pNum) && itemP !== period) return false;
+                }
+                return true;
             });
 
-            document.getElementById('countALL').innerText = filteredData.length;
-            document.getElementById('countP').innerText = filteredData.filter(d => d.statusUsage === 'P').length;
-            document.getElementById('countO').innerText = filteredData.filter(d => d.statusUsage === 'O').length;
+            // สร้าง Set ของรหัสสถานีที่ตรวจแล้ว (แปลงเป็นตัวพิมพ์ใหญ่เพื่อความแม่นยำ)
+            const checkedStationCodes = new Set();
+            filteredInspections.forEach(item => {
+                const code = String(item.id_name || '').trim().toUpperCase();
+                if (code) checkedStationCodes.add(code);
+            });
 
-            if (currentStatusSelection !== 'ALL') {
-                filteredData = filteredData.filter(d => d.statusUsage === currentStatusSelection);
+            let basinsToProcess = [];
+            if (typeof stationsData !== 'undefined') {
+                basinsToProcess = Object.keys(stationsData);
+            } else if (typeof hardcodedBasins !== 'undefined') {
+                basinsToProcess = hardcodedBasins;
             }
 
-            const groupedData = {};
-            filteredData.forEach(p => { 
-                const key = p.lat.toFixed(5) + ',' + p.lng.toFixed(5); 
-                if(!groupedData[key]) groupedData[key]=[]; 
-                groupedData[key].push(p); 
-            });
-            
-            const bounds = [];
+            if (selectedBasin !== 'all') {
+                basinsToProcess = basinsToProcess.filter(b => b === selectedBasin);
+            }
 
-            Object.values(groupedData).forEach(group => {
-                const hasO = group.some(p => p.statusUsage === 'O'); 
-                const hasP = group.some(p => p.statusUsage === 'P');
-                
-                let fc = hasO ? '#fb7185' : (hasP ? '#34d399' : '#ffffff'); 
-                let sc = hasO ? '#e11d48' : (hasP ? '#059669' : '#94a3b8');
+            let grandTotal = 0;
+            let grandChecked = 0;
+            let basinProgressArray = [];
 
-                let stationsHtml = group.map((p, i) => {
-                    const safeName = safeEscapeHtml(p.name); 
-                    const safeLoc = safeEscapeHtml(p.location); 
-                    const safeDefects = safeEscapeHtml(p.defects); 
-                    const safeRemark = safeEscapeHtml(p.remark); 
-                    const safeComment = safeEscapeHtml(p.comment);
-                    
-                    const usageText = p.statusUsage === 'P' ? '<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-emerald-200 uppercase"><i class="ph-bold ph-check"></i> พร้อมใช้งาน</span>' : '<span class="text-rose-700 bg-rose-100 px-2 py-0.5 rounded-lg text-[10px] font-extrabold border border-rose-200 uppercase"><i class="ph-bold ph-warning"></i> ชำรุด</span>';
-                    
-                    const defectsHtml = safeDefects ? `<div class="mt-2 p-2.5 bg-rose-50 border-2 border-rose-100 rounded-xl text-[10px]"><div class="font-extrabold text-rose-600 mb-1 flex items-center gap-1"><i class="ph-fill ph-wrench"></i> อุปกรณ์ชำรุด:</div><div class="text-rose-500 font-bold">${safeDefects}</div></div>` : '';
-                    const extra = (safeRemark !== '-' ? `<div class="bg-sky-50 p-2 rounded-lg border border-sky-100 mt-2"><span class="font-bold text-sky-600 block text-[9px] uppercase">หมายเหตุ</span>${safeRemark}</div>` : '') + 
-                                  (safeComment !== '-' ? `<div class="bg-amber-50 p-2 rounded-lg border border-amber-100 mt-1.5"><span class="font-bold text-amber-600 block text-[9px] uppercase">กรรมการ</span>${safeComment}</div>` : '');
-                    
-                    let photoHtml = '';
-                    if (p.photos && p.photos.length > 0 && p.photos[0]) {
-                        const imgInfo = parseImageInfo(p.photos[0].thumbnailUrl || p.photos[0].webViewLink || p.photos[0].fileId);
-                        if (imgInfo) {
-                            photoHtml = `<div class="mt-2 mb-2 relative border-2 border-slate-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                <a href="${imgInfo.href}" target="_blank">
-                                    <img src="${imgInfo.src}" class="w-full h-28 object-cover" onerror="this.onerror=null; this.src='https://placehold.co/400x200/f1f5f9/94a3b8?text=Image+Not+Found';">
-                                    <div class="absolute bottom-0 w-full bg-slate-900/70 backdrop-blur-sm text-white text-center font-bold text-[9px] py-1.5 flex items-center justify-center gap-1">
-                                        <i class="ph-bold ph-images"></i> ดูภาพแนบทั้งหมด (${p.photos.length})
-                                    </div>
-                                </a>
-                            </div>`;
-                        }
-                    }
-                    
-                    return `
-                    <div class="p-4 ${i>0?'border-t-4 border-slate-100':''}">
-                        <div class="flex items-start justify-between mb-2">
-                            <h3 class="text-[13px] font-extrabold text-slate-800 leading-tight flex-grow pr-2">${safeName}</h3>
-                            ${usageText}
-                        </div>
-                        ${photoHtml}
-                        <div class="text-xs mt-2 space-y-1.5 font-medium">
-                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">รหัสสถานี</span><b class="text-sky-600">${p.code}</b></div>
-                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">ลุ่มน้ำ</span><span class="text-slate-700 font-bold">${p.basin}</span></div>
-                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">ที่ตั้ง</span><span class="text-right truncate max-w-[60%] text-slate-700" title="${safeLoc}">${safeLoc}</span></div>
-                            <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg"><span class="text-slate-500 font-bold text-[10px] uppercase">ปีงบ / งวด</span><span class="text-slate-700 font-bold bg-slate-200 px-2 py-0.5 rounded-md">${p.year} / ${p.period}</span></div>
-                            ${defectsHtml}
-                            <div class="text-[10px] text-slate-600 mt-2">${extra}</div>
-                        </div>
-                    </div>`;
-                }).join('');
+            basinsToProcess.forEach(bName => {
+                const stationMap = (typeof stationsData !== 'undefined' && stationsData[bName]) ? stationsData[bName] : {};
+                const stCodes = Object.keys(stationMap);
+                const totalInBasin = stCodes.length;
 
-                const circle = L.circleMarker([group[0].lat, group[0].lng], { 
-                    radius: group.length>1?10:8, 
-                    fillColor: fc, color: sc, weight: 3, fillOpacity: 0.95 
+                let checkedInBasin = 0;
+                const stationDetails = [];
+
+                stCodes.forEach(code => {
+                    const normCode = code.trim().toUpperCase();
+                    const isChecked = checkedStationCodes.has(normCode);
+                    if (isChecked) checkedInBasin++;
+                    stationDetails.push({
+                        code,
+                        name: stationMap[code] || code,
+                        isChecked
+                    });
                 });
-                
-                circle.bindTooltip(group.length>1 ? `${group.length} สถานี` : group[0].code, { permanent: true, direction: 'bottom', className: 'simple-tooltip' });
-                circle.bindPopup(`<div class="w-full max-h-[350px] overflow-y-auto custom-scrollbar bg-white">${stationsHtml}</div>`);
-                circle.addTo(markersLayer); 
-                bounds.push([group[0].lat, group[0].lng]);
+
+                grandTotal += totalInBasin;
+                grandChecked += checkedInBasin;
+
+                basinProgressArray.push({
+                    basinName,
+                    total: totalInBasin,
+                    checked: checkedInBasin,
+                    percent: totalInBasin > 0 ? Math.round((checkedInBasin / totalInBasin) * 100) : 0,
+                    stations: stationDetails
+                });
             });
-            
-            if (bounds.length > 0) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+
+            const grandPending = grandTotal - grandChecked;
+
+            document.getElementById('statTotalStations').textContent = `${grandTotal} สถานี`;
+            document.getElementById('statCheckedStations').textContent = `${grandChecked} สถานี`;
+            document.getElementById('statPendingStations').textContent = `${grandPending} สถานี`;
+
+            renderBasinProgressCards(basinProgressArray);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // โหลดรายชื่อปีงบประมาณและลุ่มน้ำจาก constants.js ทันที
-            initFilters();
+        function renderProgressCards(array) {
+            renderBasinProgressCards(array);
+        }
 
-            try {
-                map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
-                L.control.zoom({ position: 'bottomright' }).addTo(map);
-                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-                    attribution: '&copy; Esri', 
-                    maxZoom: 19 
-                }).addTo(map);
-                markersLayer = L.layerGroup().addTo(map);
-                
-                setTimeout(hideLoader, 1000);
-                setTimeout(loadData, 300);
-            } catch (e) {
-                console.error("Map Init Error:", e);
-                hideLoader();
+        function renderBasinProgressCards(array) {
+            const container = document.getElementById('basinProgressContainer');
+            if (!array || array.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center bg-white rounded-2xl text-slate-400 font-bold">ไม่พบข้อมูลลุ่มน้ำ</div>`;
+                return;
             }
-        });
+
+            let html = '';
+            array.forEach(b => {
+                const barColor = b.percent === 100 ? 'bg-emerald-500' : (b.percent > 50 ? 'bg-orange-500' : 'bg-amber-500');
+
+                const stationTags = b.stations.map(st => `
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border ${st.isChecked ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}">
+                        <i class="ph-bold ${st.isChecked ? 'ph-check-circle text-emerald-600' : 'ph-clock'}"></i>
+                        <span>${safeEscape(st.code)} (${safeEscape(st.name)})</span>
+                    </span>
+                `).join('');
+
+                html += `
+                <div class="progress-card p-5 md:p-6">
+                    <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+                        <h3 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-2">
+                            <i class="ph-fill ph-waves text-orange-500"></i> กลุ่มลุ่มน้ำ${safeEscape(b.basinName)}
+                        </h3>
+                        <div class="flex items-center gap-3 text-xs font-extrabold">
+                            <span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-xl">ตรวจแล้ว: ${b.checked} สถานี</span>
+                            <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-xl">ทั้งหมด: ${b.total} สถานี</span>
+                            <span class="text-orange-600 font-black text-sm">${b.percent}%</span>
+                        </div>
+                    </div>
+
+                    <!-- หลอดแสดงเปอร์เซ็นต์ความคืบหน้า -->
+                    <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-4">
+                        <div class="h-full ${barColor} transition-all duration-500 rounded-full" style="width: ${b.percent}%"></div>
+                    </div>
+
+                    <!-- รายชื่อสถานีย่อย -->
+                    <details class="group">
+                        <summary class="cursor-pointer text-xs font-extrabold text-orange-600 hover:text-orange-700 select-none">
+                            ดูรายชื่อสถานีทั้งหมดในลุ่มน้ำนี้ (${b.total} สถานี)
+                        </summary>
+                        <div class="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100 max-h-48 overflow-y-auto">
+                            ${stationTags}
+                        </div>
+                    </details>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
     </script>
 </body>
 </html>
